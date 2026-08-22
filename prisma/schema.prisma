@@ -54,10 +54,11 @@ model VerificationToken {
 // ---------- Dominio da aplicacao ----------
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  image     String?
+  id            String    @id @default(uuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
 
   // Identificador unico: nickname + "#" + userTag (6 digitos)
   nickname  String?
