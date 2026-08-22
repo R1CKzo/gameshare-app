@@ -1,7 +1,14 @@
-const { app, BrowserWindow, shell, dialog } = require("electron");
+const { app, BrowserWindow, shell, dialog, Notification } = require("electron");
 const { autoUpdater } = require("electron-updater");
+const log = require("electron-log");
 const crypto = require("crypto");
 const path = require("path");
+
+// Log persistido em disco (%APPDATA%/GameShare/logs/main.log) — sem isso,
+// qualquer erro no auto-updater só existiria no console de uma janela que
+// ninguém está olhando, impossível de diagnosticar depois.
+log.transports.file.level = "info";
+autoUpdater.logger = log;
 
 const APP_URL = "https://gameshare-app.vercel.app";
 
@@ -103,20 +110,36 @@ function startDesktopLogin() {
   }, 2000);
 }
 
-// Checa atualizacao toda vez que o app abre. Se tiver uma versao nova
-// publicada nos Releases do GitHub, baixa sozinho e pergunta se pode
-// reiniciar pra aplicar — sem precisar reinstalar manualmente.
+// Checa atualizacao toda vez que o app abre (e depois, a cada 4h se ficar
+// aberto). Se tiver uma versao nova publicada nos Releases do GitHub,
+// baixa sozinho em segundo plano e pergunta se pode reiniciar pra aplicar
+// — nunca precisa baixar/instalar manualmente de novo pelo site.
 function setupAutoUpdate() {
   autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("checking-for-update", () => {
+    log.info("Checando atualizacoes...");
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    log.info("Atualizacao encontrada:", info.version, "— baixando em segundo plano.");
+    notify("Atualizando o GameShare", `Baixando a versao ${info.version}...`);
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    log.info("Ja esta na versao mais recente.");
+  });
 
   autoUpdater.on("update-downloaded", (info) => {
+    log.info("Atualizacao baixada:", info.version);
     if (!mainWindow) return;
     dialog
       .showMessageBox(mainWindow, {
         type: "info",
         title: "Atualizacao pronta",
         message: `Uma nova versao do GameShare (${info.version}) foi baixada.`,
-        detail: "Reinicie o app pra aplicar a atualizacao.",
+        detail: "Reinicie o app pra aplicar a atualizacao. Se voce so fechar o app normalmente, ela e aplicada sozinha na proxima vez que abrir.",
         buttons: ["Reiniciar agora", "Depois"],
         defaultId: 0,
         cancelId: 1,
@@ -127,12 +150,22 @@ function setupAutoUpdate() {
   });
 
   autoUpdater.on("error", (err) => {
-    console.error("Erro ao checar atualizacoes:", err);
+    log.error("Erro ao checar/baixar atualizacoes:", err);
   });
 
-  autoUpdater.checkForUpdates().catch((err) => {
-    console.error("Erro ao checar atualizacoes:", err);
-  });
+  function check() {
+    autoUpdater.checkForUpdates().catch((err) => {
+      log.error("Erro ao checar atualizacoes:", err);
+    });
+  }
+
+  check();
+  setInterval(check, 4 * 60 * 60 * 1000);
+}
+
+function notify(title, body) {
+  if (!Notification.isSupported()) return;
+  new Notification({ title, body, icon: path.join(__dirname, "build", "icon.ico") }).show();
 }
 
 app.whenReady().then(() => {
