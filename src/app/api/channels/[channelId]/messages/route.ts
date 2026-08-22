@@ -92,9 +92,10 @@ export async function POST(request: Request, { params }: { params: { channelId: 
     select: messageSelect,
   });
 
-  pusherServer.trigger(textChannelPusherName(channel.id), NEW_MESSAGE_EVENT, message).catch(() => {
+  pusherServer.trigger(textChannelPusherName(channel.id), NEW_MESSAGE_EVENT, message).catch((err) => {
     // Se o Pusher falhar, a mensagem ja esta salva — quem esta com a
     // pagina aberta so nao ve na hora, ve no proximo carregamento.
+    console.error("Falha ao disparar evento no Pusher:", err);
   });
 
   return NextResponse.json(message);
