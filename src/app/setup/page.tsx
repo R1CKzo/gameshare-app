@@ -1,10 +1,12 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function SetupPage() {
   const router = useRouter();
+  const { update } = useSession();
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,6 +29,11 @@ export default function SetupPage() {
         setError(data.error ?? "Erro ao definir nickname.");
         return;
       }
+
+      // Forca o token/cookie de sessao a ser reemitido com o nickname novo
+      // antes de navegar, senao o middleware ainda ve a sessao antiga e
+      // manda o usuario de volta pro /setup.
+      await update();
 
       const callbackUrl = new URLSearchParams(window.location.search).get("callbackUrl");
       router.push(callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/");
