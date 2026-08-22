@@ -138,14 +138,18 @@ int wmain(int argc, wchar_t* argv[]) {
     return 1;
   }
 
-  DWORD targetPid = 0;
-  PROCESS_LOOPBACK_MODE loopbackMode;
+  // Preenchido direto na struct de ativacao (em vez de guardar numa
+  // variavel local do tipo do enum) pra nao depender de como o SDK exporta
+  // o nome do tipo — so os valores do enum (PROCESS_LOOPBACK_MODE_*) e os
+  // campos da struct precisam existir, igual o resto do arquivo ja usa.
+  AUDIOCLIENT_ACTIVATION_PARAMS activationParams = {};
+  activationParams.ActivationType = AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK;
 
   if (wcscmp(argv[1], L"exclude") == 0) {
     // Grava tudo, exceto o pid dado (+ seus filhos) — usado pra "audio do
     // sistema, menos a propria chamada".
-    targetPid = static_cast<DWORD>(_wtoi(argv[2]));
-    loopbackMode = PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE;
+    activationParams.ProcessLoopbackParams.TargetProcessId = static_cast<DWORD>(_wtoi(argv[2]));
+    activationParams.ProcessLoopbackParams.ProcessLoopbackMode = PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE;
   } else if (wcscmp(argv[1], L"include-window") == 0) {
     // Grava so o processo dono da janela dada (+ filhos) — usado pra
     // "audio de um app/jogo especifico". O HWND vem do id que o
@@ -156,8 +160,8 @@ int wmain(int argc, wchar_t* argv[]) {
       fwprintf(stderr, L"loopback_helper: nao foi possivel achar o processo dono dessa janela\n");
       return 2;
     }
-    targetPid = ownerPid;
-    loopbackMode = PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE;
+    activationParams.ProcessLoopbackParams.TargetProcessId = ownerPid;
+    activationParams.ProcessLoopbackParams.ProcessLoopbackMode = PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE;
   } else {
     fwprintf(stderr, L"loopback_helper: modo desconhecido '%ls'\n", argv[1]);
     return 1;
@@ -188,11 +192,6 @@ int wmain(int argc, wchar_t* argv[]) {
     CoUninitialize();
     return 2;
   }
-
-  AUDIOCLIENT_ACTIVATION_PARAMS activationParams = {};
-  activationParams.ActivationType = AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK;
-  activationParams.ProcessLoopbackParams.TargetProcessId = targetPid;
-  activationParams.ProcessLoopbackParams.ProcessLoopbackMode = loopbackMode;
 
   PROPVARIANT activateParamsVariant;
   PropVariantInit(&activateParamsVariant);
