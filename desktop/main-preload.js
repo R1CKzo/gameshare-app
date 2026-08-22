@@ -14,5 +14,17 @@ if (location.origin === ALLOWED_ORIGIN) {
     // so enxergaria a API generica getDisplayMedia, que o Electron nao
     // responde sozinho.
     getScreenSources: () => ipcRenderer.invoke("screen-share:get-sources"),
+
+    // Audio do sistema "menos a propria chamada": pede pro processo
+    // principal ativar a captura nativa (loopback_helper.exe) e devolve se
+    // deu certo. Os pedaços de audio PCM chegam depois via onSystemAudioChunk
+    // ate stopSystemAudioExcludingSelf ser chamado.
+    startSystemAudioExcludingSelf: () => ipcRenderer.invoke("screen-share:start-system-audio-exclude-self"),
+    stopSystemAudioExcludingSelf: () => ipcRenderer.send("screen-share:stop-system-audio-exclude-self"),
+    onSystemAudioChunk: (callback) => {
+      const listener = (_event, chunk) => callback(chunk);
+      ipcRenderer.on("screen-share:audio-chunk", listener);
+      return () => ipcRenderer.removeListener("screen-share:audio-chunk", listener);
+    },
   });
 }

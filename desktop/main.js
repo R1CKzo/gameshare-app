@@ -4,6 +4,7 @@ const log = require("electron-log");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 
 // Log persistido em disco (%APPDATA%/GameShare/logs/main.log) — sem isso,
 // qualquer erro no auto-updater só existiria no console de uma janela que
@@ -19,6 +20,20 @@ const APP_URL = "https://gameshare-app.vercel.app";
 // lista e o app abre direto. A 1.0.3 junta tudo desde o lancamento porque
 // e a primeira vez que essa tela existe.
 const CHANGELOG = {
+  "1.0.5": {
+    version: "1.0.5",
+    title: "Audio do sistema sem eco",
+    intro: "Corrigido o eco que rolava ao compartilhar a tela inteira com audio do sistema:",
+    sections: [
+      {
+        heading: "Compartilhamento de tela",
+        items: [
+          "Nova opcao 'Tudo, menos a chamada': grava jogos, musica e video normalmente, mas exclui so a propria chamada de voz — sem eco pra quem esta ligado.",
+          "Audio do sistema agora e sempre uma escolha explicita (desligado por padrao), com aviso claro do risco de eco em cada opcao.",
+        ],
+      },
+    ],
+  },
   "1.0.4": {
     version: "1.0.4",
     title: "Compartilhamento de tela nativo",
@@ -30,7 +45,6 @@ const CHANGELOG = {
           "Escolha entre compartilhar a tela inteira ou so a janela de um app/jogo especifico.",
           "Selecao de qualidade: 720p, 1080p ou 1440p.",
           "Selecao de taxa de quadros: 30 ou 60 FPS.",
-          "Audio do sistema capturado automaticamente ao compartilhar a tela inteira.",
         ],
       },
     ],
@@ -183,6 +197,101 @@ ipcMain.handle("screen-share:get-sources", async () => {
   }
 });
 
+function getLoopbackHelperPath() {
+  const fileName = "loopback_helper.exe";
+  return app.isPackaged ? path.join(process.resourcesPath, fileName) : path.join(__dirname, fileName);
+}
+
+let loopbackProc = null;
+
+function stopLoopbackCapture() {
+  if (loopbackProc) {
+    loopbackProc.kill();
+    loopbackProc = null;
+  }
+}
+
+// Compartilhamento de tela com "audio do sistema, menos a propria
+// chamada": spawna um processo separado (loopback_helper.exe, compilado a
+// parte — ver desktop/native/loopback-helper) que usa a API de
+// process-loopback do Windows pra gravar tudo que esta tocando EXCETO o
+// que o proprio GameShare esta tocando (a voz de quem esta na chamada).
+// Sem isso, o audio do sistema capturado inclui a propria chamada de
+// volta, causando eco pra quem esta ligado. Processo separado (nao um
+// addon nativo do Node) de proposito: se ele travar ou o Windows for
+// antigo demais pra suportar, so essa funcao falha — o app principal e a
+// chamada de voz continuam normais.
+const LOOPBACK_HEADER_SIZE = 16;
+
+ipcMain.handle("screen-share:start-system-audio-exclude-self", (event) => {
+  return new Promise((resolve) => {
+    stopLoopbackCapture();
+
+    const helperPath = getLoopbackHelperPath();
+    if (!fs.existsSync(helperPath)) {
+      log.warn("loopback_helper.exe nao encontrado em", helperPath);
+      resolve({ ok: false, reason: "helper-not-found" });
+      return;
+    }
+
+    const proc = spawn(helperPath, [String(process.pid)], { windowsHide: true });
+    loopbackProc = proc;
+
+    let headerBuffer = Buffer.alloc(0);
+    let headerChecked = false;
+    let settled = false;
+
+    const timeoutId = setTimeout(() => settle({ ok: false, reason: "timeout" }), 4000);
+    function settle(result) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      resolve(result);
+    }
+
+    proc.stdout.on("data", (chunk) => {
+      if (!headerChecked) {
+        headerBuffer = Buffer.concat([headerBuffer, chunk]);
+        if (headerBuffer.length < LOOPBACK_HEADER_SIZE) return;
+        const header = headerBuffer.subarray(0, LOOPBACK_HEADER_SIZE);
+        const rest = headerBuffer.subarray(LOOPBACK_HEADER_SIZE);
+        headerChecked = true;
+        if (header.toString("ascii", 0, 4) !== "GSL1") {
+          settle({ ok: false, reason: "bad-header" });
+          proc.kill();
+          return;
+        }
+        settle({ ok: true });
+        if (rest.length > 0 && !event.sender.isDestroyed()) {
+          event.sender.send("screen-share:audio-chunk", rest);
+        }
+        return;
+      }
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("screen-share:audio-chunk", chunk);
+      }
+    });
+
+    proc.stderr.on("data", (chunk) => {
+      log.warn("loopback_helper:", chunk.toString("utf-8").trim());
+    });
+
+    proc.on("exit", (code) => {
+      if (loopbackProc === proc) loopbackProc = null;
+      settle({ ok: false, reason: `exited-${code}` });
+    });
+
+    proc.on("error", (err) => {
+      log.error("Erro ao iniciar loopback_helper:", err);
+      settle({ ok: false, reason: "spawn-error" });
+    });
+  });
+});
+
+ipcMain.on("screen-share:stop-system-audio-exclude-self", () => {
+  stopLoopbackCapture();
+});
+
 let mainWindow;
 let loginPollInterval = null;
 
@@ -227,6 +336,7 @@ function createWindow() {
 
   mainWindow.on("closed", () => {
     mainWindow = null;
+    stopLoopbackCapture();
   });
 }
 
@@ -354,3 +464,8 @@ app.on("window-all-closed", () => {
   if (!allowQuitOnAllClosed) return;
   if (process.platform !== "darwin") app.quit();
 });
+
+// Processos filhos (child_process.spawn) nao morrem sozinhos so porque o
+// pai saiu — sem isso o loopback_helper.exe podia ficar orfao rodando se o
+// app fechasse de um jeito que nao passa por mainWindow.on("closed").
+app.on("before-quit", stopLoopbackCapture);

@@ -26,6 +26,12 @@ jobs:
         with:
           node-version: 20
 
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Compile loopback_helper.exe (captura de audio nativa)
+        working-directory: desktop/native/loopback-helper
+        run: cl /nologo /EHsc /std:c++17 /O2 /W4 loopback_helper.cpp /link /OUT:..\..\loopback_helper.exe
+
       - name: Install dependencies
         run: npm install
 
