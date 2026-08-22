@@ -35,6 +35,7 @@ export function TextChannelView({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldStickToBottomRef = useRef(true);
+  const latestCreatedAtRef = useRef<string | null>(null);
 
   // Carrega o historico mais recente ao abrir o canal.
   useEffect(() => {
@@ -79,9 +80,36 @@ export function TextChannelView({
   // mensagem nova), mas nao forca o scroll se a pessoa rolou pra cima pra
   // ler mensagens antigas.
   useEffect(() => {
+    latestCreatedAtRef.current = messages.length > 0 ? messages[messages.length - 1].createdAt : null;
     if (!shouldStickToBottomRef.current) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
+
+  // Reforço além do Pusher: se o WebSocket cair silenciosamente sem que a
+  // pagina perceba (comum quando a aba fica em segundo plano no celular,
+  // ou numa rede que bloqueia WebSocket depois de um tempo), essa checagem
+  // periodica garante que a mensagem aparece de qualquer jeito, sem
+  // precisar de refresh manual.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (!latestCreatedAtRef.current) return;
+      try {
+        const res = await fetch(`/api/channels/${channelId}/messages?after=${latestCreatedAtRef.current}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const newer: ChatMessage[] = data.messages ?? [];
+        if (newer.length === 0) return;
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const toAdd = newer.filter((m) => !existingIds.has(m.id));
+          return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+        });
+      } catch {
+        // silencioso — e so um reforço, a proxima tentativa resolve
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [channelId]);
 
   function handleScroll() {
     const el = scrollRef.current;

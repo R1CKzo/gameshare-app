@@ -31,9 +31,13 @@ async function requireMembership(userId: string, channelId: string) {
   return channel;
 }
 
-// Historico paginado: sem "before", devolve as mensagens mais recentes.
-// Com "before" (um cursor de createdAt em ISO), devolve a pagina anterior
-// — usado pra carregar mensagens mais antigas ao rolar pra cima.
+// Historico paginado: sem cursor, devolve as mensagens mais recentes. Com
+// "before" (createdAt em ISO), devolve a pagina anterior — usado pra
+// carregar mensagens mais antigas ao rolar pra cima. Com "after", devolve
+// so mensagens mais novas que o cursor — usado como reforço além do
+// Pusher: se o WebSocket cair silenciosamente (comum em navegador mobile
+// com a aba em segundo plano), o client re-pergunta periodicamente "tem
+// mensagem nova?" em vez de depender só da entrega em tempo real.
 export async function GET(request: Request, { params }: { params: { channelId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -45,9 +49,25 @@ export async function GET(request: Request, { params }: { params: { channelId: s
     return NextResponse.json({ error: "Canal nao encontrado." }, { status: 404 });
   }
 
-  const before = new URL(request.url).searchParams.get("before");
-  const cursorDate = before ? new Date(before) : null;
+  const searchParams = new URL(request.url).searchParams;
+  const before = searchParams.get("before");
+  const after = searchParams.get("after");
 
+  if (after) {
+    const afterDate = new Date(after);
+    const messages = await prisma.message.findMany({
+      where: {
+        channelId: channel.id,
+        ...(!Number.isNaN(afterDate.getTime()) ? { createdAt: { gt: afterDate } } : {}),
+      },
+      orderBy: { createdAt: "asc" },
+      take: PAGE_SIZE,
+      select: messageSelect,
+    });
+    return NextResponse.json({ messages, hasMore: false });
+  }
+
+  const cursorDate = before ? new Date(before) : null;
   const messages = await prisma.message.findMany({
     where: {
       channelId: channel.id,
