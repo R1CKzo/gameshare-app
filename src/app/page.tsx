@@ -1,64 +1,66 @@
-import Image from "next/image";
-import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const liveStreams = await prisma.stream.findMany({
-    where: { isLive: true },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      title: true,
-      user: { select: { nickname: true, userTag: true, image: true, name: true } },
-    },
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    return <LandingPage />;
+  }
+
+  if (!session.user.nickname || !session.user.userTag) {
+    redirect("/setup");
+  }
+
+  const membership = await prisma.serverMember.findFirst({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: "asc" },
+    select: { serverId: true },
   });
 
-  return (
-    <div>
-      <section className="mb-10">
-        <h1 className="text-3xl font-bold text-white">Lives agora</h1>
-        <p className="mt-1 text-slate-400">
-          Assista quem esta jogando ao vivo ou inicie sua propria transmissao.
-        </p>
-      </section>
+  if (membership) {
+    redirect(`/servers/${membership.serverId}`);
+  }
 
-      {liveStreams.length === 0 ? (
-        <p className="text-slate-500">Nenhuma live ativa no momento.</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {liveStreams.map((s) => {
-            const usernameTag = `${s.user.nickname}#${s.user.userTag}`;
-            return (
-              <Link
-                key={usernameTag}
-                href={`/stream/${encodeURIComponent(usernameTag)}`}
-                className="rounded-lg border border-slate-800 bg-surface p-4 transition hover:border-primary"
-              >
-                <div className="mb-3 flex aspect-video items-center justify-center rounded-md bg-black/40 text-xs text-slate-500">
-                  <span className="rounded bg-danger px-2 py-0.5 text-white">AO VIVO</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {s.user.image && (
-                    <Image
-                      src={s.user.image}
-                      alt={usernameTag}
-                      width={32}
-                      height={32}
-                      className="rounded-full"
-                    />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-white">{s.title}</p>
-                    <p className="text-xs text-slate-400">{usernameTag}</p>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+  redirect("/servers/new");
+}
+
+function LandingPage() {
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
+      <div className="pointer-events-none absolute -top-56 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.20)_0%,rgba(34,211,238,0.08)_45%,transparent_70%)]" />
+
+      <div className="relative flex flex-col items-center text-center">
+        <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v4" />
+            <path d="M12 18v4" />
+            <path d="M4.9 4.9l2.8 2.8" />
+            <path d="M16.3 16.3l2.8 2.8" />
+            <path d="M2 12h4" />
+            <path d="M18 12h4" />
+            <path d="M4.9 19.1l2.8-2.8" />
+            <path d="M16.3 7.7l2.8-2.8" />
+          </svg>
         </div>
-      )}
+
+        <h1 className="font-display text-3xl font-bold">
+          Game<span className="text-primary">Share</span>
+        </h1>
+        <p className="mt-3 max-w-sm text-[15px] text-muted">
+          Servidores para jogar com a galera. Entre numa sala e compartilhe sua tela ao vivo, sem
+          precisar de outro app.
+        </p>
+
+        <GoogleSignInButton className="mt-8 rounded-full bg-primary px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_4px_16px_rgba(124,58,237,0.35)] transition hover:-translate-y-px" />
+      </div>
     </div>
   );
 }

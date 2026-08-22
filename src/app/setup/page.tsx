@@ -38,41 +38,71 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="mb-1 text-2xl font-bold text-white">Escolha seu nickname</h1>
-      <p className="mb-6 text-sm text-slate-400">
-        Voce recebera uma tag numerica unica, ex: <span className="text-accent">SeuNick#482913</span>
-      </p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
+      <div className="pointer-events-none absolute -top-56 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.20)_0%,rgba(34,211,238,0.08)_45%,transparent_70%)]" />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="nickname" className="mb-1 block text-sm text-slate-300">
-            Nickname
-          </label>
-          <input
-            id="nickname"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            placeholder="ex: shadowplayer"
-            minLength={3}
-            maxLength={16}
-            pattern="[a-zA-Z0-9_]+"
-            required
-            className="w-full rounded-md border border-slate-700 bg-surface px-3 py-2 text-white outline-none focus:border-primary"
-          />
-          <p className="mt-1 text-xs text-slate-500">3-16 caracteres: letras, numeros ou underline.</p>
+      <div className="relative w-full max-w-md rounded-[20px] border border-white/[0.07] bg-surface p-10 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+        <div className="mb-5 flex justify-center">
+          <div className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v4" />
+              <path d="M12 18v4" />
+              <path d="M4.9 4.9l2.8 2.8" />
+              <path d="M16.3 16.3l2.8 2.8" />
+              <path d="M2 12h4" />
+              <path d="M18 12h4" />
+              <path d="M4.9 19.1l2.8-2.8" />
+              <path d="M16.3 7.7l2.8-2.8" />
+            </svg>
+          </div>
         </div>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        <h1 className="text-center font-display text-2xl font-bold">Escolha seu nickname</h1>
+        <p className="mt-2 text-center text-sm leading-relaxed text-muted">
+          Voce vai receber uma tag numerica unica, assim ninguem te confunde com outro jogador.
+        </p>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-primary px-4 py-2 font-medium text-white hover:bg-primary/90 disabled:opacity-50"
-        >
-          {loading ? "Salvando..." : "Confirmar"}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+          <div>
+            <label htmlFor="nickname" className="mb-2 block text-xs font-bold tracking-wide text-muted">
+              NICKNAME
+            </label>
+            <input
+              id="nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="ex: shadowplayer"
+              minLength={3}
+              maxLength={16}
+              pattern="[a-zA-Z0-9_]+"
+              required
+              className="h-12 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-[15px] font-semibold outline-none focus:border-primary"
+            />
+            <p className="mt-1.5 text-xs text-dim">3-16 caracteres: letras, numeros ou underline.</p>
+          </div>
+
+          {nickname && (
+            <div>
+              <div className="mb-2 text-xs font-bold tracking-wide text-muted">PRE-VISUALIZACAO</div>
+              <div className="inline-flex items-center gap-0.5 rounded-full bg-elevated px-4 py-2">
+                <span className="text-[15px] font-bold">{nickname}</span>
+                <span className="text-[15px] font-bold text-accent">#??????</span>
+              </div>
+            </div>
+          )}
+
+          {error && <p className="text-sm text-danger">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="h-[50px] w-full rounded-xl bg-primary text-[15px] font-bold text-white transition hover:bg-primary-hover disabled:opacity-60"
+          >
+            {loading ? "Salvando..." : "Confirmar e entrar"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

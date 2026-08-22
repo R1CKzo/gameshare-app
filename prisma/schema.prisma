@@ -68,27 +68,66 @@ model User {
 
   accounts Account[]
   sessions Session[]
-  stream   Stream?
+
+  ownedServers Server[]       @relation("ServerOwner")
+  memberships  ServerMember[]
+  broadcasting Channel[]      @relation("ChannelBroadcaster")
 
   // O par nickname+userTag deve ser unico no banco
   @@unique([nickname, userTag])
 }
 
-model Stream {
+// ---------- Servidores (comunidades tipo Discord) ----------
+
+model Server {
+  id         String   @id @default(uuid())
+  name       String
+  inviteCode String   @unique
+  createdAt  DateTime @default(now())
+
+  ownerId String
+  owner   User   @relation("ServerOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  members  ServerMember[]
+  channels Channel[]
+}
+
+model ServerMember {
   id        String   @id @default(uuid())
-  title     String
-  isLive    Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-  // Identificador do peer WebRTC (PeerJS) usado pelo streamer para
-  // receber chamadas dos espectadores
-  peerId    String   @unique
-
-  // Um canal (Stream) por usuario; isLive alterna entre ao-vivo/offline
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  serverId String
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serverId])
+}
+
+enum ChannelType {
+  TEXT
+  CALL
+}
+
+model Channel {
+  id       String      @id @default(uuid())
+  name     String
+  type     ChannelType
+  position Int         @default(0)
+
+  serverId String
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  // Usado apenas em canais do tipo CALL: quem esta compartilhando a tela agora
+  isLive             Boolean   @default(false)
+  peerId             String?   @unique
+  broadcasterId      String?
+  broadcaster        User?     @relation("ChannelBroadcaster", fields: [broadcasterId], references: [id], onDelete: SetNull)
+  broadcastStartedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([isLive])
+  @@index([serverId])
 }

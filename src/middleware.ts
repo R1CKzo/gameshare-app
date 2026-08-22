@@ -25,7 +25,10 @@ export default withAuth(
   }
 );
 
-// Protege apenas as rotas que exigem usuario autenticado + nickname definido
+// Protege apenas as rotas que exigem usuario autenticado + nickname definido.
+// "/" fica de fora de proposito: e a landing publica e ela mesma decide,
+// no server component, para onde mandar o usuario (evita loop de redirect
+// com pages.signIn = "/").
 export const config = {
-  matcher: ["/setup", "/stream/new/:path*"],
+  matcher: ["/setup", "/servers/:path*"],
 };
