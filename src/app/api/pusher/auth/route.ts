@@ -5,9 +5,11 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { pusherServer } from "@/lib/pusher";
 
-// Autoriza a inscricao num canal privado do Pusher. So deixa passar se a
-// pessoa logada for membro do servidor dono do canal de texto — sem isso,
-// qualquer um com o channelId conseguiria escutar as mensagens.
+// Autoriza a inscricao num canal privado do Pusher — de um canal de texto
+// de servidor ("private-channel-...") ou de uma DM ("private-dm-...").
+// So deixa passar se a pessoa logada realmente faz parte daquela
+// conversa; sem isso, qualquer um com o id conseguiria escutar as
+// mensagens de qualquer canal ou DM.
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -21,27 +23,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Requisicao invalida." }, { status: 400 });
   }
 
-  const channelId = channelName.replace(/^private-channel-/, "");
-  if (channelId === channelName) {
-    return NextResponse.json({ error: "Canal invalido." }, { status: 400 });
-  }
+  const authorized = channelName.startsWith("private-dm-")
+    ? await canAccessDM(session.user.id, channelName.replace(/^private-dm-/, ""))
+    : channelName.startsWith("private-channel-")
+      ? await canAccessServerChannel(session.user.id, channelName.replace(/^private-channel-/, ""))
+      : false;
 
-  const channel = await prisma.channel.findUnique({
-    where: { id: channelId },
-    select: { serverId: true },
-  });
-  if (!channel) {
-    return NextResponse.json({ error: "Canal nao encontrado." }, { status: 404 });
-  }
-
-  const membership = await prisma.serverMember.findUnique({
-    where: { userId_serverId: { userId: session.user.id, serverId: channel.serverId } },
-    select: { id: true },
-  });
-  if (!membership) {
-    return NextResponse.json({ error: "Voce nao e membro desse servidor." }, { status: 403 });
+  if (!authorized) {
+    return NextResponse.json({ error: "Sem acesso a esse canal." }, { status: 403 });
   }
 
   const authResponse = pusherServer.authorizeChannel(socketId, channelName);
   return NextResponse.json(authResponse);
+}
+
+async function canAccessServerChannel(userId: string, channelId: string) {
+  const channel = await prisma.channel.findUnique({
+    where: { id: channelId },
+    select: { serverId: true },
+  });
+  if (!channel) return false;
+
+  const membership = await prisma.serverMember.findUnique({
+    where: { userId_serverId: { userId, serverId: channel.serverId } },
+    select: { id: true },
+  });
+  return Boolean(membership);
+}
+
+async function canAccessDM(userId: string, dmChannelId: string) {
+  const participant = await prisma.dMParticipant.findUnique({
+    where: { dmChannelId_userId: { dmChannelId, userId } },
+    select: { id: true },
+  });
+  return Boolean(participant);
 }

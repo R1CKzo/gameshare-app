@@ -1,0 +1,55 @@
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
+
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+// Aceita um pedido de amizade recebido. So o "addressee" (quem recebeu)
+// pode aceitar — o requester so pode cancelar (DELETE).
+export async function PATCH(request: Request, { params }: { params: { friendshipId: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+  }
+
+  const friendship = await prisma.friendship.findUnique({
+    where: { id: params.friendshipId },
+    select: { addresseeId: true, status: true },
+  });
+  if (!friendship || friendship.addresseeId !== session.user.id) {
+    return NextResponse.json({ error: "Pedido nao encontrado." }, { status: 404 });
+  }
+  if (friendship.status === "ACCEPTED") {
+    return NextResponse.json({ ok: true });
+  }
+
+  await prisma.friendship.update({
+    where: { id: params.friendshipId },
+    data: { status: "ACCEPTED" },
+  });
+  return NextResponse.json({ ok: true });
+}
+
+// Cobre 3 casos com a mesma acao: recusar um pedido recebido, cancelar um
+// pedido que eu mandei, ou desfazer uma amizade ja aceita — em todos, so
+// precisa ser uma das duas pontas da linha pra poder apagar.
+export async function DELETE(_request: Request, { params }: { params: { friendshipId: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+  }
+
+  const friendship = await prisma.friendship.findUnique({
+    where: { id: params.friendshipId },
+    select: { requesterId: true, addresseeId: true },
+  });
+  if (!friendship) {
+    return NextResponse.json({ ok: true });
+  }
+  if (friendship.requesterId !== session.user.id && friendship.addresseeId !== session.user.id) {
+    return NextResponse.json({ error: "Sem permissao." }, { status: 403 });
+  }
+
+  await prisma.friendship.delete({ where: { id: params.friendshipId } });
+  return NextResponse.json({ ok: true });
+}

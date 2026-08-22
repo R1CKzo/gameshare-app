@@ -77,6 +77,13 @@ model User {
   messages     Message[]
   desktopLoginRequests DesktopLoginRequest[]
 
+  friendshipsSent     Friendship[]    @relation("FriendshipRequester")
+  friendshipsReceived Friendship[]    @relation("FriendshipAddressee")
+  dmParticipations    DMParticipant[]
+  dmMessages          DMMessage[]
+  dmPresences         DMPresence[]
+  dmBroadcasting      DMChannel[]     @relation("DMBroadcaster")
+
   // O par nickname+userTag deve ser unico no banco
   @@unique([nickname, userTag])
 }
@@ -186,6 +193,100 @@ model ChannelPresence {
 // web confirmar "esse codigo pertence a este usuario" — so entao o app
 // troca o codigo por uma sessao de verdade. code e de uso unico e some
 // (deletado) assim que a janela do app troca ele pela sessao.
+// ---------- Amigos e mensagens diretas ----------
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+}
+
+// Um pedido de amizade. Enquanto PENDING, so o "addressee" (quem recebeu
+// o pedido) pode aceitar; qualquer um dos dois pode cancelar/remover a
+// qualquer momento (o app so tem uma linha por par, nunca duas).
+model Friendship {
+  id          String           @id @default(uuid())
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  requesterId String
+  requester   User   @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  addresseeId String
+  addressee   User   @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
+}
+
+// Uma conversa privada entre duas pessoas (chat + chamada de voz
+// opcional, tudo na mesma tela — igual DM do Discord). Reaproveita o
+// mesmo desenho de Channel/Message/ChannelPresence, só que sem servidor
+// dono e sempre com exatamente 2 participantes.
+model DMChannel {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  participants DMParticipant[]
+  messages     DMMessage[]
+  presences    DMPresence[]
+
+  // Mesmo papel do Channel.isLive/broadcasterId: quem esta compartilhando
+  // a tela agora nessa DM (a chamada de voz em si nao precisa disso, so
+  // compartilhamento de tela tem "um dono" por vez).
+  isLive             Boolean   @default(false)
+  broadcasterId      String?
+  broadcaster        User?     @relation("DMBroadcaster", fields: [broadcasterId], references: [id], onDelete: SetNull)
+  broadcastStartedAt DateTime?
+
+  @@index([broadcasterId])
+}
+
+model DMParticipant {
+  id String @id @default(uuid())
+
+  dmChannelId String
+  dmChannel   DMChannel @relation(fields: [dmChannelId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dmChannelId, userId])
+  @@index([userId])
+}
+
+model DMMessage {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  dmChannelId String
+  dmChannel   DMChannel @relation(fields: [dmChannelId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([dmChannelId, createdAt])
+}
+
+// Mesma logica do ChannelPresence, so que pra uma DM em vez de um canal
+// de servidor.
+model DMPresence {
+  id        String   @id @default(uuid())
+  updatedAt DateTime @updatedAt
+
+  peerId String? @unique
+
+  dmChannelId String
+  dmChannel   DMChannel @relation(fields: [dmChannelId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dmChannelId, userId])
+  @@index([dmChannelId, updatedAt])
+}
+
 model DesktopLoginRequest {
   id        String   @id @default(uuid())
   code      String   @unique

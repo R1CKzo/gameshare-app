@@ -43,12 +43,16 @@ export type PresentUser = {
 // nada). Pra nunca duplicar a conexao entre duas pessoas, quem tem o
 // userId menor (ordem alfabetica) e sempre quem liga.
 export function useVoiceMesh({
-  channelId,
+  apiBase,
   currentUserId,
   enabled,
   present,
 }: {
-  channelId: string;
+  // Prefixo da API pra essa sala de chamada: "/api/channels/<id>" pra um
+  // canal de servidor, ou "/api/dms/<id>" pra uma conversa direta — o
+  // hook so acrescenta "/presence", "/start", "/stop" em cima disso, o
+  // resto e identico nos dois casos.
+  apiBase: string;
   currentUserId: string;
   enabled: boolean;
   present: PresentUser[];
@@ -132,7 +136,7 @@ export function useVoiceMesh({
         peerRef.current = peer;
 
         peer.on("open", (peerId) => {
-          fetch(`/api/channels/${channelId}/presence`, {
+          fetch(`${apiBase}/presence`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ peerId }),
@@ -181,7 +185,7 @@ export function useVoiceMesh({
       setIsSharingScreen(false);
       setMicError(null);
     };
-  }, [enabled, channelId]);
+  }, [enabled, apiBase]);
 
   // Reconciliacao: liga pra quem esta presente e ainda nao tem conexao
   // aberta, fecha quem saiu da sala. Roda de novo a cada poll de presenca,
@@ -256,9 +260,9 @@ export function useVoiceMesh({
     shareMixRef.current.displayStream.getTracks().forEach((t) => t.stop());
     shareMixRef.current = null;
     setIsSharingScreen(false);
-    fetch(`/api/channels/${channelId}/stop`, { method: "POST" }).catch(() => {});
+    fetch(`${apiBase}/stop`, { method: "POST" }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelId]);
+  }, [apiBase]);
 
   const startScreenShare = useCallback(async () => {
     if (!micTrackRef.current) return;
@@ -281,13 +285,13 @@ export function useVoiceMesh({
       replaceOutgoingTracks(displayVideoTrack, mixedAudioTrack);
       setIsSharingScreen(true);
 
-      const res = await fetch(`/api/channels/${channelId}/start`, { method: "POST" });
+      const res = await fetch(`${apiBase}/start`, { method: "POST" });
       if (!res.ok) throw new Error();
     } catch {
       setMicError("Nao foi possivel compartilhar a tela.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelId, stopScreenShare]);
+  }, [apiBase, stopScreenShare]);
 
   return {
     localStream,

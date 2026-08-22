@@ -6,4 +6,8 @@ export function textChannelPusherName(channelId: string) {
   return `private-channel-${channelId}`;
 }
 
+export function dmChannelPusherName(dmChannelId: string) {
+  return `private-dm-${dmChannelId}`;
+}
+
 export const NEW_MESSAGE_EVENT = "new-message";

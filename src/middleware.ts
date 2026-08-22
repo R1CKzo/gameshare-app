@@ -32,5 +32,5 @@ export default withAuth(
 // no server component, para onde mandar o usuario (evita loop de redirect
 // com pages.signIn = "/").
 export const config = {
-  matcher: ["/setup", "/servers/:path*", "/invite/:path*"],
+  matcher: ["/setup", "/servers/:path*", "/invite/:path*", "/friends", "/dms/:path*"],
 };

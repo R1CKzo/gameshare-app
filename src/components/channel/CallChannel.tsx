@@ -83,7 +83,7 @@ export function CallChannel({
     };
   }, [joined, channelId]);
 
-  const mesh = useVoiceMesh({ channelId, currentUserId, enabled: joined, present });
+  const mesh = useVoiceMesh({ apiBase: `/api/channels/${channelId}`, currentUserId, enabled: joined, present });
 
   useEffect(() => {
     if (mesh.micError) setErrorMsg(mesh.micError);
