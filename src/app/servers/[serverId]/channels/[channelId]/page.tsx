@@ -88,6 +88,7 @@ export default async function ChannelPage({
         <CallChannel
           channelId={channel.id}
           channelName={channel.name}
+          serverId={membership.server.id}
           currentUserId={session.user.id}
           initialLive={{ isLive: channel.isLive, broadcaster: channel.broadcaster }}
         />

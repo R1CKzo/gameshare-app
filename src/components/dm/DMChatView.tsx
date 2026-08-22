@@ -3,20 +3,17 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import { type LiveState, useActiveCall } from "@/components/call/ActiveCallProvider";
 import { CallControlBar } from "@/components/channel/CallControlBar";
 import { MessageList } from "@/components/channel/MessageList";
 import { ParticipantGrid } from "@/components/channel/ParticipantGrid";
 import { HamburgerIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 import { useChatMessages } from "@/hooks/useChatMessages";
 import { useStickyScroll } from "@/hooks/useStickyScroll";
-import { type PresentUser, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { type PresentUser } from "@/hooks/useVoiceMesh";
 import { dmChannelPusherName } from "@/lib/pusherShared";
 
-type BroadcasterInfo = { id: string; nickname: string | null; userTag: string | null } | null;
-type LiveState = { isLive: boolean; broadcaster: BroadcasterInfo };
 type DMUser = { id: string; nickname: string | null; userTag: string | null; image: string | null };
-
-const HEARTBEAT_MS = 15000;
 
 // DM do GameShare, igual DM do Discord: uma unica tela com o historico de
 // chat sempre visivel e uma chamada de voz opcional por cima — entrar na
@@ -36,10 +33,19 @@ export function DMChatView({
   const { toggleSidebar } = useMobileUI();
   const apiBase = `/api/dms/${dmChannelId}`;
 
-  const [live, setLive] = useState<LiveState>(initialLive);
-  const [present, setPresent] = useState<PresentUser[]>([]);
-  const [joined, setJoined] = useState(false);
-  const [callError, setCallError] = useState<string | null>(null);
+  const activeCall = useActiveCall();
+  const isActive = activeCall.target?.kind === "dm" && activeCall.target.dmChannelId === dmChannelId;
+  const joined = isActive;
+
+  // Mesma logica do CallChannel: so mantemos poll local enquanto essa DM
+  // NAO e a chamada ativa. Quando ela vira a ativa, o ActiveCallProvider
+  // assume o poll (precisa continuar mesmo se o usuario sair da tela).
+  const [localLive, setLocalLive] = useState<LiveState>(initialLive);
+  const [localPresent, setLocalPresent] = useState<PresentUser[]>([]);
+  const live = isActive ? activeCall.live : localLive;
+  const present = isActive ? activeCall.present : localPresent;
+
+  const callError = isActive ? activeCall.callError : null;
   const clearedOrphanRef = useRef(false);
 
   const chat = useChatMessages({ apiBase, pusherChannelName: dmChannelPusherName(dmChannelId) });
@@ -47,23 +53,24 @@ export function DMChatView({
   const draftRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (clearedOrphanRef.current) return;
+    if (clearedOrphanRef.current || isActive) return;
     if (initialLive.isLive && initialLive.broadcaster?.id === currentUserId) {
       clearedOrphanRef.current = true;
       fetch(`${apiBase}/stop`, { method: "POST" }).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isActive]);
 
   useEffect(() => {
+    if (isActive) return;
     let cancelled = false;
     async function poll() {
       try {
         const res = await fetch(apiBase, { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const data = await res.json();
-        setLive({ isLive: data.isLive, broadcaster: data.broadcaster });
-        setPresent(data.present ?? []);
+        setLocalLive({ isLive: data.isLive, broadcaster: data.broadcaster });
+        setLocalPresent(data.present ?? []);
       } catch {
         // ignora falhas transitorias
       }
@@ -74,49 +81,15 @@ export function DMChatView({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [apiBase]);
-
-  useEffect(() => {
-    if (!joined) return;
-    function beat() {
-      fetch(`${apiBase}/presence`, { method: "POST" }).catch(() => {});
-    }
-    beat();
-    const interval = setInterval(beat, HEARTBEAT_MS);
-    return () => {
-      clearInterval(interval);
-      fetch(`${apiBase}/presence`, { method: "DELETE", keepalive: true }).catch(() => {});
-    };
-  }, [joined, apiBase]);
-
-  const mesh = useVoiceMesh({ apiBase, currentUserId, enabled: joined, present });
-
-  useEffect(() => {
-    if (mesh.micError) setCallError(mesh.micError);
-  }, [mesh.micError]);
+  }, [apiBase, isActive]);
 
   function joinCall() {
-    setCallError(null);
-    setJoined(true);
+    activeCall.setCallError(null);
+    activeCall.join({ kind: "dm", dmChannelId, apiBase, name: otherUser.nickname ?? "Alguem" }, currentUserId);
   }
 
   function leaveCall() {
-    if (mesh.isSharingScreen) mesh.stopScreenShare();
-    setJoined(false);
-    setCallError(null);
-  }
-
-  async function toggleShare() {
-    setCallError(null);
-    if (mesh.isSharingScreen) {
-      mesh.stopScreenShare();
-      return;
-    }
-    if (live.isLive && live.broadcaster?.id !== currentUserId) {
-      setCallError("Ja tem alguem compartilhando a tela.");
-      return;
-    }
-    await mesh.startScreenShare();
+    activeCall.leave();
   }
 
   async function handleSend(e: React.FormEvent) {
@@ -138,7 +111,8 @@ export function DMChatView({
   }
 
   const label = `${otherUser.nickname ?? "Alguem"}${otherUser.userTag ? "#" + otherUser.userTag : ""}`;
-  const sharingUserId = mesh.isSharingScreen ? currentUserId : live.isLive ? live.broadcaster?.id ?? null : null;
+  const isSharingScreenHere = isActive && activeCall.isSharingScreen;
+  const sharingUserId = isSharingScreenHere ? currentUserId : live.isLive ? live.broadcaster?.id ?? null : null;
   const someoneElseInCall = present.some((u) => u.id !== currentUserId) && !joined;
 
   return (
@@ -190,17 +164,17 @@ export function DMChatView({
                   : [{ id: currentUserId, nickname: null, userTag: null, image: null, peerId: null }]
               }
               currentUserId={currentUserId}
-              localStream={mesh.localStream}
-              remoteStreams={mesh.remoteStreams}
-              isMuted={mesh.isMuted}
+              localStream={activeCall.localStream}
+              remoteStreams={activeCall.remoteStreams}
+              isMuted={activeCall.isMuted}
               sharingUserId={sharingUserId}
             />
           </div>
           <CallControlBar
-            isMuted={mesh.isMuted}
-            onToggleMute={mesh.toggleMute}
-            isSharingScreen={mesh.isSharingScreen}
-            onToggleShare={toggleShare}
+            isMuted={activeCall.isMuted}
+            onToggleMute={activeCall.toggleMute}
+            isSharingScreen={activeCall.isSharingScreen}
+            onToggleShare={activeCall.toggleShare}
             onDisconnect={leaveCall}
           />
         </div>

@@ -3,49 +3,59 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import { type LiveState, useActiveCall } from "@/components/call/ActiveCallProvider";
 import { CallControlBar } from "@/components/channel/CallControlBar";
 import { ParticipantGrid } from "@/components/channel/ParticipantGrid";
 import { HamburgerIcon, MembersIcon, useMobileUI } from "@/components/shell/MobileUIContext";
-import { type PresentUser, useVoiceMesh } from "@/hooks/useVoiceMesh";
-
-type BroadcasterInfo = { id: string; nickname: string | null; userTag: string | null } | null;
-type LiveState = { isLive: boolean; broadcaster: BroadcasterInfo };
-
-const HEARTBEAT_MS = 15000;
+import { type PresentUser } from "@/hooks/useVoiceMesh";
 
 export function CallChannel({
   channelId,
   channelName,
+  serverId,
   currentUserId,
   initialLive,
 }: {
   channelId: string;
   channelName: string;
+  serverId: string;
   currentUserId: string;
   initialLive: LiveState;
 }) {
-  const [live, setLive] = useState<LiveState>(initialLive);
-  const [present, setPresent] = useState<PresentUser[]>([]);
-  const [joined, setJoined] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const activeCall = useActiveCall();
+  const isActive = activeCall.target?.kind === "channel" && activeCall.target.channelId === channelId;
+  const joined = isActive;
+
+  // Enquanto essa chamada NAO e a ativa, mantemos nosso proprio poll local
+  // so pra mostrar o selo "AO VIVO" e quem esta na sala antes de entrar —
+  // assim que ela vira a chamada ativa, o ActiveCallProvider assume esse
+  // poll (ele precisa continuar rodando mesmo se o usuario sair dessa
+  // pagina), entao paramos de duplicar a requisicao.
+  const [localLive, setLocalLive] = useState<LiveState>(initialLive);
+  const [localPresent, setLocalPresent] = useState<PresentUser[]>([]);
+  const live = isActive ? activeCall.live : localLive;
+  const present = isActive ? activeCall.present : localPresent;
+
   const { toggleSidebar, toggleMembers } = useMobileUI();
 
   const clearedOrphanRef = useRef(false);
 
   // Se a pagina foi recarregada enquanto eu estava "compartilhando" (do
-  // ponto de vista do servidor), nao tem mais nenhuma midia de verdade
-  // rolando pra manter isso vivo — limpa sozinho, sem precisar de uma tela
-  // de "transmissao pendurada" separada.
+  // ponto de vista do servidor) e essa chamada NAO esta mais ativa no
+  // provider, nao tem mais nenhuma midia de verdade rolando pra manter isso
+  // vivo — limpa sozinho. Se a chamada continua ativa (o usuario so voltou
+  // a visitar essa pagina enquanto ainda esta nela), nao mexe em nada.
   useEffect(() => {
-    if (clearedOrphanRef.current) return;
+    if (clearedOrphanRef.current || isActive) return;
     if (initialLive.isLive && initialLive.broadcaster?.id === currentUserId) {
       clearedOrphanRef.current = true;
       fetch(`/api/channels/${channelId}/stop`, { method: "POST" }).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isActive]);
 
   useEffect(() => {
+    if (isActive) return;
     let cancelled = false;
 
     async function poll() {
@@ -53,8 +63,8 @@ export function CallChannel({
         const res = await fetch(`/api/channels/${channelId}`, { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const data = await res.json();
-        setLive({ isLive: data.isLive, broadcaster: data.broadcaster });
-        setPresent(data.present ?? []);
+        setLocalLive({ isLive: data.isLive, broadcaster: data.broadcaster });
+        setLocalPresent(data.present ?? []);
       } catch {
         // ignora falhas transitorias de rede
       }
@@ -66,58 +76,24 @@ export function CallChannel({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [channelId]);
-
-  useEffect(() => {
-    if (!joined) return;
-
-    function beat() {
-      fetch(`/api/channels/${channelId}/presence`, { method: "POST" }).catch(() => {});
-    }
-
-    beat();
-    const interval = setInterval(beat, HEARTBEAT_MS);
-    return () => {
-      clearInterval(interval);
-      fetch(`/api/channels/${channelId}/presence`, { method: "DELETE", keepalive: true }).catch(() => {});
-    };
-  }, [joined, channelId]);
-
-  const mesh = useVoiceMesh({ apiBase: `/api/channels/${channelId}`, currentUserId, enabled: joined, present });
-
-  useEffect(() => {
-    if (mesh.micError) setErrorMsg(mesh.micError);
-  }, [mesh.micError]);
+  }, [channelId, isActive]);
 
   function joinRoom() {
-    setErrorMsg(null);
-    setJoined(true);
+    activeCall.setCallError(null);
+    activeCall.join({ kind: "channel", channelId, serverId, apiBase: `/api/channels/${channelId}`, name: channelName }, currentUserId);
   }
 
   function leaveRoom() {
-    if (mesh.isSharingScreen) mesh.stopScreenShare();
-    setJoined(false);
-    setErrorMsg(null);
+    activeCall.leave();
   }
 
-  async function toggleShare() {
-    setErrorMsg(null);
-    if (mesh.isSharingScreen) {
-      mesh.stopScreenShare();
-      return;
-    }
-    if (live.isLive && live.broadcaster?.id !== currentUserId) {
-      setErrorMsg("Ja tem alguem compartilhando a tela nesse canal.");
-      return;
-    }
-    await mesh.startScreenShare();
-  }
-
+  const errorMsg = isActive ? activeCall.callError : null;
   const broadcasterLabel = live.broadcaster
     ? `${live.broadcaster.nickname ?? "Alguem"}${live.broadcaster.userTag ? "#" + live.broadcaster.userTag : ""}`
     : null;
   const someoneElseLive = live.isLive && live.broadcaster?.id !== currentUserId;
-  const sharingUserId = mesh.isSharingScreen ? currentUserId : live.isLive ? live.broadcaster?.id ?? null : null;
+  const isSharingScreenHere = isActive && activeCall.isSharingScreen;
+  const sharingUserId = isSharingScreenHere ? currentUserId : live.isLive ? live.broadcaster?.id ?? null : null;
 
   return (
     <>
@@ -172,16 +148,16 @@ export function CallChannel({
           <ParticipantGrid
             present={present}
             currentUserId={currentUserId}
-            localStream={mesh.localStream}
-            remoteStreams={mesh.remoteStreams}
-            isMuted={mesh.isMuted}
+            localStream={activeCall.localStream}
+            remoteStreams={activeCall.remoteStreams}
+            isMuted={activeCall.isMuted}
             sharingUserId={sharingUserId}
           />
           <CallControlBar
-            isMuted={mesh.isMuted}
-            onToggleMute={mesh.toggleMute}
-            isSharingScreen={mesh.isSharingScreen}
-            onToggleShare={toggleShare}
+            isMuted={activeCall.isMuted}
+            onToggleMute={activeCall.toggleMute}
+            isSharingScreen={activeCall.isSharingScreen}
+            onToggleShare={activeCall.toggleShare}
             onDisconnect={leaveRoom}
           />
         </>
