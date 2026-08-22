@@ -1,12 +1,14 @@
-// loopback_helper.exe — captura o audio de saida do Windows EXCLUINDO so o
-// que o proprio GameShare esta tocando (a voz de quem esta na chamada),
-// usando a API de "process loopback" do Windows (a mesma que Discord/OBS
-// usam pra "capturar tudo, menos meu proprio app"). So existe a partir do
-// Windows 10 build 20348 — em versoes mais antigas a ativacao falha de
-// forma limpa (codigo de saida 2) e quem chamou (o Electron) cai pro
-// loopback comum, que grava tudo incluindo a propria chamada.
+// loopback_helper.exe — captura audio de um processo especifico do Windows
+// (ou de tudo, exceto um processo especifico) usando a API de "process
+// loopback" do Windows (a mesma que Discord/OBS usam). So existe a partir
+// do Windows 10 build 20348 — em versoes mais antigas a ativacao falha de
+// forma limpa (codigo de saida 2) e quem chamou (o Electron) trata como
+// "sem audio disponivel" em vez de travar o compartilhamento de tela.
 //
-// Uso: loopback_helper.exe <pid-do-processo-a-excluir>
+// Uso:
+//   loopback_helper.exe exclude <pid>          grava tudo, menos esse pid
+//   loopback_helper.exe include-window <hwnd>  grava so o dono dessa janela
+//
 // Saida: um cabecalho fixo de 16 bytes, seguido de audio PCM 48kHz/16-bit/
 // estereo continuo em stdout (binario), ate o processo ser encerrado.
 //
@@ -131,11 +133,35 @@ void LogError(const wchar_t* what, HRESULT hr) {
 }  // namespace
 
 int wmain(int argc, wchar_t* argv[]) {
-  if (argc < 2) {
-    fwprintf(stderr, L"uso: loopback_helper.exe <pid-a-excluir>\n");
+  if (argc < 3) {
+    fwprintf(stderr, L"uso: loopback_helper.exe exclude <pid> | loopback_helper.exe include-window <hwnd>\n");
     return 1;
   }
-  DWORD targetPid = static_cast<DWORD>(_wtoi(argv[1]));
+
+  DWORD targetPid = 0;
+  PROCESS_LOOPBACK_MODE loopbackMode;
+
+  if (wcscmp(argv[1], L"exclude") == 0) {
+    // Grava tudo, exceto o pid dado (+ seus filhos) — usado pra "audio do
+    // sistema, menos a propria chamada".
+    targetPid = static_cast<DWORD>(_wtoi(argv[2]));
+    loopbackMode = PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE;
+  } else if (wcscmp(argv[1], L"include-window") == 0) {
+    // Grava so o processo dono da janela dada (+ filhos) — usado pra
+    // "audio de um app/jogo especifico". O HWND vem do id que o
+    // desktopCapturer do Electron devolve ("window:<hwnd>:<indice>").
+    HWND hwnd = reinterpret_cast<HWND>(static_cast<intptr_t>(_wtoi64(argv[2])));
+    DWORD ownerPid = 0;
+    if (!hwnd || !GetWindowThreadProcessId(hwnd, &ownerPid) || ownerPid == 0) {
+      fwprintf(stderr, L"loopback_helper: nao foi possivel achar o processo dono dessa janela\n");
+      return 2;
+    }
+    targetPid = ownerPid;
+    loopbackMode = PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE;
+  } else {
+    fwprintf(stderr, L"loopback_helper: modo desconhecido '%ls'\n", argv[1]);
+    return 1;
+  }
 
   // STA, nao MTA: ActivateAudioInterfaceAsync devolve E_ILLEGAL_METHOD_CALL
   // direto (sincrono, antes de qualquer callback) se a thread chamadora nao
@@ -166,7 +192,7 @@ int wmain(int argc, wchar_t* argv[]) {
   AUDIOCLIENT_ACTIVATION_PARAMS activationParams = {};
   activationParams.ActivationType = AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK;
   activationParams.ProcessLoopbackParams.TargetProcessId = targetPid;
-  activationParams.ProcessLoopbackParams.ProcessLoopbackMode = PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE;
+  activationParams.ProcessLoopbackParams.ProcessLoopbackMode = loopbackMode;
 
   PROPVARIANT activateParamsVariant;
   PropVariantInit(&activateParamsVariant);
