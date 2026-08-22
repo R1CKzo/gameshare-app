@@ -3,10 +3,17 @@
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { DEFAULT_AUDIO_SETTINGS, loadAudioSettings, saveAudioSettings, type AudioSettings } from "@/lib/audioSettings";
+import {
+  DEFAULT_AUDIO_SETTINGS,
+  getMicConstraints,
+  loadAudioSettings,
+  saveAudioSettings,
+  sensitivityToGateThreshold,
+  type AudioSettings,
+} from "@/lib/audioSettings";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 const AVATAR_SIZE = 256;
@@ -216,10 +223,17 @@ function ProfileTab() {
   );
 }
 
+// Nivel de RMS (0-1) considerado "bem alto" pra normalizar a barra visual —
+// so uma referencia de escala, nao tem relacao com o limiar do gate.
+const METER_REFERENCE_RMS = 0.35;
+
 function AudioTab() {
   const [settings, setSettings] = useState<AudioSettings>(() =>
     typeof window !== "undefined" ? loadAudioSettings() : DEFAULT_AUDIO_SETTINGS
   );
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [level, setLevel] = useState(0);
+  const [monitorError, setMonitorError] = useState<string | null>(null);
 
   function update(patch: Partial<AudioSettings>) {
     const next = { ...settings, ...patch };
@@ -227,12 +241,155 @@ function AudioTab() {
     saveAudioSettings(next);
   }
 
+  // Lista os microfones disponiveis. Os nomes so vem preenchidos depois que
+  // o navegador ja liberou o microfone pelo menos uma vez.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadDevices() {
+      try {
+        const all = await navigator.mediaDevices.enumerateDevices();
+        if (!cancelled) setDevices(all.filter((d) => d.kind === "audioinput"));
+      } catch {
+        // ignora — a lista so fica vazia
+      }
+    }
+    loadDevices();
+    navigator.mediaDevices.addEventListener?.("devicechange", loadDevices);
+    return () => {
+      cancelled = true;
+      navigator.mediaDevices.removeEventListener?.("devicechange", loadDevices);
+    };
+  }, []);
+
+  // Testador ao vivo: abre o mic escolhido (com as constraints escolhidas)
+  // e mostra o volume captado em tempo real, pra dar pra calibrar a
+  // sensibilidade olhando pro medidor em vez de adivinhar um numero.
+  useEffect(() => {
+    let cancelled = false;
+    let audioContext: AudioContext | null = null;
+    let stream: MediaStream | null = null;
+    let rafId: number;
+
+    async function monitor() {
+      try {
+        setMonitorError(null);
+        stream = await navigator.mediaDevices.getUserMedia({ audio: getMicConstraints(settings) });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        // Agora que o mic foi liberado, os nomes dos dispositivos ficam
+        // disponiveis — atualiza a lista pra trocar de "Microfone a3f9.."
+        // pro nome de verdade.
+        navigator.mediaDevices
+          .enumerateDevices()
+          .then((all) => !cancelled && setDevices(all.filter((d) => d.kind === "audioinput")))
+          .catch(() => {});
+        audioContext = new AudioContext();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        audioContext.createMediaStreamSource(stream).connect(analyser);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+
+        function tick() {
+          if (cancelled) return;
+          analyser.getByteTimeDomainData(data);
+          let sumSquares = 0;
+          for (let i = 0; i < data.length; i++) {
+            const normalized = (data[i] - 128) / 128;
+            sumSquares += normalized * normalized;
+          }
+          setLevel(Math.sqrt(sumSquares / data.length));
+          rafId = requestAnimationFrame(tick);
+        }
+        tick();
+      } catch {
+        if (!cancelled) setMonitorError("Nao foi possivel abrir esse microfone pra teste.");
+      }
+    }
+    monitor();
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+      stream?.getTracks().forEach((t) => t.stop());
+      audioContext?.close().catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.deviceId, settings.noiseSuppression, settings.echoCancellation, settings.autoGainControl]);
+
+  const threshold = sensitivityToGateThreshold(settings.sensitivity);
+  const levelPct = Math.min(100, (level / METER_REFERENCE_RMS) * 100);
+  const thresholdPct = Math.min(100, (threshold / METER_REFERENCE_RMS) * 100);
+
   return (
     <div className="space-y-4">
       <p className="text-xs text-dim">
         Aplicado no seu microfone da proxima vez que voce entrar numa chamada. So afeta seu proprio audio, cada
         pessoa configura o dela.
       </p>
+
+      <div>
+        <label htmlFor="mic-device" className="mb-2 block text-xs font-bold tracking-wide text-muted">
+          MICROFONE
+        </label>
+        <select
+          id="mic-device"
+          value={settings.deviceId ?? ""}
+          onChange={(e) => update({ deviceId: e.target.value || null })}
+          className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
+        >
+          <option value="">Padrao do sistema</option>
+          {devices.map((d) => (
+            <option key={d.deviceId} value={d.deviceId}>
+              {d.label || `Microfone ${d.deviceId.slice(0, 6)}`}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1.5 text-xs text-dim">
+          Se o audio ficar "voltando"/com eco infinito, confira se nao selecionou sem querer um dispositivo de loopback
+          (ex: "Stereo Mix") em vez do microfone de verdade.
+        </p>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <label htmlFor="mic-sensitivity" className="text-xs font-bold tracking-wide text-muted">
+            SENSIBILIDADE DO MICROFONE
+          </label>
+          <span className="text-xs font-bold text-dim">{settings.sensitivity}</span>
+        </div>
+        <input
+          id="mic-sensitivity"
+          type="range"
+          min={0}
+          max={100}
+          value={settings.sensitivity}
+          onChange={(e) => update({ sensitivity: Number(e.target.value) })}
+          className="w-full accent-primary"
+        />
+        <p className="mt-1.5 text-xs text-dim">
+          Baixa: so deixa passar sua voz falando alto, corta ruido/eco de fundo. Alta: pega qualquer som, mesmo baixinho.
+        </p>
+
+        <div className="mt-3">
+          <div className="relative h-3 w-full overflow-hidden rounded-full bg-elevated">
+            <div
+              className="h-full rounded-full bg-accent transition-[width] duration-75"
+              style={{ width: `${levelPct}%` }}
+            />
+            <div
+              className="absolute inset-y-0 w-0.5 bg-white/70"
+              style={{ left: `${thresholdPct}%` }}
+              title="Limiar do gate: o volume precisa passar dessa marca pra sua voz ser transmitida"
+            />
+          </div>
+          <p className="mt-1.5 text-xs text-dim">
+            {monitorError ?? "Fale perto do microfone pra ver o nivel captado. A linha branca e o limiar atual."}
+          </p>
+        </div>
+      </div>
+
       <ToggleRow
         label="Supressao de ruido"
         description="Reduz ruido de fundo (ventilador, teclado, etc)."

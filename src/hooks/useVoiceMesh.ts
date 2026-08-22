@@ -1,8 +1,40 @@
 import type { MediaConnection, default as Peer } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { getMicConstraints, loadAudioSettings } from "@/lib/audioSettings";
+import { getMicConstraints, loadAudioSettings, sensitivityToGateThreshold } from "@/lib/audioSettings";
 import { createBlankVideoTrack, createPeer } from "@/lib/peer";
+
+// Gate de ruido: deixa a faixa do microfone passar direto quando o volume
+// esta acima do limiar (a pessoa esta falando) e silencia quando esta
+// abaixo (ruido de fundo, ronco de ventilador, e principalmente o inicio de
+// um loop de eco/feedback antes dele conseguir crescer). O envelope tem
+// ataque rapido (abre na hora que a fala comeca) e liberacao mais lenta
+// (nao corta a ponta final das palavras).
+function createNoiseGate(audioContext: AudioContext, micStream: MediaStream, threshold: number) {
+  const source = audioContext.createMediaStreamSource(micStream);
+  const processor = audioContext.createScriptProcessor(2048, 1, 1);
+  const destination = audioContext.createMediaStreamDestination();
+  let envelope = 0;
+  const attack = 0.5;
+  const release = 0.05;
+
+  processor.onaudioprocess = (event) => {
+    const input = event.inputBuffer.getChannelData(0);
+    const output = event.outputBuffer.getChannelData(0);
+    let sumSquares = 0;
+    for (let i = 0; i < input.length; i++) sumSquares += input[i] * input[i];
+    const rms = Math.sqrt(sumSquares / input.length);
+    const target = rms > threshold ? 1 : 0;
+    for (let i = 0; i < input.length; i++) {
+      envelope += (target - envelope) * (target > envelope ? attack : release);
+      output[i] = input[i] * envelope;
+    }
+  };
+
+  source.connect(processor);
+  processor.connect(destination);
+  return { track: destination.stream.getAudioTracks()[0], processor, source };
+}
 
 export type PresentUser = {
   id: string;
@@ -36,10 +68,11 @@ export function useVoiceMesh({
   const [micError, setMicError] = useState<string | null>(null);
 
   const peerRef = useRef<Peer | null>(null);
-  const micTrackRef = useRef<MediaStreamTrack | null>(null);
+  const micTrackRef = useRef<MediaStreamTrack | null>(null); // faixa de mic ja processada pelo gate de ruido
   const videoTrackRef = useRef<MediaStreamTrack | null>(null);
   const audioTrackRef = useRef<MediaStreamTrack | null>(null); // faixa de audio atual enviada (mic puro ou mic+sistema misturado)
   const outgoingStreamRef = useRef<MediaStream | null>(null);
+  const micProcessingRef = useRef<{ audioContext: AudioContext; rawStream: MediaStream } | null>(null);
   const connectionsRef = useRef<Map<string, MediaConnection>>(new Map()); // peerId -> conexao
   const shareMixRef = useRef<{ audioContext: AudioContext; displayStream: MediaStream } | null>(null);
   const presentRef = useRef<PresentUser[]>(present);
@@ -72,12 +105,18 @@ export function useVoiceMesh({
     async function setup() {
       try {
         const settings = loadAudioSettings();
-        const micStream = await navigator.mediaDevices.getUserMedia({ audio: getMicConstraints(settings) });
+        const rawStream = await navigator.mediaDevices.getUserMedia({ audio: getMicConstraints(settings) });
         if (cancelled) {
-          micStream.getTracks().forEach((t) => t.stop());
+          rawStream.getTracks().forEach((t) => t.stop());
           return;
         }
-        const micTrack = micStream.getAudioTracks()[0];
+
+        const audioContext = new AudioContext();
+        const threshold = sensitivityToGateThreshold(settings.sensitivity);
+        const gate = createNoiseGate(audioContext, rawStream, threshold);
+        micProcessingRef.current = { audioContext, rawStream };
+
+        const micTrack = gate.track;
         micTrackRef.current = micTrack;
         audioTrackRef.current = micTrack;
 
@@ -130,6 +169,11 @@ export function useVoiceMesh({
       micTrackRef.current = null;
       videoTrackRef.current = null;
       audioTrackRef.current = null;
+      if (micProcessingRef.current) {
+        micProcessingRef.current.rawStream.getTracks().forEach((t) => t.stop());
+        micProcessingRef.current.audioContext.close().catch(() => {});
+        micProcessingRef.current = null;
+      }
       if (shareMixRef.current) {
         shareMixRef.current.audioContext.close().catch(() => {});
         shareMixRef.current.displayStream.getTracks().forEach((t) => t.stop());

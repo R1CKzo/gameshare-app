@@ -1,10 +1,15 @@
 // Preferencias de audio do microfone, salvas so no navegador (por
 // dispositivo, sem precisar sincronizar com o servidor). Aplicadas como
-// constraints do getUserMedia toda vez que a pessoa entra numa chamada.
+// constraints do getUserMedia e como um gate de ruido local toda vez que a
+// pessoa entra numa chamada.
 export type AudioSettings = {
   noiseSuppression: boolean;
   echoCancellation: boolean;
   autoGainControl: boolean;
+  deviceId: string | null;
+  // 0-100: quao facil o gate abre. Baixo = so deixa passar voz alta (corta
+  // ruido/eco de fundo), alto = pega ate som baixinho.
+  sensitivity: number;
 };
 
 const STORAGE_KEY = "gameshare:audioSettings";
@@ -13,6 +18,8 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   noiseSuppression: true,
   echoCancellation: true,
   autoGainControl: true,
+  deviceId: null,
+  sensitivity: 50,
 };
 
 export function loadAudioSettings(): AudioSettings {
@@ -25,6 +32,8 @@ export function loadAudioSettings(): AudioSettings {
       noiseSuppression: parsed.noiseSuppression ?? DEFAULT_AUDIO_SETTINGS.noiseSuppression,
       echoCancellation: parsed.echoCancellation ?? DEFAULT_AUDIO_SETTINGS.echoCancellation,
       autoGainControl: parsed.autoGainControl ?? DEFAULT_AUDIO_SETTINGS.autoGainControl,
+      deviceId: typeof parsed.deviceId === "string" ? parsed.deviceId : DEFAULT_AUDIO_SETTINGS.deviceId,
+      sensitivity: typeof parsed.sensitivity === "number" ? parsed.sensitivity : DEFAULT_AUDIO_SETTINGS.sensitivity,
     };
   } catch {
     return DEFAULT_AUDIO_SETTINGS;
@@ -41,5 +50,16 @@ export function getMicConstraints(settings: AudioSettings): MediaTrackConstraint
     noiseSuppression: settings.noiseSuppression,
     echoCancellation: settings.echoCancellation,
     autoGainControl: settings.autoGainControl,
+    ...(settings.deviceId ? { deviceId: { exact: settings.deviceId } } : {}),
   };
+}
+
+// RMS (0-1) que o gate de ruido usa como limiar pra "abrir". Sensibilidade
+// 0 exige uma voz bem alta pra passar (corta praticamente tudo que nao for
+// fala direta); 100 deixa passar quase qualquer som captado pelo mic.
+export function sensitivityToGateThreshold(sensitivity: number): number {
+  const clamped = Math.min(100, Math.max(0, sensitivity));
+  const HIGH = 0.12;
+  const LOW = 0.004;
+  return HIGH - (clamped / 100) * (HIGH - LOW);
 }
