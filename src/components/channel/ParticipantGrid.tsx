@@ -34,7 +34,7 @@ export function ParticipantGrid({
     <div className="flex min-h-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-5">
       {sharer && sharerStream && (
         <div className="relative flex-1 overflow-hidden rounded-2xl border-2 border-accent bg-black">
-          <ScreenView stream={sharerStream} muted={sharer.id === currentUserId} />
+          <ScreenView stream={sharerStream} />
           <div className="absolute left-2 top-2 flex max-w-[calc(100%-16px)] items-center gap-2 truncate rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold backdrop-blur sm:left-4 sm:top-4 sm:px-3.5 sm:py-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
               <rect x="2" y="3" width="20" height="14" rx="2" />
@@ -68,12 +68,16 @@ export function ParticipantGrid({
   );
 }
 
-function ScreenView({ stream, muted }: { stream: MediaStream; muted: boolean }) {
+// Sempre mudo: o audio de quem esta compartilhando (mic + audio do sistema
+// misturados na mesma faixa) ja toca via ActiveCallAudioSink, montado na
+// raiz — tocar de novo aqui duplicaria o som (e causaria eco pra quem esta
+// se ouvindo, no caso do proprio compartilhador vendo a propria tela).
+function ScreenView({ stream }: { stream: MediaStream }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (videoRef.current) videoRef.current.srcObject = stream;
   }, [stream]);
-  return <video ref={videoRef} autoPlay muted={muted} playsInline className="h-full w-full object-contain" />;
+  return <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-contain" />;
 }
 
 function ParticipantTile({
@@ -89,12 +93,7 @@ function ParticipantTile({
   muted: boolean;
   compact: boolean;
 }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
   const speaking = useSpeakingDetector(stream, muted);
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.srcObject = stream;
-  }, [stream]);
 
   const initials = (user.nickname ?? "?").slice(0, 1).toUpperCase();
   const label = `${user.nickname ?? "Alguem"}${user.userTag ? "#" + user.userTag : ""}`;
@@ -105,7 +104,6 @@ function ParticipantTile({
         compact ? "py-3" : "py-6"
       }`}
     >
-      {!isSelf && <audio ref={audioRef} autoPlay />}
       <div
         className={`rounded-full border-[3px] p-0.5 transition-colors ${speaking ? "border-accent" : "border-transparent"}`}
       >
