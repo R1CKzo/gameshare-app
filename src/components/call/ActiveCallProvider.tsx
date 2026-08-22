@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-import { type PresentUser, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { type PresentUser, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
 
 export type ActiveCallTarget =
   | { kind: "channel"; channelId: string; serverId: string; apiBase: string; name: string }
@@ -27,7 +27,8 @@ type ActiveCallContextValue = {
   callError: string | null;
   setCallError: (error: string | null) => void;
   toggleMute: () => void;
-  toggleShare: () => Promise<void>;
+  startScreenShare: (options: ScreenShareOptions) => Promise<void>;
+  stopScreenShare: () => void;
   join: (target: ActiveCallTarget, currentUserId: string) => void;
   leave: () => void;
 };
@@ -120,19 +121,23 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesh.isSharingScreen]);
 
-  const toggleShare = useCallback(async () => {
-    setCallError(null);
-    if (mesh.isSharingScreen) {
-      mesh.stopScreenShare();
-      return;
-    }
-    if (live.isLive && live.broadcaster?.id !== currentUserId) {
-      setCallError("Ja tem alguem compartilhando a tela.");
-      return;
-    }
-    await mesh.startScreenShare();
+  const startScreenShare = useCallback(
+    async (options: ScreenShareOptions) => {
+      setCallError(null);
+      if (live.isLive && live.broadcaster?.id !== currentUserId) {
+        setCallError("Ja tem alguem compartilhando a tela.");
+        return;
+      }
+      await mesh.startScreenShare(options);
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mesh.isSharingScreen, mesh.startScreenShare, mesh.stopScreenShare, live, currentUserId]);
+    [mesh.startScreenShare, live, currentUserId],
+  );
+
+  const stopScreenShare = useCallback(() => {
+    mesh.stopScreenShare();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mesh.stopScreenShare]);
 
   return (
     <ActiveCallContext.Provider
@@ -149,7 +154,8 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
         callError,
         setCallError,
         toggleMute: mesh.toggleMute,
-        toggleShare,
+        startScreenShare,
+        stopScreenShare,
         join,
         leave,
       }}

@@ -153,13 +153,7 @@ export function CallChannel({
             isMuted={activeCall.isMuted}
             sharingUserId={sharingUserId}
           />
-          <CallControlBar
-            isMuted={activeCall.isMuted}
-            onToggleMute={activeCall.toggleMute}
-            isSharingScreen={activeCall.isSharingScreen}
-            onToggleShare={activeCall.toggleShare}
-            onDisconnect={leaveRoom}
-          />
+          <CallControlBar isMuted={activeCall.isMuted} onToggleMute={activeCall.toggleMute} onDisconnect={leaveRoom} />
         </>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-5 px-4">

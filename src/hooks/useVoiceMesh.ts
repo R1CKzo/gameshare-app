@@ -36,6 +36,70 @@ export type PresentUser = {
   peerId: string | null;
 };
 
+export type ScreenShareOptions = {
+  sourceId: string;
+  sourceType: "screen" | "window";
+  fps: number;
+  width: number;
+  height: number;
+};
+
+// Constraints "legado" do Chromium (chromeMediaSource/chromeMediaSourceId)
+// pra capturar exatamente a fonte escolhida no seletor nativo do Electron
+// (desktopCapturer), com FPS/resolucao exatos — o TypeScript padrao nao
+// conhece esse formato, so existe em Electron/Chromium.
+type ElectronDesktopConstraints = MediaStreamConstraints & {
+  audio?: boolean | { mandatory: { chromeMediaSource: "desktop" } };
+  video?: {
+    mandatory: {
+      chromeMediaSource: "desktop";
+      chromeMediaSourceId: string;
+      minFrameRate: number;
+      maxFrameRate: number;
+      minWidth: number;
+      maxWidth: number;
+      minHeight: number;
+      maxHeight: number;
+    };
+  };
+};
+
+// Video sempre vem da fonte escolhida no seletor nativo. Audio do sistema
+// (loopback) so e pedido quando a fonte e a tela inteira — Windows nao tem
+// como capturar o audio de uma janela/app especifico sozinho por essa API,
+// entao compartilhar so um app fica so com o video (+ o microfone, que ja
+// vai sempre junto por fora, misturado depois).
+async function captureDesktopSource(options: ScreenShareOptions): Promise<MediaStream> {
+  const constraints: ElectronDesktopConstraints = {
+    audio:
+      options.sourceType === "screen"
+        ? { mandatory: { chromeMediaSource: "desktop" } }
+        : false,
+    video: {
+      mandatory: {
+        chromeMediaSource: "desktop",
+        chromeMediaSourceId: options.sourceId,
+        minFrameRate: options.fps,
+        maxFrameRate: options.fps,
+        minWidth: options.width,
+        maxWidth: options.width,
+        minHeight: options.height,
+        maxHeight: options.height,
+      },
+    },
+  };
+
+  try {
+    return await navigator.mediaDevices.getUserMedia(constraints);
+  } catch {
+    if (options.sourceType !== "screen") throw new Error("Nao foi possivel capturar a janela escolhida.");
+    // Alguns PCs nao tem um dispositivo de saida padrao reconhecido pelo
+    // loopback de audio do Windows — cai pra so o video em vez de falhar o
+    // compartilhamento inteiro.
+    return navigator.mediaDevices.getUserMedia({ audio: false, video: constraints.video });
+  }
+}
+
 // Malha de voz: cada participante presente na sala mantem uma conexao de
 // midia PeerJS direta com todo mundo (audio do microfone sempre, + video
 // "em branco" reservando espaco pra, quando alguem ligar o compartilhamento
@@ -264,10 +328,10 @@ export function useVoiceMesh({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase]);
 
-  const startScreenShare = useCallback(async () => {
+  const startScreenShare = useCallback(async (options: ScreenShareOptions) => {
     if (!micTrackRef.current) return;
     try {
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+      const displayStream = await captureDesktopSource(options);
       const displayVideoTrack = displayStream.getVideoTracks()[0];
       const displayAudioTracks = displayStream.getAudioTracks();
 

@@ -1,47 +1,80 @@
 "use client";
 
+import { useState } from "react";
+
+import { useActiveCall } from "@/components/call/ActiveCallProvider";
+import { ScreenShareSourcePicker } from "@/components/call/ScreenShareSourcePicker";
+import { isDesktopApp } from "@/lib/desktop";
+
 export function CallControlBar({
   isMuted,
   onToggleMute,
-  isSharingScreen,
-  onToggleShare,
   onDisconnect,
 }: {
   isMuted: boolean;
   onToggleMute: () => void;
-  isSharingScreen: boolean;
-  onToggleShare: () => void;
   onDisconnect: () => void;
 }) {
+  const activeCall = useActiveCall();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const desktop = isDesktopApp();
+
+  function handleShareClick() {
+    if (activeCall.isSharingScreen) {
+      activeCall.stopScreenShare();
+      return;
+    }
+    if (!desktop) return;
+    setPickerOpen(true);
+  }
+
+  async function handleConfirmShare(options: Parameters<typeof activeCall.startScreenShare>[0]) {
+    setPickerOpen(false);
+    await activeCall.startScreenShare(options);
+  }
+
+  const shareLabel = activeCall.isSharingScreen
+    ? "Parar de compartilhar tela"
+    : desktop
+      ? "Compartilhar tela"
+      : "Compartilhar tela — disponivel so no app para Windows";
+
   return (
-    <div className="flex shrink-0 items-center justify-center gap-3 border-t border-white/[0.06] bg-elevated/60 px-4 py-3 backdrop-blur">
-      <ControlButton
-        active={isMuted}
-        activeClass="bg-danger/15 text-danger"
-        label={isMuted ? "Ativar microfone" : "Mutar microfone"}
-        onClick={onToggleMute}
-      >
-        {isMuted ? <MicOffIcon /> : <MicIcon />}
-      </ControlButton>
+    <>
+      <div className="flex shrink-0 items-center justify-center gap-3 border-t border-white/[0.06] bg-elevated/60 px-4 py-3 backdrop-blur">
+        <ControlButton
+          active={isMuted}
+          activeClass="bg-danger/15 text-danger"
+          label={isMuted ? "Ativar microfone" : "Mutar microfone"}
+          onClick={onToggleMute}
+        >
+          {isMuted ? <MicOffIcon /> : <MicIcon />}
+        </ControlButton>
 
-      <ControlButton
-        active={isSharingScreen}
-        activeClass="bg-accent/15 text-accent"
-        label={isSharingScreen ? "Parar de compartilhar tela" : "Compartilhar tela"}
-        onClick={onToggleShare}
-      >
-        <ScreenIcon />
-      </ControlButton>
+        <ControlButton
+          active={activeCall.isSharingScreen}
+          activeClass="bg-accent/15 text-accent"
+          label={shareLabel}
+          onClick={handleShareClick}
+          disabled={!desktop && !activeCall.isSharingScreen}
+        >
+          <ScreenIcon />
+        </ControlButton>
 
-      <button
-        onClick={onDisconnect}
-        aria-label="Sair da chamada"
-        title="Sair da chamada"
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-danger text-white transition hover:bg-danger-hover"
-      >
-        <PhoneOffIcon />
-      </button>
-    </div>
+        <button
+          onClick={onDisconnect}
+          aria-label="Sair da chamada"
+          title="Sair da chamada"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-danger text-white transition hover:bg-danger-hover"
+        >
+          <PhoneOffIcon />
+        </button>
+      </div>
+
+      {pickerOpen && (
+        <ScreenShareSourcePicker onCancel={() => setPickerOpen(false)} onConfirm={handleConfirmShare} />
+      )}
+    </>
   );
 }
 
@@ -50,12 +83,14 @@ function ControlButton({
   activeClass,
   label,
   onClick,
+  disabled,
   children,
 }: {
   active: boolean;
   activeClass: string;
   label: string;
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -63,9 +98,14 @@ function ControlButton({
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
+      aria-disabled={disabled}
       title={label}
       className={`flex h-11 w-11 items-center justify-center rounded-full border transition ${
-        active ? activeClass + " border-transparent" : "border-[#2d3344] text-[#d5d7dc] hover:bg-elevated-hover"
+        disabled
+          ? "cursor-not-allowed border-[#2d3344] text-dim opacity-40"
+          : active
+            ? activeClass + " border-transparent"
+            : "border-[#2d3344] text-[#d5d7dc] hover:bg-elevated-hover"
       }`}
     >
       {children}

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, dialog, Notification, ipcMain } = require("electron");
+const { app, BrowserWindow, shell, dialog, Notification, ipcMain, desktopCapturer } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const crypto = require("crypto");
@@ -19,6 +19,22 @@ const APP_URL = "https://gameshare-app.vercel.app";
 // lista e o app abre direto. A 1.0.3 junta tudo desde o lancamento porque
 // e a primeira vez que essa tela existe.
 const CHANGELOG = {
+  "1.0.4": {
+    version: "1.0.4",
+    title: "Compartilhamento de tela nativo",
+    intro: "Agora o compartilhamento de tela roda por dentro do proprio app, sem depender do navegador:",
+    sections: [
+      {
+        heading: "Compartilhamento de tela",
+        items: [
+          "Escolha entre compartilhar a tela inteira ou so a janela de um app/jogo especifico.",
+          "Selecao de qualidade: 720p, 1080p ou 1440p.",
+          "Selecao de taxa de quadros: 30 ou 60 FPS.",
+          "Audio do sistema capturado automaticamente ao compartilhar a tela inteira.",
+        ],
+      },
+    ],
+  },
   "1.0.3": {
     version: "1.0.3",
     title: "Bem-vindo ao GameShare!",
@@ -143,6 +159,30 @@ function showWhatsNew(changelog) {
 const DESKTOP_CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 
+// Lista telas e janelas/apps abertos pro seletor de compartilhamento de
+// tela do site (ver src/components/call/ScreenShareSourcePicker.tsx). As
+// miniaturas vem como NativeImage e precisam virar data URL pra atravessar
+// o IPC — nao da pra mandar o objeto original.
+ipcMain.handle("screen-share:get-sources", async () => {
+  try {
+    const sources = await desktopCapturer.getSources({
+      types: ["screen", "window"],
+      thumbnailSize: { width: 320, height: 180 },
+      fetchWindowIcons: true,
+    });
+    return sources.map((source) => ({
+      id: source.id,
+      name: source.name,
+      type: source.id.startsWith("screen:") ? "screen" : "window",
+      thumbnail: source.thumbnail.isEmpty() ? null : source.thumbnail.toDataURL(),
+      appIcon: source.appIcon && !source.appIcon.isEmpty() ? source.appIcon.toDataURL() : null,
+    }));
+  } catch (err) {
+    log.error("Erro ao listar fontes de tela:", err);
+    return [];
+  }
+});
+
 let mainWindow;
 let loginPollInterval = null;
 
@@ -160,6 +200,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      preload: path.join(__dirname, "main-preload.js"),
     },
   });
 

@@ -170,13 +170,7 @@ export function DMChatView({
               sharingUserId={sharingUserId}
             />
           </div>
-          <CallControlBar
-            isMuted={activeCall.isMuted}
-            onToggleMute={activeCall.toggleMute}
-            isSharingScreen={activeCall.isSharingScreen}
-            onToggleShare={activeCall.toggleShare}
-            onDisconnect={leaveCall}
-          />
+          <CallControlBar isMuted={activeCall.isMuted} onToggleMute={activeCall.toggleMute} onDisconnect={leaveCall} />
         </div>
       )}
 
