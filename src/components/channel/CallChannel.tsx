@@ -4,7 +4,7 @@ import Image from "next/image";
 import type { MediaConnection, default as Peer } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { createPeer } from "@/lib/peer";
+import { createPeer, createReceiveOnlyStream } from "@/lib/peer";
 import { HamburgerIcon, MembersIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 
 type BroadcasterInfo = { id: string; nickname: string | null; userTag: string | null } | null;
@@ -141,7 +141,27 @@ export function CallChannel({
       peerRef.current = peer;
 
       peer.on("open", () => {
-        const call = peer.call(peerId, new MediaStream());
+        const call = peer.call(peerId, createReceiveOnlyStream());
+
+        // Como quem assiste nao manda nenhuma faixa de audio/video, o
+        // WebRTC as vezes cria a offer sem nenhuma secao de midia, e quem
+        // esta compartilhando nunca consegue anexar as faixas na resposta.
+        // O Safari/WebKit (Chrome e Safari no iPhone usam o mesmo motor)
+        // e bem mais estrito com isso do que o Chrome/Firefox no
+        // computador. Forcar transceivers "recvonly" logo apos criar a
+        // chamada garante que a offer sempre reserve espaco pra receber
+        // video e audio, em qualquer navegador.
+        const pc = call.peerConnection;
+        if (pc && pc.getTransceivers().length === 0) {
+          try {
+            pc.addTransceiver("video", { direction: "recvonly" });
+            pc.addTransceiver("audio", { direction: "recvonly" });
+          } catch {
+            // navegador muito antigo sem addTransceiver: segue so com o
+            // comportamento padrao do PeerJS.
+          }
+        }
+
         call.on("stream", (remoteStream) => {
           if (connectTimeoutRef.current) {
             clearTimeout(connectTimeoutRef.current);
