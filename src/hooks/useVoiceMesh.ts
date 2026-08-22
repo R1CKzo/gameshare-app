@@ -1,0 +1,261 @@
+import type { MediaConnection, default as Peer } from "peerjs";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { getMicConstraints, loadAudioSettings } from "@/lib/audioSettings";
+import { createBlankVideoTrack, createPeer } from "@/lib/peer";
+
+export type PresentUser = {
+  id: string;
+  nickname: string | null;
+  userTag: string | null;
+  image: string | null;
+  peerId: string | null;
+};
+
+// Malha de voz: cada participante presente na sala mantem uma conexao de
+// midia PeerJS direta com todo mundo (audio do microfone sempre, + video
+// "em branco" reservando espaco pra, quando alguem ligar o compartilhamento
+// de tela, trocar so a faixa de video via replaceTrack — sem renegociar
+// nada). Pra nunca duplicar a conexao entre duas pessoas, quem tem o
+// userId menor (ordem alfabetica) e sempre quem liga.
+export function useVoiceMesh({
+  channelId,
+  currentUserId,
+  enabled,
+  present,
+}: {
+  channelId: string;
+  currentUserId: string;
+  enabled: boolean;
+  present: PresentUser[];
+}) {
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSharingScreen, setIsSharingScreen] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
+
+  const peerRef = useRef<Peer | null>(null);
+  const micTrackRef = useRef<MediaStreamTrack | null>(null);
+  const videoTrackRef = useRef<MediaStreamTrack | null>(null);
+  const audioTrackRef = useRef<MediaStreamTrack | null>(null); // faixa de audio atual enviada (mic puro ou mic+sistema misturado)
+  const outgoingStreamRef = useRef<MediaStream | null>(null);
+  const connectionsRef = useRef<Map<string, MediaConnection>>(new Map()); // peerId -> conexao
+  const shareMixRef = useRef<{ audioContext: AudioContext; displayStream: MediaStream } | null>(null);
+  const presentRef = useRef<PresentUser[]>(present);
+  presentRef.current = present;
+
+  function registerConnection(peerId: string, call: MediaConnection) {
+    connectionsRef.current.set(peerId, call);
+    call.on("stream", (stream) => {
+      setRemoteStreams((prev) => new Map(prev).set(peerId, stream));
+    });
+    const drop = () => {
+      connectionsRef.current.delete(peerId);
+      setRemoteStreams((prev) => {
+        if (!prev.has(peerId)) return prev;
+        const next = new Map(prev);
+        next.delete(peerId);
+        return next;
+      });
+    };
+    call.on("close", drop);
+    call.on("error", drop);
+  }
+
+  // Setup: pega o microfone, abre o peer local e comeca a mandar heartbeat
+  // com o peerId pra galera conseguir me achar na malha.
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+
+    async function setup() {
+      try {
+        const settings = loadAudioSettings();
+        const micStream = await navigator.mediaDevices.getUserMedia({ audio: getMicConstraints(settings) });
+        if (cancelled) {
+          micStream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        const micTrack = micStream.getAudioTracks()[0];
+        micTrackRef.current = micTrack;
+        audioTrackRef.current = micTrack;
+
+        const videoTrack = createBlankVideoTrack();
+        videoTrackRef.current = videoTrack;
+
+        const outgoing = new MediaStream([micTrack, videoTrack]);
+        outgoingStreamRef.current = outgoing;
+        setLocalStream(outgoing);
+
+        const peer = await createPeer();
+        if (cancelled) {
+          peer.destroy();
+          return;
+        }
+        peerRef.current = peer;
+
+        peer.on("open", (peerId) => {
+          fetch(`/api/channels/${channelId}/presence`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ peerId }),
+          }).catch(() => {});
+        });
+
+        peer.on("call", (call) => {
+          call.answer(outgoingStreamRef.current ?? undefined);
+          registerConnection(call.peer, call);
+        });
+
+        peer.on("error", (err) => {
+          if (err.type !== "peer-unavailable") setMicError("Erro de conexao WebRTC: " + err.type);
+        });
+      } catch {
+        if (!cancelled) setMicError("Nao foi possivel acessar o microfone.");
+      }
+    }
+
+    setup();
+
+    return () => {
+      cancelled = true;
+      connectionsRef.current.forEach((c) => c.close());
+      connectionsRef.current.clear();
+      setRemoteStreams(new Map());
+      peerRef.current?.destroy();
+      peerRef.current = null;
+      outgoingStreamRef.current?.getTracks().forEach((t) => t.stop());
+      outgoingStreamRef.current = null;
+      micTrackRef.current = null;
+      videoTrackRef.current = null;
+      audioTrackRef.current = null;
+      if (shareMixRef.current) {
+        shareMixRef.current.audioContext.close().catch(() => {});
+        shareMixRef.current.displayStream.getTracks().forEach((t) => t.stop());
+        shareMixRef.current = null;
+      }
+      setLocalStream(null);
+      setIsMuted(false);
+      setIsSharingScreen(false);
+      setMicError(null);
+    };
+  }, [enabled, channelId]);
+
+  // Reconciliacao: liga pra quem esta presente e ainda nao tem conexao
+  // aberta, fecha quem saiu da sala. Roda de novo a cada poll de presenca,
+  // mas so age nas diferencas (idempotente).
+  useEffect(() => {
+    if (!enabled) return;
+    const peer = peerRef.current;
+    if (!peer || peer.disconnected) return;
+
+    const stillHerePeerIds = new Set(present.map((u) => u.peerId).filter(Boolean) as string[]);
+    connectionsRef.current.forEach((call, peerId) => {
+      if (!stillHerePeerIds.has(peerId)) {
+        call.close();
+        connectionsRef.current.delete(peerId);
+        setRemoteStreams((prev) => {
+          if (!prev.has(peerId)) return prev;
+          const next = new Map(prev);
+          next.delete(peerId);
+          return next;
+        });
+      }
+    });
+
+    const outgoing = outgoingStreamRef.current;
+    if (!outgoing) return;
+
+    for (const user of present) {
+      if (user.id === currentUserId || !user.peerId) continue;
+      if (connectionsRef.current.has(user.peerId)) continue;
+      if (currentUserId < user.id) {
+        const call = peer.call(user.peerId, outgoing);
+        if (call) registerConnection(user.peerId, call);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, present, currentUserId]);
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      if (micTrackRef.current) micTrackRef.current.enabled = !next;
+      return next;
+    });
+  }, []);
+
+  function replaceOutgoingTracks(video: MediaStreamTrack, audio: MediaStreamTrack) {
+    connectionsRef.current.forEach((call) => {
+      const pc = call.peerConnection;
+      if (!pc) return;
+      pc.getSenders().forEach((sender) => {
+        if (sender.track?.kind === "video") sender.replaceTrack(video).catch(() => {});
+        if (sender.track?.kind === "audio") sender.replaceTrack(audio).catch(() => {});
+      });
+    });
+    videoTrackRef.current = video;
+    audioTrackRef.current = audio;
+    if (outgoingStreamRef.current) {
+      outgoingStreamRef.current.getTracks().forEach((t) => outgoingStreamRef.current!.removeTrack(t));
+      outgoingStreamRef.current.addTrack(audio);
+      outgoingStreamRef.current.addTrack(video);
+      setLocalStream(new MediaStream(outgoingStreamRef.current.getTracks()));
+    }
+  }
+
+  const stopScreenShare = useCallback(() => {
+    if (!shareMixRef.current) return;
+    const blankVideo = createBlankVideoTrack();
+    if (micTrackRef.current) {
+      replaceOutgoingTracks(blankVideo, micTrackRef.current);
+    }
+    shareMixRef.current.audioContext.close().catch(() => {});
+    shareMixRef.current.displayStream.getTracks().forEach((t) => t.stop());
+    shareMixRef.current = null;
+    setIsSharingScreen(false);
+    fetch(`/api/channels/${channelId}/stop`, { method: "POST" }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
+
+  const startScreenShare = useCallback(async () => {
+    if (!micTrackRef.current) return;
+    try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+      const displayVideoTrack = displayStream.getVideoTracks()[0];
+      const displayAudioTracks = displayStream.getAudioTracks();
+
+      const audioContext = new AudioContext();
+      const destination = audioContext.createMediaStreamDestination();
+      audioContext.createMediaStreamSource(new MediaStream([micTrackRef.current])).connect(destination);
+      if (displayAudioTracks.length > 0) {
+        audioContext.createMediaStreamSource(new MediaStream(displayAudioTracks)).connect(destination);
+      }
+      const mixedAudioTrack = destination.stream.getAudioTracks()[0];
+
+      shareMixRef.current = { audioContext, displayStream };
+      displayVideoTrack.addEventListener("ended", stopScreenShare);
+
+      replaceOutgoingTracks(displayVideoTrack, mixedAudioTrack);
+      setIsSharingScreen(true);
+
+      const res = await fetch(`/api/channels/${channelId}/start`, { method: "POST" });
+      if (!res.ok) throw new Error();
+    } catch {
+      setMicError("Nao foi possivel compartilhar a tela.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId, stopScreenShare]);
+
+  return {
+    localStream,
+    remoteStreams,
+    isMuted,
+    toggleMute,
+    isSharingScreen,
+    startScreenShare,
+    stopScreenShare,
+    micError,
+  };
+}

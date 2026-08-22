@@ -34,7 +34,6 @@ export default async function ChannelPage({
               name: true,
               type: true,
               isLive: true,
-              peerId: true,
               broadcaster: { select: { id: true, nickname: true, userTag: true } },
               _count: {
                 select: { presences: { where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } } } },
@@ -90,7 +89,7 @@ export default async function ChannelPage({
           channelId={channel.id}
           channelName={channel.name}
           currentUserId={session.user.id}
-          initialLive={{ isLive: channel.isLive, peerId: channel.peerId, broadcaster: channel.broadcaster }}
+          initialLive={{ isLive: channel.isLive, broadcaster: channel.broadcaster }}
         />
       )}
     </AppShell>

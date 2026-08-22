@@ -6,8 +6,9 @@ import { prisma } from "@/lib/prisma";
 
 const PRESENCE_WINDOW_MS = 30_000;
 
-// Estado atual do canal (usado pelos espectadores para saber se ha
-// transmissao ao vivo, qual o peerId para conectar e quem esta presente).
+// Estado atual do canal: quem esta compartilhando a tela (se alguem) e
+// quem esta presente na sala agora, com o peerId de voz de cada um pra
+// montar a malha de conexoes.
 export async function GET(
   _request: Request,
   { params }: { params: { channelId: string } }
@@ -22,11 +23,13 @@ export async function GET(
     select: {
       id: true,
       isLive: true,
-      peerId: true,
       broadcaster: { select: { id: true, nickname: true, userTag: true, image: true } },
       presences: {
         where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } },
-        select: { user: { select: { id: true, nickname: true, userTag: true, image: true } } },
+        select: {
+          peerId: true,
+          user: { select: { id: true, nickname: true, userTag: true, image: true } },
+        },
       },
     },
   });
@@ -38,8 +41,7 @@ export async function GET(
   return NextResponse.json({
     id: channel.id,
     isLive: channel.isLive,
-    peerId: channel.peerId,
     broadcaster: channel.broadcaster,
-    present: channel.presences.map((p) => p.user),
+    present: channel.presences.map((p) => ({ ...p.user, peerId: p.peerId })),
   });
 }

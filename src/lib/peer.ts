@@ -66,6 +66,23 @@ export async function createPeer(id?: string): Promise<Peer> {
 // (ainda que inuteis), a offer sempre reserva espaco pra video e audio,
 // e quem esta compartilhando consegue responder com as faixas de verdade.
 export function createReceiveOnlyStream(): MediaStream {
+  const videoTrack = createBlankVideoTrack();
+
+  const audioContext = new AudioContext();
+  const destination = audioContext.createMediaStreamDestination();
+  const audioTrack = destination.stream.getAudioTracks()[0];
+
+  const tracks = [videoTrack, audioTrack].filter(Boolean) as MediaStreamTrack[];
+  return new MediaStream(tracks);
+}
+
+// Faixa de video "em branco" (2x2 preto). Usada como placeholder de video
+// pra quem esta na malha de voz mas nao esta compartilhando a tela: assim
+// a conexao ja nasce com uma secao de video reservada (mesmo problema de
+// SDP do Safari/WebKit descrito acima) e, quando a pessoa liga o
+// compartilhamento de tela, so trocamos essa faixa pela de verdade via
+// RTCRtpSender.replaceTrack() — sem precisar renegociar a conexao.
+export function createBlankVideoTrack(): MediaStreamTrack {
   const canvas = document.createElement("canvas");
   canvas.width = 2;
   canvas.height = 2;
@@ -74,12 +91,5 @@ export function createReceiveOnlyStream(): MediaStream {
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, 2, 2);
   }
-  const videoTrack = canvas.captureStream(1).getVideoTracks()[0];
-
-  const audioContext = new AudioContext();
-  const destination = audioContext.createMediaStreamDestination();
-  const audioTrack = destination.stream.getAudioTracks()[0];
-
-  const tracks = [videoTrack, audioTrack].filter(Boolean) as MediaStreamTrack[];
-  return new MediaStream(tracks);
+  return canvas.captureStream(1).getVideoTracks()[0];
 }

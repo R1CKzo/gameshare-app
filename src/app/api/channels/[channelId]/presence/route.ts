@@ -6,9 +6,11 @@ import { prisma } from "@/lib/prisma";
 
 // Heartbeat: registra que o usuario esta com essa sala de chamada aberta
 // agora, mesmo sem estar compartilhando a tela. Chamado periodicamente
-// pelo client enquanto a pagina do canal estiver aberta.
+// pelo client enquanto a pagina do canal estiver aberta. Se o microfone
+// (peer de voz) ja estiver conectado, o client manda o peerId junto pra
+// quem mais estiver na sala conseguir discar direto.
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: { channelId: string } }
 ) {
   const session = await getServerSession(authOptions);
@@ -16,16 +18,20 @@ export async function POST(
     return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
   }
 
+  const body = await request.json().catch(() => ({}));
+  const peerId: string | undefined = typeof body?.peerId === "string" ? body.peerId : undefined;
+
   await prisma.channelPresence.upsert({
     where: { channelId_userId: { channelId: params.channelId, userId: session.user.id } },
-    create: { channelId: params.channelId, userId: session.user.id },
-    update: {},
+    create: { channelId: params.channelId, userId: session.user.id, peerId },
+    update: { peerId },
   });
 
   return NextResponse.json({ ok: true });
 }
 
-// Sai da sala (fechou a aba, trocou de canal). Best-effort.
+// Sai da sala (fechou a aba, trocou de canal, ou desligou o microfone).
+// Best-effort.
 export async function DELETE(
   _request: Request,
   { params }: { params: { channelId: string } }

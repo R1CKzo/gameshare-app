@@ -121,9 +121,11 @@ model Channel {
   serverId String
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
 
-  // Usado apenas em canais do tipo CALL: quem esta compartilhando a tela agora
+  // Usado apenas em canais do tipo CALL: quem esta compartilhando a tela
+  // agora. O video/audio em si viaja pelas conexoes de voz (malha em
+  // ChannelPresence.peerId) — isso aqui e so a flag de "quem esta
+  // compartilhando" pra UI.
   isLive             Boolean   @default(false)
-  peerId             String?   @unique
   broadcasterId      String?
   broadcaster        User?     @relation("ChannelBroadcaster", fields: [broadcasterId], references: [id], onDelete: SetNull)
   broadcastStartedAt DateTime?
@@ -137,10 +139,14 @@ model Channel {
 }
 
 // Presenca "leve" (heartbeat) de quem esta com a sala de chamada aberta
-// agora, mesmo que ninguem esteja compartilhando a tela ainda.
+// agora. peerId identifica o peer de audio (microfone) dessa pessoa nessa
+// sala, pra quem mais estiver presente conseguir discar direto pra ela
+// (malha P2P de voz) — fica nulo ate o microfone conectar de verdade.
 model ChannelPresence {
   id        String   @id @default(uuid())
   updatedAt DateTime @updatedAt
+
+  peerId String? @unique
 
   channelId String
   channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { InviteButton } from "@/components/shell/InviteButton";
+import { SettingsButton } from "@/components/shell/SettingsButton";
 import { SignOutButton } from "@/components/shell/SignOutButton";
 
 type ChannelSummary = {
@@ -69,6 +70,7 @@ export function ChannelSidebar({
           <div className="truncate text-[13px] font-bold text-[#f5f5f7]">{user.nickname}</div>
           <div className="text-[11px] text-muted">#{user.userTag}</div>
         </div>
+        <SettingsButton />
         <SignOutButton />
       </div>
     </div>

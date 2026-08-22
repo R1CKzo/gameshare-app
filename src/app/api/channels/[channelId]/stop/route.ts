@@ -28,7 +28,7 @@ export async function POST(
 
   await prisma.channel.update({
     where: { id: channel.id },
-    data: { isLive: false, peerId: null, broadcasterId: null, broadcastStartedAt: null },
+    data: { isLive: false, broadcasterId: null, broadcastStartedAt: null },
   });
 
   return NextResponse.json({ ok: true });

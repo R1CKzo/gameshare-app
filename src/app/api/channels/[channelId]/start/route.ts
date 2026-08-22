@@ -1,13 +1,14 @@
-import { randomUUID } from "crypto";
-
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// Qualquer membro do servidor pode comecar a compartilhar a tela em um
-// canal de chamada, desde que ninguem mais esteja transmitindo nele.
+// Qualquer membro presente na sala (ja conectado na malha de voz) pode
+// comecar a compartilhar a tela, desde que ninguem mais esteja
+// transmitindo nela agora. O video em si viaja pela conexao de voz que a
+// pessoa ja tem com quem mais estiver na sala — aqui so marcamos quem e o
+// dono da transmissao pra UI.
 export async function POST(
   _request: Request,
   { params }: { params: { channelId: string } }
@@ -34,22 +35,26 @@ export async function POST(
     return NextResponse.json({ error: "Voce nao e membro desse servidor." }, { status: 403 });
   }
 
+  const presence = await prisma.channelPresence.findUnique({
+    where: { channelId_userId: { channelId: channel.id, userId: session.user.id } },
+    select: { id: true },
+  });
+  if (!presence) {
+    return NextResponse.json({ error: "Entre na sala antes de compartilhar a tela." }, { status: 409 });
+  }
+
   if (channel.isLive) {
     return NextResponse.json({ error: "Ja tem alguem compartilhando a tela nesse canal." }, { status: 409 });
   }
 
-  const peerId = `gs-${channel.id}-${randomUUID().slice(0, 8)}`;
-
-  const updated = await prisma.channel.update({
+  await prisma.channel.update({
     where: { id: channel.id },
     data: {
       isLive: true,
-      peerId,
       broadcasterId: session.user.id,
       broadcastStartedAt: new Date(),
     },
-    select: { peerId: true },
   });
 
-  return NextResponse.json({ peerId: updated.peerId });
+  return NextResponse.json({ ok: true });
 }
