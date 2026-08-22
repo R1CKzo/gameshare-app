@@ -75,6 +75,7 @@ model User {
   broadcasting Channel[]          @relation("ChannelBroadcaster")
   presences    ChannelPresence[]
   messages     Message[]
+  desktopLoginRequests DesktopLoginRequest[]
 
   // O par nickname+userTag deve ser unico no banco
   @@unique([nickname, userTag])
@@ -176,4 +177,20 @@ model ChannelPresence {
 
   @@unique([channelId, userId])
   @@index([channelId, updatedAt])
+}
+
+// Login do app de desktop: o Google bloqueia o OAuth dentro de uma janela
+// embutida do Electron (mesmo com o motor Chromium igual, o navegador
+// "nao confiavel" e barrado), entao o app abre o navegador de verdade do
+// usuario pra fazer o login e fica consultando essa tabela ate a pagina
+// web confirmar "esse codigo pertence a este usuario" — so entao o app
+// troca o codigo por uma sessao de verdade. code e de uso unico e some
+// (deletado) assim que a janela do app troca ele pela sessao.
+model DesktopLoginRequest {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
