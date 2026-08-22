@@ -107,15 +107,17 @@ function ParticipantTile({
     >
       {!isSelf && <audio ref={audioRef} autoPlay />}
       <div
-        className={`relative overflow-hidden rounded-full border-[3px] bg-primary transition-colors ${
-          compact ? "h-12 w-12" : "h-16 w-16"
-        } ${speaking ? "border-accent" : "border-transparent"}`}
+        className={`rounded-full border-[3px] p-0.5 transition-colors ${speaking ? "border-accent" : "border-transparent"}`}
       >
-        {user.image ? (
-          <Image src={user.image} alt="" fill sizes="64px" className="object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center font-display text-lg font-bold">{initials}</div>
-        )}
+        <div
+          className={`relative overflow-hidden rounded-full bg-primary ${compact ? "h-12 w-12" : "h-16 w-16"}`}
+        >
+          {user.image ? (
+            <Image src={user.image} alt="" fill sizes="64px" className="object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center font-display text-lg font-bold">{initials}</div>
+          )}
+        </div>
       </div>
       <div className="flex max-w-full items-center gap-1 px-2 text-xs font-semibold text-[#d5d7dc]">
         {muted && isSelf && <MutedIcon />}

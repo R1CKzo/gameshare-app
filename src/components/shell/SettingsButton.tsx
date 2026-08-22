@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { DEFAULT_AUDIO_SETTINGS, loadAudioSettings, saveAudioSettings, type AudioSettings } from "@/lib/audioSettings";
 
@@ -55,7 +56,7 @@ export function SettingsButton() {
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<"perfil" | "audio">("perfil");
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
@@ -90,7 +91,8 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           {tab === "perfil" ? <ProfileTab /> : <AudioTab />}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
