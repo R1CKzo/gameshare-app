@@ -23,6 +23,7 @@
 #include <audioclient.h>
 #include <audioclientactivationparams.h>
 #include <propvarutil.h>
+#include <unknwn.h>
 
 #include <cstdio>
 #include <cstdint>
@@ -73,9 +74,16 @@ class ActivationHandler : public IActivateAudioInterfaceCompletionHandler {
     if (completedEvent) CloseHandle(completedEvent);
   }
 
+  // ActivateAudioInterfaceAsync chama esse handler de uma thread/apartment
+  // diferente da que o criou. Sem declarar suporte a IAgileObject (uma
+  // interface marcadora, sem metodos proprios — so avisa o COM "pode me
+  // chamar de qualquer thread, nao precisa de proxy"), a ativacao falha
+  // direto com E_ILLEGAL_METHOD_CALL (0x8000000E), sem nem chegar a
+  // considerar o pid/processo.
   STDMETHODIMP QueryInterface(REFIID riid, void** ppv) override {
     if (!ppv) return E_POINTER;
-    if (riid == __uuidof(IUnknown) || riid == __uuidof(IActivateAudioInterfaceCompletionHandler)) {
+    if (riid == __uuidof(IUnknown) || riid == __uuidof(IActivateAudioInterfaceCompletionHandler) ||
+        riid == __uuidof(IAgileObject)) {
       *ppv = static_cast<IActivateAudioInterfaceCompletionHandler*>(this);
       AddRef();
       return S_OK;
