@@ -23,6 +23,15 @@ async function createNoiseGate(audioContext: AudioContext, micStream: MediaStrea
     processorOptions: { threshold },
   });
   const destination = audioContext.createMediaStreamDestination();
+  // Mono fixo, sempre — garante que a faixa de audio enviada pra malha
+  // nunca muda de contagem de canais entre "so falando" e "compartilhando
+  // um app" (ver o mesmo ajuste em startScreenShare). Sem isso, um
+  // microfone que capture em estereo faria o oposto do problema do
+  // compartilhamento: a troca no sentido contrario, na hora de comecar a
+  // chamada, ja quebraria o audio pro resto da sessao.
+  destination.channelCount = 1;
+  destination.channelCountMode = "explicit";
+  destination.channelInterpretation = "speakers";
 
   source.connect(gateNode);
   gateNode.connect(destination);
@@ -376,6 +385,16 @@ export function useVoiceMesh({
 
       audioContext = new AudioContext();
       const destination = audioContext.createMediaStreamDestination();
+      // Forca mono na saida: a faixa de audio original (so o mic, antes de
+      // compartilhar) e mono. Se o audio do app aqui embaixo for estereo, a
+      // destination sem essas linhas vira estereo tambem — e trocar a
+      // contagem de canais de uma faixa de audio no meio de uma chamada ja
+      // conectada (via replaceTrack) faz quem esta recebendo simplesmente
+      // parar de decodificar o audio, sem erro nenhum visivel. Era esse o
+      // "audio do compartilhamento nao chega pra quem esta assistindo".
+      destination.channelCount = 1;
+      destination.channelCountMode = "explicit";
+      destination.channelInterpretation = "speakers";
       audioContext.createMediaStreamSource(new MediaStream([micTrackRef.current])).connect(destination);
       if (options.sourceType === "window") {
         const appAudio = await captureAppAudio(audioContext, options.sourceId);
