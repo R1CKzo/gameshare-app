@@ -1,0 +1,44 @@
+name: Build loopback capture helper
+
+# Compila so o loopback_helper.exe (captura de audio nativa que exclui o
+# proprio GameShare do loopback do sistema) e publica como asset de um
+# pre-release descartavel, pra dar pra baixar e testar sem precisar gerar o
+# instalador inteiro toda vez. Depois que estiver estavel, o binario
+# compilado aqui e commitado em desktop/native/loopback-helper/bin/ e
+# entra no instalador normal via electron-builder.
+on:
+  push:
+    paths:
+      - "desktop/native/loopback-helper/**"
+      - ".github/workflows/build-loopback-helper.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Compile loopback_helper.exe
+        working-directory: desktop/native/loopback-helper
+        run: |
+          cl /nologo /EHsc /std:c++17 /O2 /W4 loopback_helper.cpp /link /OUT:loopback_helper.exe
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: loopback_helper
+          path: desktop/native/loopback-helper/loopback_helper.exe
+
+      - name: Publish as throwaway pre-release for manual testing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: desktop/native/loopback-helper
+        run: |
+          gh release delete loopback-helper-test --yes --cleanup-tag 2>$null
+          gh release create loopback-helper-test loopback_helper.exe --title "loopback_helper.exe (teste manual)" --notes "Build de teste do loopback_helper.exe, nao e um lancamento do app. Sobrescrito a cada push." --prerelease
