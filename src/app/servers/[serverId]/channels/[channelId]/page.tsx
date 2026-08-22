@@ -83,7 +83,7 @@ export default async function ChannelPage({
       user={{ nickname: session.user.nickname, userTag: session.user.userTag, image: session.user.image ?? null }}
     >
       {channel.type === "TEXT" ? (
-        <TextChannelView name={channel.name} />
+        <TextChannelView channelId={channel.id} channelName={channel.name} currentUserId={session.user.id} />
       ) : (
         <CallChannel
           channelId={channel.id}

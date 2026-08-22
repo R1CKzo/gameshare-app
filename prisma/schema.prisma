@@ -74,6 +74,7 @@ model User {
   memberships  ServerMember[]
   broadcasting Channel[]          @relation("ChannelBroadcaster")
   presences    ChannelPresence[]
+  messages     Message[]
 
   // O par nickname+userTag deve ser unico no banco
   @@unique([nickname, userTag])
@@ -134,8 +135,27 @@ model Channel {
   updatedAt DateTime @updatedAt
 
   presences ChannelPresence[]
+  messages  Message[]
 
   @@index([serverId])
+}
+
+// Mensagem de um canal de texto. O envio dispara um evento no Pusher pro
+// canal privado da sala (ver src/lib/pusher.ts) — essa tabela e so o
+// historico/fonte de verdade, quem esta com a pagina aberta recebe a
+// mensagem nova via WebSocket, nao ficando esperando um poll.
+model Message {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  channelId String
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
 }
 
 // Presenca "leve" (heartbeat) de quem esta com a sala de chamada aberta
