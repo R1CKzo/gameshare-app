@@ -21,6 +21,17 @@ if (location.origin === ALLOWED_ORIGIN) {
     // ate stopSystemAudioExcludingSelf ser chamado.
     startSystemAudioExcludingSelf: () => ipcRenderer.invoke("screen-share:start-system-audio-exclude-self"),
     stopSystemAudioExcludingSelf: () => ipcRenderer.send("screen-share:stop-system-audio-exclude-self"),
+
+    // Audio de um app/jogo especifico: mesma captura nativa, mas em modo
+    // "so esse processo" em vez de "tudo, menos esse processo". hwnd vem
+    // do id que o getScreenSources devolve pra fontes do tipo "window"
+    // ("window:<hwnd>:<indice>").
+    startAppAudio: (hwnd) => ipcRenderer.invoke("screen-share:start-app-audio", hwnd),
+    stopAppAudio: () => ipcRenderer.send("screen-share:stop-app-audio"),
+
+    // Mesmo canal de audio pras duas capturas acima — so uma fica ativa
+    // por vez (o processo principal sempre encerra a anterior antes de
+    // comecar uma nova).
     onSystemAudioChunk: (callback) => {
       const listener = (_event, chunk) => callback(chunk);
       ipcRenderer.on("screen-share:audio-chunk", listener);

@@ -20,6 +20,8 @@ type GameshareDesktopBridge = {
   getScreenSources: () => Promise<ScreenSource[]>;
   startSystemAudioExcludingSelf: () => Promise<StartSystemAudioResult>;
   stopSystemAudioExcludingSelf: () => void;
+  startAppAudio: (hwnd: number) => Promise<StartSystemAudioResult>;
+  stopAppAudio: () => void;
   onSystemAudioChunk: (callback: (chunk: ArrayBuffer) => void) => () => void;
 };
 
@@ -55,6 +57,27 @@ export function startSystemAudioExcludingSelf(): Promise<StartSystemAudioResult>
 
 export function stopSystemAudioExcludingSelf(): void {
   window.gameshareDesktop?.stopSystemAudioExcludingSelf();
+}
+
+// Extrai o HWND do id que getScreenSources devolve pra uma fonte do tipo
+// "window" (formato "window:<hwnd>:<indice>", especifico do Windows).
+export function parseWindowHandle(sourceId: string): number | null {
+  const match = /^window:(\d+):\d+$/.exec(sourceId);
+  return match ? Number(match[1]) : null;
+}
+
+// Pede pro app nativo capturar SO o audio do app/jogo dono da janela
+// escolhida (modo "include", oposto do exclude acima) — usado quando a
+// pessoa compartilha uma janela especifica em vez da tela inteira.
+export function startAppAudio(hwnd: number): Promise<StartSystemAudioResult> {
+  if (typeof window === "undefined" || !window.gameshareDesktop) {
+    return Promise.resolve({ ok: false, reason: "not-desktop" });
+  }
+  return window.gameshareDesktop.startAppAudio(hwnd);
+}
+
+export function stopAppAudio(): void {
+  window.gameshareDesktop?.stopAppAudio();
 }
 
 export function onSystemAudioChunk(callback: (chunk: ArrayBuffer) => void): () => void {

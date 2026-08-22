@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { getScreenSources, type ScreenSource } from "@/lib/desktop";
-import type { ScreenShareOptions, SystemAudioMode } from "@/hooks/useVoiceMesh";
+import type { ScreenShareOptions } from "@/hooks/useVoiceMesh";
 
 const RESOLUTIONS = [
   { label: "720p", width: 1280, height: 720 },
@@ -26,7 +26,6 @@ export function ScreenShareSourcePicker({
   const [selected, setSelected] = useState<ScreenSource | null>(null);
   const [fps, setFps] = useState(30);
   const [resolution, setResolution] = useState(RESOLUTIONS[1]);
-  const [systemAudioMode, setSystemAudioMode] = useState<SystemAudioMode>("off");
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +48,6 @@ export function ScreenShareSourcePicker({
       fps,
       width: resolution.width,
       height: resolution.height,
-      systemAudioMode: selected.type === "screen" ? systemAudioMode : "off",
     });
   }
 
@@ -96,34 +94,14 @@ export function ScreenShareSourcePicker({
             />
           </SettingRow>
           {selected?.type === "screen" ? (
-            <div className="space-y-1.5">
-              <span className="text-xs font-bold tracking-wide text-muted">AUDIO DO SISTEMA</span>
-              <div className="space-y-1.5">
-                <AudioModeOption
-                  label="Desligado"
-                  description="So o microfone. Mais simples, sem risco de eco."
-                  selected={systemAudioMode === "off"}
-                  onSelect={() => setSystemAudioMode("off")}
-                />
-                <AudioModeOption
-                  label="Tudo, menos a chamada"
-                  description="Grava jogos, musica e video normalmente, mas exclui a propria chamada de voz — sem eco pra quem esta ligado. So no app desktop."
-                  selected={systemAudioMode === "exclude-call"}
-                  onSelect={() => setSystemAudioMode("exclude-call")}
-                />
-                <AudioModeOption
-                  label="Tudo, incluindo a chamada"
-                  description="Grava literalmente tudo que sai pelo alto-falante. Quem estiver na chamada pode ouvir a propria voz de volta, com eco."
-                  selected={systemAudioMode === "everything"}
-                  onSelect={() => setSystemAudioMode("everything")}
-                  danger
-                />
-              </div>
-            </div>
+            <p className="text-xs text-dim">
+              Compartilhar a tela inteira leva so o video — sem audio nenhum do sistema (seu microfone continua
+              indo normalmente).
+            </p>
           ) : selected?.type === "window" ? (
             <p className="text-xs text-dim">
-              O audio do sistema so pode ser capturado ao compartilhar a tela inteira — compartilhar uma janela leva
-              so o video (seu microfone continua indo normalmente).
+              O audio desse app ou jogo entra automaticamente junto com o video (seu microfone continua indo
+              normalmente).
             </p>
           ) : null}
         </div>
@@ -154,42 +132,6 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
       <span className="text-xs font-bold tracking-wide text-muted">{label.toUpperCase()}</span>
       {children}
     </div>
-  );
-}
-
-function AudioModeOption({
-  label,
-  description,
-  selected,
-  onSelect,
-  danger,
-}: {
-  label: string;
-  description: string;
-  selected: boolean;
-  onSelect: () => void;
-  danger?: boolean;
-}) {
-  const accent = danger ? "border-danger" : "border-primary";
-  return (
-    <button
-      onClick={onSelect}
-      className={`flex w-full items-start gap-2.5 rounded-lg border px-3 py-2 text-left transition ${
-        selected ? `${accent} ${danger ? "bg-danger/5" : "bg-primary/5"}` : "border-[#2d3344] hover:border-[#3d4354]"
-      }`}
-    >
-      <div
-        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-          selected ? accent : "border-[#3d4354]"
-        }`}
-      >
-        {selected && <div className={`h-2 w-2 rounded-full ${danger ? "bg-danger" : "bg-primary"}`} />}
-      </div>
-      <div>
-        <div className="text-xs font-bold text-[#f5f5f7]">{label}</div>
-        <div className={`mt-0.5 text-[11px] ${selected && danger ? "text-danger" : "text-dim"}`}>{description}</div>
-      </div>
-    </button>
   );
 }
 

@@ -2,7 +2,7 @@ import type { MediaConnection, default as Peer } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getMicConstraints, loadAudioSettings, sensitivityToGateThreshold } from "@/lib/audioSettings";
-import { onSystemAudioChunk, startSystemAudioExcludingSelf, stopSystemAudioExcludingSelf } from "@/lib/desktop";
+import { onSystemAudioChunk, parseWindowHandle, startAppAudio, stopAppAudio } from "@/lib/desktop";
 import { createBlankVideoTrack, createPeer } from "@/lib/peer";
 
 // Gate de ruido: deixa a faixa do microfone passar direto quando o volume
@@ -37,22 +37,12 @@ export type PresentUser = {
   peerId: string | null;
 };
 
-// "exclude-call": usa a captura nativa do app desktop (loopback_helper.exe)
-// que exclui so o audio do proprio GameShare — grava jogos, musica, video
-// etc. sem gravar a chamada de volta. So funciona no app desktop (Windows
-// 10 build 20348+); se a ativacao falhar, quem chamou decide o que fazer.
-// "everything": loopback cru do Chromium, grava tudo inclusive a chamada —
-// ecoa pra quem estiver ligado, existe como alternativa manual pra quando
-// a captura nativa nao funciona no PC da pessoa.
-export type SystemAudioMode = "off" | "exclude-call" | "everything";
-
 export type ScreenShareOptions = {
   sourceId: string;
   sourceType: "screen" | "window";
   fps: number;
   width: number;
   height: number;
-  systemAudioMode: SystemAudioMode;
 };
 
 // Constraints "legado" do Chromium (chromeMediaSource/chromeMediaSourceId)
@@ -60,8 +50,8 @@ export type ScreenShareOptions = {
 // (desktopCapturer), com FPS/resolucao exatos — o TypeScript padrao nao
 // conhece esse formato, so existe em Electron/Chromium.
 type ElectronDesktopConstraints = MediaStreamConstraints & {
-  audio?: boolean | { mandatory: { chromeMediaSource: "desktop" } };
-  video?: {
+  audio: false;
+  video: {
     mandatory: {
       chromeMediaSource: "desktop";
       chromeMediaSourceId: string;
@@ -75,18 +65,13 @@ type ElectronDesktopConstraints = MediaStreamConstraints & {
   };
 };
 
-// Video sempre vem da fonte escolhida no seletor nativo. Audio do sistema
-// "cru" (loopback do Chromium) so e pedido no modo "everything" — Windows
-// nem tem como capturar o audio de uma janela/app especifico sozinho por
-// essa API (so a tela inteira). O modo "exclude-call" nao passa por aqui,
-// tem sua propria captura (ver captureSystemAudioExcludingCall). O
-// microfone vai sempre por fora, misturado depois, em qualquer modo.
+// So o video vem daqui. Audio nunca vem junto: tela inteira nao leva
+// audio nenhum (so o microfone), e janela/app tem seu proprio audio
+// capturado a parte (ver captureAppAudio), gravando so aquele processo
+// especifico em vez do loopback cru do sistema inteiro.
 async function captureDesktopSource(options: ScreenShareOptions): Promise<MediaStream> {
   const constraints: ElectronDesktopConstraints = {
-    audio:
-      options.sourceType === "screen" && options.systemAudioMode === "everything"
-        ? { mandatory: { chromeMediaSource: "desktop" } }
-        : false,
+    audio: false,
     video: {
       mandatory: {
         chromeMediaSource: "desktop",
@@ -100,36 +85,28 @@ async function captureDesktopSource(options: ScreenShareOptions): Promise<MediaS
       },
     },
   };
-
-  try {
-    return await navigator.mediaDevices.getUserMedia(constraints);
-  } catch {
-    if (options.sourceType !== "screen") throw new Error("Nao foi possivel capturar a janela escolhida.");
-    // Alguns PCs nao tem um dispositivo de saida padrao reconhecido pelo
-    // loopback de audio do Windows — cai pra so o video em vez de falhar o
-    // compartilhamento inteiro.
-    return navigator.mediaDevices.getUserMedia({ audio: false, video: constraints.video });
-  }
+  return navigator.mediaDevices.getUserMedia(constraints);
 }
 
-// Audio do sistema "menos a propria chamada": pede pro processo principal
-// do Electron ativar a captura nativa (loopback_helper.exe, API de
-// process-loopback do Windows) e reconstitui o PCM que chega em pedacos
-// via IPC numa MediaStreamTrack de verdade atraves de um AudioWorklet
-// (public/pcm-injector-worklet.js) — mesmo padrao ja usado pro gate de
-// ruido do microfone, so que aqui o worklet e alimentado por fora em vez
-// de processar uma faixa de entrada.
-async function captureSystemAudioExcludingCall(
+// Audio de um app/jogo especifico: pede pro processo principal do
+// Electron ativar a captura nativa (loopback_helper.exe, API de
+// process-loopback do Windows, modo "so esse processo") e reconstitui o
+// PCM que chega em pedacos via IPC numa MediaStreamTrack de verdade
+// atraves de um AudioWorklet (public/pcm-injector-worklet.js) — mesmo
+// padrao ja usado pro gate de ruido do microfone, so que aqui o worklet e
+// alimentado por fora em vez de processar uma faixa de entrada. So
+// funciona no app desktop (Windows 10 build 20348+) — se a ativacao
+// falhar, devolve null e o compartilhamento continua so com o video, sem
+// erro pro usuario (isso e automatico, nao uma escolha explicita).
+async function captureAppAudio(
   audioContext: AudioContext,
-): Promise<{ track: MediaStreamTrack; cleanup: () => void }> {
-  const result = await startSystemAudioExcludingSelf();
-  if (!result.ok) {
-    throw new Error(
-      result.reason === "not-desktop"
-        ? "Essa opcao so funciona no app para Windows."
-        : "Nao foi possivel excluir sua propria voz da captura nesse Windows. Tente 'Tudo, incluindo a chamada'.",
-    );
-  }
+  sourceId: string,
+): Promise<{ track: MediaStreamTrack; cleanup: () => void } | null> {
+  const hwnd = parseWindowHandle(sourceId);
+  if (hwnd === null) return null;
+
+  const result = await startAppAudio(hwnd);
+  if (!result.ok) return null;
 
   await audioContext.audioWorklet.addModule("/pcm-injector-worklet.js");
   const workletNode = new AudioWorkletNode(audioContext, "pcm-injector-processor", {
@@ -148,7 +125,7 @@ async function captureSystemAudioExcludingCall(
     track: destination.stream.getAudioTracks()[0],
     cleanup: () => {
       unsubscribe();
-      stopSystemAudioExcludingSelf();
+      stopAppAudio();
       workletNode.disconnect();
     },
   };
@@ -396,18 +373,16 @@ export function useVoiceMesh({
     try {
       displayStream = await captureDesktopSource(options);
       const displayVideoTrack = displayStream.getVideoTracks()[0];
-      const displayAudioTracks = displayStream.getAudioTracks();
 
       audioContext = new AudioContext();
       const destination = audioContext.createMediaStreamDestination();
       audioContext.createMediaStreamSource(new MediaStream([micTrackRef.current])).connect(destination);
-      if (displayAudioTracks.length > 0) {
-        audioContext.createMediaStreamSource(new MediaStream(displayAudioTracks)).connect(destination);
-      }
-      if (options.systemAudioMode === "exclude-call") {
-        const native = await captureSystemAudioExcludingCall(audioContext);
-        audioContext.createMediaStreamSource(new MediaStream([native.track])).connect(destination);
-        nativeAudioCleanup = native.cleanup;
+      if (options.sourceType === "window") {
+        const appAudio = await captureAppAudio(audioContext, options.sourceId);
+        if (appAudio) {
+          audioContext.createMediaStreamSource(new MediaStream([appAudio.track])).connect(destination);
+          nativeAudioCleanup = appAudio.cleanup;
+        }
       }
       const mixedAudioTrack = destination.stream.getAudioTracks()[0];
 

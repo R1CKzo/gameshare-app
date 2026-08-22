@@ -20,6 +20,20 @@ const APP_URL = "https://gameshare-app.vercel.app";
 // lista e o app abre direto. A 1.0.3 junta tudo desde o lancamento porque
 // e a primeira vez que essa tela existe.
 const CHANGELOG = {
+  "1.0.6": {
+    version: "1.0.6",
+    title: "Audio automatico por app",
+    intro: "Simplificamos o audio do compartilhamento de tela:",
+    sections: [
+      {
+        heading: "Compartilhamento de tela",
+        items: [
+          "Tela inteira: sem audio nenhum do sistema, so o video (o microfone continua indo normal) — sem risco de eco.",
+          "Janela de um app ou jogo especifico: o audio daquele app entra sozinho, automaticamente, sem precisar escolher nada.",
+        ],
+      },
+    ],
+  },
   "1.0.5": {
     version: "1.0.5",
     title: "Audio do sistema sem eco",
@@ -211,19 +225,19 @@ function stopLoopbackCapture() {
   }
 }
 
-// Compartilhamento de tela com "audio do sistema, menos a propria
-// chamada": spawna um processo separado (loopback_helper.exe, compilado a
-// parte — ver desktop/native/loopback-helper) que usa a API de
-// process-loopback do Windows pra gravar tudo que esta tocando EXCETO o
-// que o proprio GameShare esta tocando (a voz de quem esta na chamada).
-// Sem isso, o audio do sistema capturado inclui a propria chamada de
-// volta, causando eco pra quem esta ligado. Processo separado (nao um
+// Compartilhamento de tela com audio de um processo especifico: spawna um
+// processo separado (loopback_helper.exe, compilado a parte — ver
+// desktop/native/loopback-helper) que usa a API de process-loopback do
+// Windows. Dois modos: "exclude" (grava tudo, menos um pid — nao usado
+// pela UI atual, mas o helper ainda suporta) e "include-window" (grava so
+// o app dono da janela escolhida — usado quando a pessoa compartilha um
+// app/jogo especifico em vez da tela inteira). Processo separado (nao um
 // addon nativo do Node) de proposito: se ele travar ou o Windows for
-// antigo demais pra suportar, so essa funcao falha — o app principal e a
-// chamada de voz continuam normais.
+// antigo demais pra suportar, so essa funcao falha — o compartilhamento
+// de tela continua, so sem audio.
 const LOOPBACK_HEADER_SIZE = 16;
 
-ipcMain.handle("screen-share:start-system-audio-exclude-self", (event) => {
+function startLoopbackCapture(event, helperArgs) {
   return new Promise((resolve) => {
     stopLoopbackCapture();
 
@@ -234,7 +248,7 @@ ipcMain.handle("screen-share:start-system-audio-exclude-self", (event) => {
       return;
     }
 
-    const proc = spawn(helperPath, [String(process.pid)], { windowsHide: true });
+    const proc = spawn(helperPath, helperArgs, { windowsHide: true });
     loopbackProc = proc;
 
     let headerBuffer = Buffer.alloc(0);
@@ -286,9 +300,24 @@ ipcMain.handle("screen-share:start-system-audio-exclude-self", (event) => {
       settle({ ok: false, reason: "spawn-error" });
     });
   });
+}
+
+ipcMain.handle("screen-share:start-system-audio-exclude-self", (event) => {
+  return startLoopbackCapture(event, ["exclude", String(process.pid)]);
+});
+
+ipcMain.handle("screen-share:start-app-audio", (event, hwnd) => {
+  if (!Number.isInteger(hwnd) || hwnd <= 0) {
+    return Promise.resolve({ ok: false, reason: "invalid-hwnd" });
+  }
+  return startLoopbackCapture(event, ["include-window", String(hwnd)]);
 });
 
 ipcMain.on("screen-share:stop-system-audio-exclude-self", () => {
+  stopLoopbackCapture();
+});
+
+ipcMain.on("screen-share:stop-app-audio", () => {
   stopLoopbackCapture();
 });
 
