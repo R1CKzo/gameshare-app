@@ -1,0 +1,35 @@
+name: Build desktop app
+
+# Builda o instalador do Windows e publica como GitHub Release toda vez
+# que uma tag "desktop-v*" e enviada (ex: desktop-v1.0.1). O
+# electron-updater do app instalado usa esses Releases pra checar e baixar
+# atualizacoes sozinho.
+on:
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and publish
+        run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
