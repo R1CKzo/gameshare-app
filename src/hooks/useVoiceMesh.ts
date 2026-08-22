@@ -42,6 +42,14 @@ export type ScreenShareOptions = {
   fps: number;
   width: number;
   height: number;
+  // Loopback de audio do Windows captura TUDO que esta saindo pelo
+  // alto-falante — inclusive a propria chamada de voz tocando por cima.
+  // Sem excluir so o processo do GameShare dessa captura (API nativa do
+  // Windows que o Electron nao expoe), ligar isso enquanto ha gente na
+  // chamada manda a voz de cada um de volta pra ela mesma, com o atraso da
+  // rede — o eco classico. Por isso vem desligado por padrao; so o pedido
+  // explicito liga.
+  includeSystemAudio: boolean;
 };
 
 // Constraints "legado" do Chromium (chromeMediaSource/chromeMediaSourceId)
@@ -65,14 +73,16 @@ type ElectronDesktopConstraints = MediaStreamConstraints & {
 };
 
 // Video sempre vem da fonte escolhida no seletor nativo. Audio do sistema
-// (loopback) so e pedido quando a fonte e a tela inteira — Windows nao tem
-// como capturar o audio de uma janela/app especifico sozinho por essa API,
-// entao compartilhar so um app fica so com o video (+ o microfone, que ja
-// vai sempre junto por fora, misturado depois).
+// (loopback) so e pedido quando a fonte e a tela inteira E a pessoa marcou
+// explicitamente que quer — Windows nem tem como capturar o audio de uma
+// janela/app especifico sozinho por essa API (so a tela inteira), e mesmo
+// na tela inteira isso ecoa a propria chamada de volta se ligado sem querer
+// (ver comentario em ScreenShareOptions). O microfone vai sempre por fora,
+// misturado depois, nos dois casos.
 async function captureDesktopSource(options: ScreenShareOptions): Promise<MediaStream> {
   const constraints: ElectronDesktopConstraints = {
     audio:
-      options.sourceType === "screen"
+      options.sourceType === "screen" && options.includeSystemAudio
         ? { mandatory: { chromeMediaSource: "desktop" } }
         : false,
     video: {

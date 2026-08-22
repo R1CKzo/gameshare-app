@@ -26,6 +26,7 @@ export function ScreenShareSourcePicker({
   const [selected, setSelected] = useState<ScreenSource | null>(null);
   const [fps, setFps] = useState(30);
   const [resolution, setResolution] = useState(RESOLUTIONS[1]);
+  const [includeSystemAudio, setIncludeSystemAudio] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +49,7 @@ export function ScreenShareSourcePicker({
       fps,
       width: resolution.width,
       height: resolution.height,
+      includeSystemAudio: selected.type === "screen" && includeSystemAudio,
     });
   }
 
@@ -93,12 +95,31 @@ export function ScreenShareSourcePicker({
               onChange={(label) => setFps(Number(label.replace(" FPS", "")))}
             />
           </SettingRow>
-          {selected?.type === "window" && (
+          {selected?.type === "screen" ? (
+            <div className="space-y-1.5">
+              <label className="flex cursor-pointer items-center justify-between gap-4">
+                <span className="text-xs font-bold tracking-wide text-muted">AUDIO DO SISTEMA</span>
+                <input
+                  type="checkbox"
+                  checked={includeSystemAudio}
+                  onChange={(e) => setIncludeSystemAudio(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+              </label>
+              {includeSystemAudio && (
+                <p className="text-xs text-danger">
+                  Isso grava tudo que sai pelo seu alto-falante — inclusive a voz de quem esta na chamada. Quem
+                  estiver ligado vai ouvir a propria voz de volta, com eco. So ligue se realmente precisar (ex:
+                  mostrar um video com som).
+                </p>
+              )}
+            </div>
+          ) : selected?.type === "window" ? (
             <p className="text-xs text-dim">
-              O audio do sistema so e capturado ao compartilhar a tela inteira — compartilhar uma janela leva so o
-              video (seu microfone continua indo normalmente).
+              O audio do sistema so pode ser capturado ao compartilhar a tela inteira — compartilhar uma janela leva
+              so o video (seu microfone continua indo normalmente).
             </p>
-          )}
+          ) : null}
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-white/[0.06] px-5 py-4">
