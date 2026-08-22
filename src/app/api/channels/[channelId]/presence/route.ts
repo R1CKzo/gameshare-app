@@ -9,6 +9,20 @@ import { prisma } from "@/lib/prisma";
 // pelo client enquanto a pagina do canal estiver aberta. Se o microfone
 // (peer de voz) ja estiver conectado, o client manda o peerId junto pra
 // quem mais estiver na sala conseguir discar direto.
+async function requireMembership(userId: string, channelId: string) {
+  const channel = await prisma.channel.findUnique({
+    where: { id: channelId },
+    select: { serverId: true },
+  });
+  if (!channel) return false;
+
+  const membership = await prisma.serverMember.findUnique({
+    where: { userId_serverId: { userId, serverId: channel.serverId } },
+    select: { id: true },
+  });
+  return Boolean(membership);
+}
+
 export async function POST(
   request: Request,
   { params }: { params: { channelId: string } }
@@ -16,6 +30,14 @@ export async function POST(
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+  }
+
+  // Sem isso, qualquer pessoa logada (nao so membro do servidor)
+  // conseguia se anunciar como "presente" numa sala e mandar as outras
+  // pessoas discarem pra ela na malha de voz — inclusive de servidores
+  // que ela nunca entrou.
+  if (!(await requireMembership(session.user.id, params.channelId))) {
+    return NextResponse.json({ error: "Voce nao e membro desse servidor." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({}));

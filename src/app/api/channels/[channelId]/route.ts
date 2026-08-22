@@ -23,6 +23,7 @@ export async function GET(
     select: {
       id: true,
       isLive: true,
+      serverId: true,
       broadcaster: { select: { id: true, nickname: true, userTag: true, image: true } },
       presences: {
         where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } },
@@ -36,6 +37,17 @@ export async function GET(
 
   if (!channel) {
     return NextResponse.json({ error: "Canal nao encontrado." }, { status: 404 });
+  }
+
+  // Sem isso, qualquer pessoa logada (nao so quem e membro do servidor)
+  // conseguia consultar quem esta numa chamada de qualquer servidor —
+  // nome, foto e ate o peerId usado pra discar na malha de voz.
+  const membership = await prisma.serverMember.findUnique({
+    where: { userId_serverId: { userId: session.user.id, serverId: channel.serverId } },
+    select: { id: true },
+  });
+  if (!membership) {
+    return NextResponse.json({ error: "Voce nao e membro desse servidor." }, { status: 403 });
   }
 
   return NextResponse.json({

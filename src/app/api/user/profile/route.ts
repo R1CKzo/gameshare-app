@@ -49,7 +49,11 @@ export async function PATCH(request: Request) {
     if (body.image.length > MAX_IMAGE_BASE64_LENGTH) {
       return NextResponse.json({ error: "Imagem muito grande." }, { status: 400 });
     }
-    if (!body.image.startsWith("data:image/")) {
+    // O cliente sempre redesenha a foto num canvas e exporta como JPEG
+    // antes de mandar pra ca — restringir aos formatos raster de verdade
+    // (sem svg+xml) fecha a porta pra alguem contornar o cliente e mandar
+    // um SVG com script embutido direto pra API.
+    if (!/^data:image\/(jpeg|png|webp|gif);base64,/.test(body.image)) {
       return NextResponse.json({ error: "Formato de imagem invalido." }, { status: 400 });
     }
     data.image = body.image;
