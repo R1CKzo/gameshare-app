@@ -28,7 +28,8 @@ export default function SetupPage() {
         return;
       }
 
-      router.push("/");
+      const callbackUrl = new URLSearchParams(window.location.search).get("callbackUrl");
+      router.push(callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/");
       router.refresh();
     } catch {
       setError("Erro de rede. Tente novamente.");

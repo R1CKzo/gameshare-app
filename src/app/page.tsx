@@ -7,11 +7,15 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: { callbackUrl?: string };
+}) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    return <LandingPage />;
+    return <LandingPage callbackUrl={searchParams.callbackUrl} />;
   }
 
   if (!session.user.nickname || !session.user.userTag) {
@@ -31,7 +35,7 @@ export default async function HomePage() {
   redirect("/servers/new");
 }
 
-function LandingPage() {
+function LandingPage({ callbackUrl }: { callbackUrl?: string }) {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
       <div className="pointer-events-none absolute -top-56 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.20)_0%,rgba(34,211,238,0.08)_45%,transparent_70%)]" />
@@ -59,7 +63,10 @@ function LandingPage() {
           precisar de outro app.
         </p>
 
-        <GoogleSignInButton className="mt-8 rounded-full bg-primary px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_4px_16px_rgba(124,58,237,0.35)] transition hover:-translate-y-px" />
+        <GoogleSignInButton
+          callbackUrl={callbackUrl}
+          className="mt-8 rounded-full bg-primary px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_4px_16px_rgba(124,58,237,0.35)] transition hover:-translate-y-px"
+        />
       </div>
     </div>
   );

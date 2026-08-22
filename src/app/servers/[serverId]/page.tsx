@@ -12,7 +12,18 @@ export default async function ServerRedirectPage({ params }: { params: { serverI
     where: { userId_serverId: { userId: session.user.id, serverId: params.serverId } },
     select: { id: true },
   });
-  if (!membership) notFound();
+  if (!membership) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
+        <div>
+          <h1 className="font-display text-xl font-bold">Voce nao e membro desse servidor</h1>
+          <p className="mt-2 text-sm text-muted">
+            Peca pra quem te chamou o link de convite (algo como /invite/xxxxxxxx).
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const firstChannel = await prisma.channel.findFirst({
     where: { serverId: params.serverId },

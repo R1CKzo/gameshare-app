@@ -9,7 +9,9 @@ export default withAuth(
     const hasNickname = Boolean(token?.nickname && token?.userTag);
 
     if (token && !hasNickname && pathname !== "/setup") {
-      return NextResponse.redirect(new URL("/setup", req.url));
+      const setupUrl = new URL("/setup", req.url);
+      setupUrl.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
+      return NextResponse.redirect(setupUrl);
     }
 
     if (token && hasNickname && pathname === "/setup") {
@@ -30,5 +32,5 @@ export default withAuth(
 // no server component, para onde mandar o usuario (evita loop de redirect
 // com pages.signIn = "/").
 export const config = {
-  matcher: ["/setup", "/servers/:path*"],
+  matcher: ["/setup", "/servers/:path*", "/invite/:path*"],
 };

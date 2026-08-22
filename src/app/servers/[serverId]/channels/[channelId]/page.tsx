@@ -24,6 +24,7 @@ export default async function ChannelPage({
         select: {
           id: true,
           name: true,
+          inviteCode: true,
           channels: {
             orderBy: { position: "asc" },
             select: {
@@ -40,7 +41,7 @@ export default async function ChannelPage({
     },
   });
 
-  if (!membership) notFound();
+  if (!membership) return <NotAMemberScreen />;
 
   const servers = await prisma.server.findMany({
     where: { members: { some: { userId: session.user.id } } },
@@ -56,6 +57,7 @@ export default async function ChannelPage({
       servers={servers}
       currentServerId={membership.server.id}
       serverName={membership.server.name}
+      inviteCode={membership.server.inviteCode}
       channels={membership.server.channels}
       currentChannelId={channel.id}
       user={{ nickname: session.user.nickname, userTag: session.user.userTag, image: session.user.image ?? null }}
@@ -71,5 +73,18 @@ export default async function ChannelPage({
         />
       )}
     </AppShell>
+  );
+}
+
+function NotAMemberScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
+      <div>
+        <h1 className="font-display text-xl font-bold">Voce nao e membro desse servidor</h1>
+        <p className="mt-2 text-sm text-muted">
+          Peca pra quem te chamou o link de convite (algo como /invite/xxxxxxxx) em vez do link do canal.
+        </p>
+      </div>
+    </div>
   );
 }

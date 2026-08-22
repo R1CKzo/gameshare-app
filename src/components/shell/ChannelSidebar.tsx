@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { InviteButton } from "@/components/shell/InviteButton";
 import { SignOutButton } from "@/components/shell/SignOutButton";
 
 type ChannelSummary = {
@@ -14,12 +15,14 @@ type ChannelSummary = {
 export function ChannelSidebar({
   serverId,
   serverName,
+  inviteCode,
   channels,
   currentChannelId,
   user,
 }: {
   serverId: string;
   serverName: string;
+  inviteCode: string;
   channels: ChannelSummary[];
   currentChannelId: string;
   user: { nickname: string | null; userTag: string | null; image: string | null };
@@ -29,8 +32,9 @@ export function ChannelSidebar({
 
   return (
     <div className="flex w-[252px] shrink-0 flex-col border-r border-white/[0.06] bg-sidebar">
-      <div className="flex h-14 shrink-0 items-center border-b border-white/[0.06] px-4">
+      <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-white/[0.06] px-4">
         <span className="truncate font-bold">{serverName}</span>
+        <InviteButton inviteCode={inviteCode} />
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">

@@ -16,6 +16,7 @@ export function AppShell({
   servers,
   currentServerId,
   serverName,
+  inviteCode,
   channels,
   currentChannelId,
   user,
@@ -24,6 +25,7 @@ export function AppShell({
   servers: ServerSummary[];
   currentServerId: string;
   serverName: string;
+  inviteCode: string;
   channels: ChannelSummary[];
   currentChannelId: string;
   user: { nickname: string | null; userTag: string | null; image: string | null };
@@ -35,6 +37,7 @@ export function AppShell({
       <ChannelSidebar
         serverId={currentServerId}
         serverName={serverName}
+        inviteCode={inviteCode}
         channels={channels}
         currentChannelId={currentChannelId}
         user={user}
