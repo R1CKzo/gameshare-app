@@ -10,9 +10,10 @@ import { HamburgerIcon, MembersIcon, useMobileUI } from "@/components/shell/Mobi
 type BroadcasterInfo = { id: string; nickname: string | null; userTag: string | null } | null;
 type PresentUser = { id: string; nickname: string | null; userTag: string | null; image: string | null };
 type LiveState = { isLive: boolean; peerId: string | null; broadcaster: BroadcasterInfo };
-type Phase = "idle" | "starting" | "broadcasting" | "connecting" | "watching" | "orphaned";
+type Phase = "idle" | "starting" | "broadcasting" | "connecting" | "watching" | "orphaned" | "failed";
 
 const HEARTBEAT_MS = 15000;
+const CONNECT_TIMEOUT_MS = 15000;
 
 export function CallChannel({
   channelId,
@@ -39,8 +40,13 @@ export function CallChannel({
   const localStreamRef = useRef<MediaStream | null>(null);
   const activeCallsRef = useRef<Set<MediaConnection>>(new Set());
   const hasLocalStreamRef = useRef(false);
+  const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cleanupPeer = useCallback(() => {
+    if (connectTimeoutRef.current) {
+      clearTimeout(connectTimeoutRef.current);
+      connectTimeoutRef.current = null;
+    }
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
     hasLocalStreamRef.current = false;
@@ -98,9 +104,10 @@ export function CallChannel({
     const iAmBroadcaster = live.broadcaster?.id === currentUserId;
 
     if (!live.isLive) {
-      if (phase === "watching" || phase === "connecting") {
+      if (phase === "watching" || phase === "connecting" || phase === "failed") {
         cleanupPeer();
         setPhase("idle");
+        setErrorMsg(null);
       }
       if (phase === "broadcasting" && !hasLocalStreamRef.current) {
         setPhase("idle");
@@ -110,7 +117,7 @@ export function CallChannel({
 
     if (iAmBroadcaster) return; // fluxo tratado por startSharing()
 
-    if (phase === "idle" || phase === "orphaned") {
+    if (phase === "idle" || phase === "orphaned" || phase === "failed") {
       connectAsViewer(live.peerId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -123,6 +130,12 @@ export function CallChannel({
     setPhase("connecting");
     setErrorMsg(null);
 
+    connectTimeoutRef.current = setTimeout(() => {
+      cleanupPeer();
+      setPhase("failed");
+      setErrorMsg("A conexao demorou demais. A rede de quem esta assistindo ou compartilhando pode estar bloqueando o WebRTC.");
+    }, CONNECT_TIMEOUT_MS);
+
     try {
       const peer = await createPeer();
       peerRef.current = peer;
@@ -130,6 +143,10 @@ export function CallChannel({
       peer.on("open", () => {
         const call = peer.call(peerId, new MediaStream());
         call.on("stream", (remoteStream) => {
+          if (connectTimeoutRef.current) {
+            clearTimeout(connectTimeoutRef.current);
+            connectTimeoutRef.current = null;
+          }
           if (videoRef.current) videoRef.current.srcObject = remoteStream;
           setPhase("watching");
         });
@@ -137,13 +154,19 @@ export function CallChannel({
           setPhase("idle");
           cleanupPeer();
         });
-        call.on("error", () => setErrorMsg("Nao foi possivel conectar a transmissao."));
+        call.on("error", () => {
+          setErrorMsg("Nao foi possivel conectar a transmissao.");
+          setPhase("failed");
+        });
       });
 
-      peer.on("error", () => setErrorMsg("Erro de conexao WebRTC."));
+      peer.on("error", () => {
+        setErrorMsg("Erro de conexao WebRTC.");
+        setPhase("failed");
+      });
     } catch {
       setErrorMsg("Nao foi possivel conectar a transmissao.");
-      setPhase("idle");
+      setPhase("failed");
     }
   }
 
@@ -245,7 +268,7 @@ export function CallChannel({
           <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
         </svg>
         <span className="truncate font-bold">{channelName}</span>
-        {(phase === "broadcasting" || phase === "watching") && (
+        {live.isLive && (
           <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-accent/[0.12] px-2.5 py-0.5 text-xs font-bold text-accent">
             <div className="h-1.5 w-1.5 rounded-full bg-accent" />
             AO VIVO
@@ -314,6 +337,35 @@ export function CallChannel({
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {phase === "failed" && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 px-4">
+          <div className="flex h-[88px] w-[88px] items-center justify-center rounded-full bg-danger/10">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 1l22 22" />
+              <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+              <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+              <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
+              <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+              <path d="M12 20h.01" />
+            </svg>
+          </div>
+          <div className="max-w-sm text-center">
+            <div className="font-display text-xl font-bold">Nao foi possivel conectar</div>
+            <div className="mt-2 text-sm text-muted">
+              {broadcasterLabel ?? "Alguem"} esta compartilhando, mas a conexao nao fechou. Pode ser a rede de
+              uma das duas pontas bloqueando o WebRTC.
+            </div>
+          </div>
+          <button
+            onClick={() => connectAsViewer(live.peerId)}
+            className="flex items-center gap-2.5 rounded-full bg-primary px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_4px_16px_rgba(124,58,237,0.35)] transition hover:-translate-y-px"
+          >
+            Tentar novamente
+          </button>
         </div>
       )}
 
