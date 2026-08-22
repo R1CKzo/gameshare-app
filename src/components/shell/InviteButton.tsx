@@ -39,7 +39,7 @@ export function InviteButton({ inviteCode }: { inviteCode: string }) {
       <button
         onClick={() => setOpen((v) => !v)}
         title="Convidar amigos"
-        className="flex h-7 w-7 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -50,7 +50,7 @@ export function InviteButton({ inviteCode }: { inviteCode: string }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-9 z-20 w-72 rounded-xl border border-white/[0.08] bg-elevated p-4 shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
+        <div className="absolute left-0 top-11 z-20 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-white/[0.08] bg-elevated p-4 shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
           <div className="flex items-start justify-between gap-2">
             <div className="text-sm font-bold">Convidar amigos</div>
             <button

@@ -5,6 +5,7 @@ import type { MediaConnection, default as Peer } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createPeer } from "@/lib/peer";
+import { HamburgerIcon, MembersIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 
 type BroadcasterInfo = { id: string; nickname: string | null; userTag: string | null } | null;
 type PresentUser = { id: string; nickname: string | null; userTag: string | null; image: string | null };
@@ -31,6 +32,7 @@ export function CallChannel({
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
+  const { toggleSidebar, toggleMembers } = useMobileUI();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const peerRef = useRef<Peer | null>(null);
@@ -230,41 +232,57 @@ export function CallChannel({
 
   return (
     <>
-      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-white/[0.06] px-5">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={phase === "broadcasting" || phase === "watching" ? "#22d3ee" : "#6b7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.06] px-3 sm:gap-2.5 sm:px-5">
+        <button
+          onClick={toggleSidebar}
+          aria-label="Abrir menu"
+          className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] md:hidden"
+        >
+          <HamburgerIcon />
+        </button>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={phase === "broadcasting" || phase === "watching" ? "#22d3ee" : "#6b7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
           <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
         </svg>
-        <span className="font-bold">{channelName}</span>
+        <span className="truncate font-bold">{channelName}</span>
         {(phase === "broadcasting" || phase === "watching") && (
-          <div className="flex items-center gap-1.5 rounded-full bg-accent/[0.12] px-2.5 py-0.5 text-xs font-bold text-accent">
+          <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-accent/[0.12] px-2.5 py-0.5 text-xs font-bold text-accent">
             <div className="h-1.5 w-1.5 rounded-full bg-accent" />
             AO VIVO
           </div>
         )}
         {phase === "broadcasting" && viewerCount > 0 && (
-          <span className="text-xs text-muted">{viewerCount} assistindo</span>
+          <span className="hidden shrink-0 text-xs text-muted sm:inline">{viewerCount} assistindo</span>
         )}
-        {present.length > 0 && (
-          <div className="ml-auto flex items-center gap-2">
-            <div className="flex">
-              {present.slice(0, 5).map((u, i) => (
-                <PresenceAvatar key={u.id} user={u} style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 5 - i }} />
-              ))}
-            </div>
-            <span className="text-xs text-muted">
-              {present.length} {present.length === 1 ? "pessoa aqui" : "pessoas aqui"}
-            </span>
-          </div>
-        )}
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          {present.length > 0 && (
+            <>
+              <div className="flex">
+                {present.slice(0, 5).map((u, i) => (
+                  <PresenceAvatar key={u.id} user={u} style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 5 - i }} />
+                ))}
+              </div>
+              <span className="hidden text-xs text-muted sm:inline">
+                {present.length} {present.length === 1 ? "pessoa aqui" : "pessoas aqui"}
+              </span>
+            </>
+          )}
+          <button
+            onClick={toggleMembers}
+            aria-label="Ver membros"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] lg:hidden"
+          >
+            <MembersIcon />
+          </button>
+        </div>
       </div>
 
       {errorMsg && (
-        <div className="border-b border-danger/30 bg-danger/10 px-5 py-2 text-sm text-danger">{errorMsg}</div>
+        <div className="border-b border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger sm:px-5">{errorMsg}</div>
       )}
 
       {(phase === "broadcasting" || phase === "watching" || phase === "connecting") && (
-        <div className="flex flex-1 flex-col gap-4 p-5">
+        <div className="flex flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-5">
           <div className="relative flex-1 overflow-hidden rounded-2xl border-2 border-accent bg-black">
             <video ref={videoRef} autoPlay muted={phase === "broadcasting"} playsInline className="h-full w-full object-contain" />
             {phase === "connecting" && (
@@ -273,13 +291,15 @@ export function CallChannel({
               </div>
             )}
             {(phase === "broadcasting" || phase === "watching") && (
-              <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/60 px-3.5 py-2 text-xs font-semibold backdrop-blur">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="absolute left-2 top-2 flex max-w-[calc(100%-16px)] items-center gap-2 truncate rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold backdrop-blur sm:left-4 sm:top-4 sm:px-3.5 sm:py-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <rect x="2" y="3" width="20" height="14" rx="2" />
                   <path d="M8 21h8" />
                   <path d="M12 17v4" />
                 </svg>
-                {phase === "broadcasting" ? "Voce esta compartilhando a tela" : `${broadcasterLabel} esta compartilhando a tela`}
+                <span className="truncate">
+                  {phase === "broadcasting" ? "Voce esta compartilhando a tela" : `${broadcasterLabel} esta compartilhando a tela`}
+                </span>
               </div>
             )}
           </div>
@@ -298,7 +318,7 @@ export function CallChannel({
       )}
 
       {(phase === "idle" || phase === "starting" || phase === "orphaned") && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-5">
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 px-4">
           <div className="flex h-[88px] w-[88px] items-center justify-center rounded-full bg-elevated">
             <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" />
