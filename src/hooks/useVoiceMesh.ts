@@ -7,33 +7,25 @@ import { createBlankVideoTrack, createPeer } from "@/lib/peer";
 // Gate de ruido: deixa a faixa do microfone passar direto quando o volume
 // esta acima do limiar (a pessoa esta falando) e silencia quando esta
 // abaixo (ruido de fundo, ronco de ventilador, e principalmente o inicio de
-// um loop de eco/feedback antes dele conseguir crescer). O envelope tem
-// ataque rapido (abre na hora que a fala comeca) e liberacao mais lenta
-// (nao corta a ponta final das palavras).
-function createNoiseGate(audioContext: AudioContext, micStream: MediaStream, threshold: number) {
+// um loop de eco/feedback antes dele conseguir crescer).
+//
+// Roda num AudioWorklet (public/noise-gate-worklet.js) — thread de audio
+// dedicada, separada da thread principal do React. A primeira versao usava
+// ScriptProcessorNode (thread principal) com coeficientes de ataque/
+// liberacao calibrados errado (convergiam em menos de 1ms), o que gerava
+// estalos audiveis toda vez que o gate abria/fechava — exatamente o "audio
+// repetindo" que apareceu nos testes reais.
+async function createNoiseGate(audioContext: AudioContext, micStream: MediaStream, threshold: number) {
+  await audioContext.audioWorklet.addModule("/noise-gate-worklet.js");
   const source = audioContext.createMediaStreamSource(micStream);
-  const processor = audioContext.createScriptProcessor(2048, 1, 1);
+  const gateNode = new AudioWorkletNode(audioContext, "noise-gate-processor", {
+    processorOptions: { threshold },
+  });
   const destination = audioContext.createMediaStreamDestination();
-  let envelope = 0;
-  const attack = 0.5;
-  const release = 0.05;
 
-  processor.onaudioprocess = (event) => {
-    const input = event.inputBuffer.getChannelData(0);
-    const output = event.outputBuffer.getChannelData(0);
-    let sumSquares = 0;
-    for (let i = 0; i < input.length; i++) sumSquares += input[i] * input[i];
-    const rms = Math.sqrt(sumSquares / input.length);
-    const target = rms > threshold ? 1 : 0;
-    for (let i = 0; i < input.length; i++) {
-      envelope += (target - envelope) * (target > envelope ? attack : release);
-      output[i] = input[i] * envelope;
-    }
-  };
-
-  source.connect(processor);
-  processor.connect(destination);
-  return { track: destination.stream.getAudioTracks()[0], processor, source };
+  source.connect(gateNode);
+  gateNode.connect(destination);
+  return { track: destination.stream.getAudioTracks()[0], node: gateNode, source };
 }
 
 export type PresentUser = {
@@ -113,7 +105,12 @@ export function useVoiceMesh({
 
         const audioContext = new AudioContext();
         const threshold = sensitivityToGateThreshold(settings.sensitivity);
-        const gate = createNoiseGate(audioContext, rawStream, threshold);
+        const gate = await createNoiseGate(audioContext, rawStream, threshold);
+        if (cancelled) {
+          rawStream.getTracks().forEach((t) => t.stop());
+          audioContext.close().catch(() => {});
+          return;
+        }
         micProcessingRef.current = { audioContext, rawStream };
 
         const micTrack = gate.track;
