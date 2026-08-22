@@ -37,6 +37,7 @@
 #include <vector>
 
 #pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "user32.lib")
 
 #ifndef VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK
 #define VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK L"VAD\\Process_Loopback"
@@ -154,7 +155,7 @@ int wmain(int argc, wchar_t* argv[]) {
     // Grava so o processo dono da janela dada (+ filhos) — usado pra
     // "audio de um app/jogo especifico". O HWND vem do id que o
     // desktopCapturer do Electron devolve ("window:<hwnd>:<indice>").
-    HWND hwnd = reinterpret_cast<HWND>(static_cast<intptr_t>(_wtoi64(argv[2])));
+    HWND hwnd = reinterpret_cast<HWND>(static_cast<intptr_t>(wcstoll(argv[2], nullptr, 10)));
     DWORD ownerPid = 0;
     if (!hwnd || !GetWindowThreadProcessId(hwnd, &ownerPid) || ownerPid == 0) {
       fwprintf(stderr, L"loopback_helper: nao foi possivel achar o processo dono dessa janela\n");
