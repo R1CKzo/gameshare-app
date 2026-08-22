@@ -6,40 +6,41 @@ import type { PeerJSOption } from "peerjs";
 // ou CGNAT, onde o WebRTC so consegue conectar via um servidor TURN
 // (retransmite a midia em vez de tentar conexao direta). Sem isso, dois
 // usuarios no mesmo navegador/rede conectam bem, mas amigos em redes
-// diferentes simplesmente nunca fecham a conexao.
-//
-// O Open Relay Project (metered.ca) mantem um TURN publico e gratuito para
-// testes/demos, com credenciais publicas de proposito. Para producao com
-// mais uso, o ideal e trocar por um TURN proprio (ex: Metered, Twilio,
-// Cloudflare Calls).
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-  {
-    urls: "turn:openrelay.metered.ca:80",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-  {
-    urls: "turn:openrelay.metered.ca:443",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-  {
-    urls: "turn:openrelay.metered.ca:443?transport=tcp",
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  },
-];
+// diferentes simplesmente nunca fecham a conexao — foi exatamente isso que
+// quebrou a chamada de voz: o TURN publico do Open Relay Project
+// (metered.ca) que o app usava desde o inicio foi descontinuado (o dominio
+// nem resolve mais), entao ninguem atras de NAT restritivo conseguia
+// fechar a malha. Trocado pelo ExpressTURN (conta gratuita do proprio
+// projeto, credenciais nas env vars abaixo).
+function buildIceServers(): RTCIceServer[] {
+  const servers: RTCIceServer[] = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+  ];
+
+  const turnUrl = process.env.NEXT_PUBLIC_TURN_URL;
+  const turnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME;
+  const turnCredential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL;
+
+  if (turnUrl && turnUsername && turnCredential) {
+    servers.push(
+      { urls: `turn:${turnUrl}`, username: turnUsername, credential: turnCredential },
+      { urls: `turn:${turnUrl}?transport=tcp`, username: turnUsername, credential: turnCredential },
+    );
+  }
+
+  return servers;
+}
 
 // Se NEXT_PUBLIC_PEERJS_HOST nao estiver definido, o PeerJS usa o broker
 // publico da nuvem (0.peerjs.com) automaticamente — util para desenvolvimento.
 // Em producao, recomenda-se hospedar seu proprio PeerServer.
 export function getPeerOptions(): PeerJSOption {
   const host = process.env.NEXT_PUBLIC_PEERJS_HOST;
+  const iceServers = buildIceServers();
 
   if (!host) {
-    return { debug: 1, config: { iceServers: ICE_SERVERS } };
+    return { debug: 1, config: { iceServers } };
   }
 
   return {
@@ -48,7 +49,7 @@ export function getPeerOptions(): PeerJSOption {
     path: process.env.NEXT_PUBLIC_PEERJS_PATH || "/",
     secure: true,
     debug: 1,
-    config: { iceServers: ICE_SERVERS },
+    config: { iceServers },
   };
 }
 
