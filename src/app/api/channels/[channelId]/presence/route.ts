@@ -21,10 +21,15 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const peerId: string | undefined = typeof body?.peerId === "string" ? body.peerId : undefined;
 
+  // Um heartbeat sem peerId manda update:{peerId: undefined} — o Prisma
+  // filtra chaves undefined do payload, e se sobrar um objeto vazio ele
+  // pula a query de UPDATE (e o updatedAt do @updatedAt nunca bate). Por
+  // isso o updatedAt vai explicito aqui: todo heartbeat tem que "contar"
+  // mesmo quando so esta renovando a presenca, sem peerId novo.
   await prisma.channelPresence.upsert({
     where: { channelId_userId: { channelId: params.channelId, userId: session.user.id } },
     create: { channelId: params.channelId, userId: session.user.id, peerId },
-    update: { peerId },
+    update: { updatedAt: new Date(), ...(peerId !== undefined ? { peerId } : {}) },
   });
 
   return NextResponse.json({ ok: true });

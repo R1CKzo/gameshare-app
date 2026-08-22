@@ -75,6 +75,7 @@ export function CallChannel({
       fetch(`/api/channels/${channelId}/presence`, { method: "POST" }).catch(() => {});
     }
 
+    beat();
     const interval = setInterval(beat, HEARTBEAT_MS);
     return () => {
       clearInterval(interval);
