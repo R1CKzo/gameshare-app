@@ -19,6 +19,7 @@
 #define NOMINMAX
 
 #include <windows.h>
+#include <objbase.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 #include <audioclientactivationparams.h>
@@ -136,7 +137,13 @@ int wmain(int argc, wchar_t* argv[]) {
   }
   DWORD targetPid = static_cast<DWORD>(_wtoi(argv[1]));
 
-  HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+  // STA, nao MTA: ActivateAudioInterfaceAsync devolve E_ILLEGAL_METHOD_CALL
+  // direto (sincrono, antes de qualquer callback) se a thread chamadora nao
+  // estiver numa apartment de thread unica. O handler ainda declara suporte
+  // a IAgileObject (ver ActivationHandler::QueryInterface) pra evitar
+  // deadlock quando o callback de conclusao chega numa thread MTA do
+  // sistema de audio.
+  HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   if (FAILED(hr)) {
     LogError(L"CoInitializeEx", hr);
     return 2;
@@ -179,7 +186,14 @@ int wmain(int argc, wchar_t* argv[]) {
     return 2;
   }
 
-  DWORD waitResult = WaitForSingleObject(handler->completedEvent, kActivationTimeoutMs);
+  // CoWaitForMultipleHandles em vez de WaitForSingleObject: numa apartment
+  // STA, o callback de conclusao pode chegar via mensagem da fila da
+  // propria thread — um wait "cru" travaria pra sempre esperando um evento
+  // que so e sinalizado depois que essa mensagem for bombeada.
+  DWORD waitIndex = 0;
+  HANDLE completedEvent = handler->completedEvent;
+  HRESULT waitHr = CoWaitForMultipleHandles(COWAIT_DISPATCH_CALLS, kActivationTimeoutMs, 1, &completedEvent, &waitIndex);
+  DWORD waitResult = SUCCEEDED(waitHr) ? WAIT_OBJECT_0 : WAIT_TIMEOUT;
   if (waitResult != WAIT_OBJECT_0 || FAILED(handler->activateHr) || !handler->audioClient) {
     LogError(L"ativacao do loopback de processo", handler->activateHr);
     if (asyncOp) asyncOp->Release();
