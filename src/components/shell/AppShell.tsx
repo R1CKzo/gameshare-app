@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { ChannelSidebar } from "@/components/shell/ChannelSidebar";
+import { MemberList } from "@/components/shell/MemberList";
 import { ServerRail } from "@/components/shell/ServerRail";
 
 type ServerSummary = { id: string; name: string };
@@ -10,7 +11,9 @@ type ChannelSummary = {
   type: "TEXT" | "CALL";
   isLive: boolean;
   broadcaster: { nickname: string | null } | null;
+  presenceCount: number;
 };
+type MemberSummary = { id: string; nickname: string | null; userTag: string | null; image: string | null };
 
 export function AppShell({
   servers,
@@ -19,6 +22,7 @@ export function AppShell({
   inviteCode,
   channels,
   currentChannelId,
+  members,
   user,
   children,
 }: {
@@ -28,6 +32,7 @@ export function AppShell({
   inviteCode: string;
   channels: ChannelSummary[];
   currentChannelId: string;
+  members: MemberSummary[];
   user: { nickname: string | null; userTag: string | null; image: string | null };
   children: ReactNode;
 }) {
@@ -43,6 +48,7 @@ export function AppShell({
         user={user}
       />
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <MemberList members={members} />
     </div>
   );
 }

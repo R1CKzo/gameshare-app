@@ -70,9 +70,10 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  ownedServers Server[]       @relation("ServerOwner")
+  ownedServers Server[]           @relation("ServerOwner")
   memberships  ServerMember[]
-  broadcasting Channel[]      @relation("ChannelBroadcaster")
+  broadcasting Channel[]          @relation("ChannelBroadcaster")
+  presences    ChannelPresence[]
 
   // O par nickname+userTag deve ser unico no banco
   @@unique([nickname, userTag])
@@ -130,5 +131,23 @@ model Channel {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  presences ChannelPresence[]
+
   @@index([serverId])
+}
+
+// Presenca "leve" (heartbeat) de quem esta com a sala de chamada aberta
+// agora, mesmo que ninguem esteja compartilhando a tela ainda.
+model ChannelPresence {
+  id        String   @id @default(uuid())
+  updatedAt DateTime @updatedAt
+
+  channelId String
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([channelId, updatedAt])
 }

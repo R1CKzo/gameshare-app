@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+const PRESENCE_WINDOW_MS = 30_000;
+
 export default async function ChannelPage({
   params,
 }: {
@@ -34,6 +36,9 @@ export default async function ChannelPage({
               isLive: true,
               peerId: true,
               broadcaster: { select: { id: true, nickname: true, userTag: true } },
+              _count: {
+                select: { presences: { where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } } } },
+              },
             },
           },
         },
@@ -49,8 +54,23 @@ export default async function ChannelPage({
     select: { id: true, name: true },
   });
 
+  const members = await prisma.serverMember.findMany({
+    where: { serverId: membership.server.id },
+    orderBy: { createdAt: "asc" },
+    select: { user: { select: { id: true, nickname: true, userTag: true, image: true } } },
+  });
+
   const channel = membership.server.channels.find((c) => c.id === params.channelId);
   if (!channel) notFound();
+
+  const channelsForSidebar = membership.server.channels.map((c) => ({
+    id: c.id,
+    name: c.name,
+    type: c.type,
+    isLive: c.isLive,
+    broadcaster: c.broadcaster,
+    presenceCount: c._count.presences,
+  }));
 
   return (
     <AppShell
@@ -58,8 +78,9 @@ export default async function ChannelPage({
       currentServerId={membership.server.id}
       serverName={membership.server.name}
       inviteCode={membership.server.inviteCode}
-      channels={membership.server.channels}
+      channels={channelsForSidebar}
       currentChannelId={channel.id}
+      members={members.map((m) => m.user)}
       user={{ nickname: session.user.nickname, userTag: session.user.userTag, image: session.user.image ?? null }}
     >
       {channel.type === "TEXT" ? (

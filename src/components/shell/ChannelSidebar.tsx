@@ -10,6 +10,7 @@ type ChannelSummary = {
   type: "TEXT" | "CALL";
   isLive: boolean;
   broadcaster: { nickname: string | null } | null;
+  presenceCount: number;
 };
 
 export function ChannelSidebar({
@@ -84,12 +85,13 @@ function ChannelRow({
   active: boolean;
 }) {
   const isCall = channel.type === "CALL";
+  const hasActivity = isCall && (channel.isLive || channel.presenceCount > 0);
 
   return (
     <Link
       href={`/servers/${serverId}/channels/${channel.id}`}
       className={`mb-0.5 flex items-center gap-2 rounded-md px-2 py-1.5 transition ${
-        isCall && channel.isLive
+        hasActivity
           ? "border-l-2 border-accent bg-accent/[0.08]"
           : active
             ? "bg-elevated"
@@ -102,7 +104,7 @@ function ChannelRow({
           height="16"
           viewBox="0 0 24 24"
           fill="none"
-          stroke={channel.isLive ? "#22d3ee" : active ? "#f5f5f7" : "#6b7280"}
+          stroke={hasActivity ? "#22d3ee" : active ? "#f5f5f7" : "#6b7280"}
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -113,7 +115,7 @@ function ChannelRow({
       ) : (
         <span className="w-4 text-center text-base font-semibold text-muted">#</span>
       )}
-      <span className={`flex-1 truncate text-sm ${active || channel.isLive ? "font-semibold text-[#f5f5f7]" : "text-[#9aa0ae]"}`}>
+      <span className={`flex-1 truncate text-sm ${active || hasActivity ? "font-semibold text-[#f5f5f7]" : "text-[#9aa0ae]"}`}>
         {channel.name}
       </span>
       {isCall && channel.isLive && channel.broadcaster && (
@@ -122,6 +124,15 @@ function ChannelRow({
           title={channel.broadcaster.nickname ?? undefined}
         >
           {channel.broadcaster.nickname?.slice(0, 1).toUpperCase()}
+        </div>
+      )}
+      {isCall && !channel.isLive && channel.presenceCount > 0 && (
+        <div className="flex items-center gap-1 text-[11px] font-semibold text-accent">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+          </svg>
+          {channel.presenceCount}
         </div>
       )}
     </Link>

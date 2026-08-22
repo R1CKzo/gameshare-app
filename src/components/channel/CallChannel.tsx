@@ -1,13 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import type { MediaConnection, default as Peer } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createPeer } from "@/lib/peer";
 
 type BroadcasterInfo = { id: string; nickname: string | null; userTag: string | null } | null;
+type PresentUser = { id: string; nickname: string | null; userTag: string | null; image: string | null };
 type LiveState = { isLive: boolean; peerId: string | null; broadcaster: BroadcasterInfo };
 type Phase = "idle" | "starting" | "broadcasting" | "connecting" | "watching" | "orphaned";
+
+const HEARTBEAT_MS = 15000;
 
 export function CallChannel({
   channelId,
@@ -21,6 +25,7 @@ export function CallChannel({
   initialLive: LiveState;
 }) {
   const [live, setLive] = useState<LiveState>(initialLive);
+  const [present, setPresent] = useState<PresentUser[]>([]);
   const [phase, setPhase] = useState<Phase>(() =>
     initialLive.isLive && initialLive.broadcaster?.id === currentUserId ? "orphaned" : "idle"
   );
@@ -45,7 +50,7 @@ export function CallChannel({
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
-  // Poll do estado do canal para saber se alguem esta transmitindo
+  // Poll do estado do canal: quem esta transmitindo e quem esta presente
   useEffect(() => {
     let cancelled = false;
 
@@ -55,15 +60,34 @@ export function CallChannel({
         if (!res.ok || cancelled) return;
         const data = await res.json();
         setLive({ isLive: data.isLive, peerId: data.peerId, broadcaster: data.broadcaster });
+        setPresent(data.present ?? []);
       } catch {
         // ignora falhas transitorias de rede
       }
     }
 
+    poll();
     const interval = setInterval(poll, 4000);
     return () => {
       cancelled = true;
       clearInterval(interval);
+    };
+  }, [channelId]);
+
+  // Heartbeat de presenca: avisa que estou com essa sala aberta, mesmo so
+  // pra assistir. Sai da lista automaticamente se fechar a aba sem avisar
+  // (o servidor ignora presencas mais velhas que ~30s).
+  useEffect(() => {
+    function beat() {
+      fetch(`/api/channels/${channelId}/presence`, { method: "POST" }).catch(() => {});
+    }
+
+    beat();
+    const interval = setInterval(beat, HEARTBEAT_MS);
+
+    return () => {
+      clearInterval(interval);
+      fetch(`/api/channels/${channelId}/presence`, { method: "DELETE", keepalive: true }).catch(() => {});
     };
   }, [channelId]);
 
@@ -221,6 +245,18 @@ export function CallChannel({
         {phase === "broadcasting" && viewerCount > 0 && (
           <span className="text-xs text-muted">{viewerCount} assistindo</span>
         )}
+        {present.length > 0 && (
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex">
+              {present.slice(0, 5).map((u, i) => (
+                <PresenceAvatar key={u.id} user={u} style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 5 - i }} />
+              ))}
+            </div>
+            <span className="text-xs text-muted">
+              {present.length} {present.length === 1 ? "pessoa aqui" : "pessoas aqui"}
+            </span>
+          </div>
+        )}
       </div>
 
       {errorMsg && (
@@ -283,9 +319,42 @@ export function CallChannel({
           >
             {phase === "starting" ? "Iniciando..." : "Compartilhar minha tela"}
           </button>
+
+          {present.filter((u) => u.id !== currentUserId).length > 0 && (
+            <div className="flex items-center gap-2 rounded-full bg-elevated px-3 py-1.5">
+              <div className="flex">
+                {present
+                  .filter((u) => u.id !== currentUserId)
+                  .slice(0, 5)
+                  .map((u, i) => (
+                    <PresenceAvatar key={u.id} user={u} style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 5 - i }} />
+                  ))}
+              </div>
+              <span className="text-xs text-muted">tambem estao so assistindo</span>
+            </div>
+          )}
         </div>
       )}
     </>
+  );
+}
+
+function PresenceAvatar({ user, style }: { user: PresentUser; style?: React.CSSProperties }) {
+  const initials = (user.nickname ?? "?").slice(0, 1).toUpperCase();
+  return (
+    <div
+      title={user.nickname ? `${user.nickname}#${user.userTag ?? ""}` : undefined}
+      style={style}
+      className="relative h-6 w-6 overflow-hidden rounded-full border-2 border-main bg-primary"
+    >
+      {user.image ? (
+        <Image src={user.image} alt="" fill sizes="24px" className="object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center font-display text-[10px] font-bold">
+          {initials}
+        </div>
+      )}
+    </div>
   );
 }
 

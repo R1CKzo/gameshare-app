@@ -15,8 +15,17 @@ export function InviteButton({ inviteCode }: { inviteCode: string }) {
         setOpen(false);
       }
     }
-    if (open) document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    if (open) {
+      document.addEventListener("mousedown", onClickOutside);
+      document.addEventListener("keydown", onKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [open]);
 
   async function copyLink() {
@@ -42,7 +51,19 @@ export function InviteButton({ inviteCode }: { inviteCode: string }) {
 
       {open && (
         <div className="absolute left-0 top-9 z-20 w-72 rounded-xl border border-white/[0.08] bg-elevated p-4 shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
-          <div className="text-sm font-bold">Convidar amigos</div>
+          <div className="flex items-start justify-between gap-2">
+            <div className="text-sm font-bold">Convidar amigos</div>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Fechar"
+              className="-m-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18" />
+                <path d="M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           <p className="mt-1 text-xs leading-relaxed text-muted">
             Quem abrir esse link entra direto no servidor.
           </p>
