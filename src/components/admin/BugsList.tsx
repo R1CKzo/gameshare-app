@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 type Severity = "LOW" | "MEDIUM" | "HIGH";
@@ -43,6 +44,7 @@ const SEVERITY_CLASS: Record<Severity, string> = {
 // a pagina em si so busca os dados uma vez no servidor, essa e a parte
 // interativa (filtrar, marcar como resolvido, etc).
 export function BugsList({ reports: initialReports }: { reports: BugReport[] }) {
+  const router = useRouter();
   const [reports, setReports] = useState(initialReports);
   const [filter, setFilter] = useState<Status | "ALL">("ALL");
 
@@ -52,6 +54,7 @@ export function BugsList({ reports: initialReports }: { reports: BugReport[] }) 
   );
 
   async function updateStatus(id: string, status: Status) {
+    const previous = reports;
     setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
     const res = await fetch(`/api/bugs/${id}`, {
       method: "PATCH",
@@ -59,9 +62,13 @@ export function BugsList({ reports: initialReports }: { reports: BugReport[] }) 
       body: JSON.stringify({ status }),
     });
     if (!res.ok) {
-      // reverte se o servidor recusou
-      setReports(initialReports);
+      // reverte para o estado anterior se o servidor recusou
+      setReports(previous);
+      return;
     }
+    // limpa o cache de navegacao da rota, senao voltar pra essa pagina
+    // depois mostra os dados antigos (de antes da troca de status)
+    router.refresh();
   }
 
   return (
