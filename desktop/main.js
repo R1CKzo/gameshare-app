@@ -267,6 +267,7 @@ function loadTrayIcons() {
 // mesmo ponto sobre o icone dela na barra de tarefas.
 function setUnreadBadge(hasUnread) {
   lastUnreadState = hasUnread;
+  log.info("Badge de notificacao na bandeja:", hasUnread ? "ligado" : "desligado");
   loadTrayIcons();
   if (tray) {
     tray.setImage(hasUnread ? trayIconBadge : trayIconNormal);
