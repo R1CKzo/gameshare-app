@@ -5,6 +5,8 @@ import { signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { isDesktopApp } from "@/lib/desktop";
+
 const MENU_WIDTH = 220;
 
 // Junta as acoes menos frequentes (baixar o app, area de bugs, sair) num
@@ -75,16 +77,18 @@ export function MoreMenu({ isAdmin }: { isAdmin: boolean }) {
             style={{ top: position.top, left: position.left, width: MENU_WIDTH, transform: "translateY(-100%)" }}
             className="fixed z-[100] overflow-hidden rounded-xl border border-white/[0.08] bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
-            <a
-              href="https://github.com/R1CKzo/gameshare-app/releases/latest/download/GameShare-Setup.exe"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
-            >
-              <DownloadIcon />
-              Baixar para Windows
-            </a>
+            {!isDesktopApp() && (
+              <a
+                href="https://github.com/R1CKzo/gameshare-app/releases/latest/download/GameShare-Setup.exe"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+              >
+                <DownloadIcon />
+                Baixar para Windows
+              </a>
+            )}
 
             {isAdmin && (
               <Link
@@ -97,7 +101,7 @@ export function MoreMenu({ isAdmin }: { isAdmin: boolean }) {
               </Link>
             )}
 
-            <div className="my-1.5 border-t border-white/[0.06]" />
+            {(!isDesktopApp() || isAdmin) && <div className="my-1.5 border-t border-white/[0.06]" />}
 
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
