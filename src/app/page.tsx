@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
+import { DesktopDownloadLink } from "@/components/DesktopDownloadLink";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { PasswordSignInForm } from "@/components/PasswordSignInForm";
 import { authOptions } from "@/lib/auth";
@@ -82,6 +83,8 @@ function LandingPage({ callbackUrl, error }: { callbackUrl?: string; error?: str
         </div>
 
         <PasswordSignInForm callbackUrl={callbackUrl} />
+
+        <DesktopDownloadLink />
       </div>
     </div>
   );

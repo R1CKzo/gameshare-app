@@ -11,3 +11,6 @@ desktop/native/loopback-helper/*.obj
 
 .vercel
 .env*
+
+.vercel
+.env*
