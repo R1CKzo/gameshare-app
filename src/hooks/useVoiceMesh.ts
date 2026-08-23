@@ -174,6 +174,7 @@ export function useVoiceMesh({
   const outgoingStreamRef = useRef<MediaStream | null>(null);
   const micProcessingRef = useRef<{ audioContext: AudioContext; rawStream: MediaStream } | null>(null);
   const connectionsRef = useRef<Map<string, MediaConnection>>(new Map()); // peerId -> conexao
+  const peerIdRef = useRef<string | null>(null);
   const shareMixRef = useRef<{
     audioContext: AudioContext;
     displayStream: MediaStream;
@@ -244,6 +245,7 @@ export function useVoiceMesh({
         peerRef.current = peer;
 
         peer.on("open", (peerId) => {
+          peerIdRef.current = peerId;
           fetch(`${apiBase}/presence`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -273,6 +275,7 @@ export function useVoiceMesh({
       setRemoteStreams(new Map());
       peerRef.current?.destroy();
       peerRef.current = null;
+      peerIdRef.current = null;
       outgoingStreamRef.current?.getTracks().forEach((t) => t.stop());
       outgoingStreamRef.current = null;
       micTrackRef.current = null;
@@ -424,6 +427,16 @@ export function useVoiceMesh({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase, stopScreenShare]);
 
+  // Exposto pro heartbeat (mora em ActiveCallProvider) poder reenviar o
+  // peerId atual em toda batida, nao so na primeira vez que o peer abre —
+  // sem isso, se a linha de presenca perder o peerId (ex: corrida entre o
+  // DELETE do "sair" e o POST do "entrar" numa reentrada rapida), ninguem
+  // nunca mais reescreve ele, e a chamada fica muda pros dois lados ate
+  // um F5.
+  function getPeerId(): string | null {
+    return peerIdRef.current;
+  }
+
   return {
     localStream,
     remoteStreams,
@@ -433,5 +446,6 @@ export function useVoiceMesh({
     startScreenShare,
     stopScreenShare,
     micError,
+    getPeerId,
   };
 }

@@ -94,16 +94,29 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     if (!target) return;
     const apiBase = target.apiBase;
 
+    // Reenvia o peerId atual em toda batida (nao so quando o peer abre pela
+    // primeira vez) — se a linha de presenca ficar sem peerId por qualquer
+    // motivo (ex: uma corrida numa reentrada rapida), a proxima batida
+    // conserta sozinha em ate HEARTBEAT_MS, em vez de ficar muda pra
+    // sempre. O DELETE de "sair" agora mora em leave() (aguardado antes de
+    // liberar o botao de entrar de novo), entao esse cleanup so cancela o
+    // intervalo — nao manda mais um DELETE por conta propria, o que evitava
+    // exatamente essa corrida quando alguem reentrava rapido.
     function beat() {
-      fetch(`${apiBase}/presence`, { method: "POST" }).catch(() => {});
+      const peerId = mesh.getPeerId();
+      fetch(`${apiBase}/presence`, {
+        method: "POST",
+        headers: peerId ? { "Content-Type": "application/json" } : undefined,
+        body: peerId ? JSON.stringify({ peerId }) : undefined,
+      }).catch(() => {});
     }
 
     beat();
     const interval = setInterval(beat, HEARTBEAT_MS);
     return () => {
       clearInterval(interval);
-      fetch(`${apiBase}/presence`, { method: "DELETE", keepalive: true }).catch(() => {});
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.apiBase]);
 
   const join = useCallback((newTarget: ActiveCallTarget, userId: string) => {
@@ -114,12 +127,24 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     setTarget(newTarget);
   }, []);
 
-  const leave = useCallback(() => {
+  const leave = useCallback(async () => {
     if (mesh.isSharingScreen) mesh.stopScreenShare();
+    // Espera o DELETE terminar antes de liberar o botao de entrar de novo
+    // (setTarget(null) e o que faz "joined" virar false) — sem isso, uma
+    // reentrada rapida podia mandar o POST do peerId novo ANTES desse
+    // DELETE chegar no banco, que ai apagava a linha recem-criada e
+    // deixava a chamada muda pros dois lados ate um F5.
+    if (target) {
+      try {
+        await fetch(`${target.apiBase}/presence`, { method: "DELETE", keepalive: true });
+      } catch {
+        // segue o baile mesmo se a rede falhar — a linha expira sozinha
+      }
+    }
     setTarget(null);
     setCallError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mesh.isSharingScreen]);
+  }, [mesh.isSharingScreen, target]);
 
   const startScreenShare = useCallback(
     async (options: ScreenShareOptions) => {
