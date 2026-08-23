@@ -10,7 +10,7 @@ import { FRIEND_ACCEPTED_EVENT, pusherServer, userPusherName } from "@/lib/pushe
 export async function PATCH(request: Request, { params }: { params: { friendshipId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const friendship = await prisma.friendship.findUnique({
@@ -18,7 +18,7 @@ export async function PATCH(request: Request, { params }: { params: { friendship
     select: { addresseeId: true, requesterId: true, status: true },
   });
   if (!friendship || friendship.addresseeId !== session.user.id) {
-    return NextResponse.json({ error: "Pedido nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
   }
   if (friendship.status === "ACCEPTED") {
     return NextResponse.json({ ok: true });
@@ -40,7 +40,7 @@ export async function PATCH(request: Request, { params }: { params: { friendship
 export async function DELETE(_request: Request, { params }: { params: { friendshipId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const friendship = await prisma.friendship.findUnique({
@@ -51,7 +51,7 @@ export async function DELETE(_request: Request, { params }: { params: { friendsh
     return NextResponse.json({ ok: true });
   }
   if (friendship.requesterId !== session.user.id && friendship.addresseeId !== session.user.id) {
-    return NextResponse.json({ error: "Sem permissao." }, { status: 403 });
+    return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
   }
 
   await prisma.friendship.delete({ where: { id: params.friendshipId } });

@@ -85,7 +85,7 @@ export function DMChatView({
 
   function joinCall() {
     activeCall.setCallError(null);
-    activeCall.join({ kind: "dm", dmChannelId, apiBase, name: otherUser.nickname ?? "Alguem" }, currentUserId);
+    activeCall.join({ kind: "dm", dmChannelId, apiBase, name: otherUser.nickname ?? "Alguém" }, currentUserId);
   }
 
   function leaveCall() {
@@ -110,7 +110,7 @@ export function DMChatView({
     }
   }
 
-  const label = `${otherUser.nickname ?? "Alguem"}${otherUser.userTag ? "#" + otherUser.userTag : ""}`;
+  const label = `${otherUser.nickname ?? "Alguém"}${otherUser.userTag ? "#" + otherUser.userTag : ""}`;
   const isSharingScreenHere = isActive && activeCall.isSharingScreen;
   const sharingUserId = isSharingScreenHere ? currentUserId : live.isLive ? live.broadcaster?.id ?? null : null;
   const someoneElseInCall = present.some((u) => u.id !== currentUserId) && !joined;
@@ -193,7 +193,7 @@ export function DMChatView({
               )}
             </div>
             <div className="font-display text-lg font-bold">{label}</div>
-            <div className="max-w-xs text-sm text-muted">Este e o comeco da sua conversa.</div>
+            <div className="max-w-xs text-sm text-muted">Este é o começo da sua conversa.</div>
           </div>
         ) : (
           <>

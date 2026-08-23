@@ -68,7 +68,7 @@ export default function SetupPage() {
 
         <h1 className="text-center font-display text-2xl font-bold">Escolha seu nickname</h1>
         <p className="mt-2 text-center text-sm leading-relaxed text-muted">
-          Voce vai receber uma tag numerica unica, assim ninguem te confunde com outro jogador.
+          Você vai receber uma tag numérica única, assim ninguém te confunde com outro jogador.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-7 space-y-5">
@@ -87,12 +87,12 @@ export default function SetupPage() {
               required
               className="h-12 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-[15px] font-semibold outline-none focus:border-primary"
             />
-            <p className="mt-1.5 text-xs text-dim">3-16 caracteres: letras, numeros ou underline.</p>
+            <p className="mt-1.5 text-xs text-dim">3-16 caracteres: letras, números ou underline.</p>
           </div>
 
           {nickname && (
             <div>
-              <div className="mb-2 text-xs font-bold tracking-wide text-muted">PRE-VISUALIZACAO</div>
+              <div className="mb-2 text-xs font-bold tracking-wide text-muted">PRÉ-VISUALIZAÇÃO</div>
               <div className="inline-flex items-center gap-0.5 rounded-full bg-elevated px-4 py-2">
                 <span className="text-[15px] font-bold">{nickname}</span>
                 <span className="text-[15px] font-bold text-accent">#??????</span>

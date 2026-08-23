@@ -8,12 +8,12 @@ import { prisma } from "@/lib/prisma";
 export async function GET(_request: Request, { params }: { params: { serverId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const permissions = await getServerPermissions(params.serverId, session.user.id);
   if (!permissions.canBan) {
-    return NextResponse.json({ error: "Sem permissao pra ver banimentos." }, { status: 403 });
+    return NextResponse.json({ error: "Sem permissão pra ver banimentos." }, { status: 403 });
   }
 
   const bans = await prisma.serverBan.findMany({
@@ -34,12 +34,12 @@ export async function GET(_request: Request, { params }: { params: { serverId: s
 export async function POST(request: Request, { params }: { params: { serverId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const permissions = await getServerPermissions(params.serverId, session.user.id);
   if (!permissions.canBan) {
-    return NextResponse.json({ error: "Sem permissao pra banir membros." }, { status: 403 });
+    return NextResponse.json({ error: "Sem permissão pra banir membros." }, { status: 403 });
   }
 
   const server = await prisma.server.findUnique({
@@ -47,17 +47,17 @@ export async function POST(request: Request, { params }: { params: { serverId: s
     select: { ownerId: true },
   });
   if (!server) {
-    return NextResponse.json({ error: "Servidor nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Servidor não encontrado." }, { status: 404 });
   }
 
   const body = await request.json().catch(() => ({}));
   const userId: string = body?.userId;
   const reason: string | null = typeof body?.reason === "string" ? body.reason.slice(0, 300) : null;
   if (!userId) {
-    return NextResponse.json({ error: "Informe o usuario a banir." }, { status: 400 });
+    return NextResponse.json({ error: "Informe o usuário a banir." }, { status: 400 });
   }
   if (userId === server.ownerId) {
-    return NextResponse.json({ error: "Nao e possivel banir o dono do servidor." }, { status: 400 });
+    return NextResponse.json({ error: "Não é possível banir o dono do servidor." }, { status: 400 });
   }
 
   await prisma.$transaction([

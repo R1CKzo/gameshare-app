@@ -15,7 +15,7 @@ export async function POST(
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const channel = await prisma.channel.findUnique({
@@ -24,7 +24,7 @@ export async function POST(
   });
 
   if (!channel || channel.type !== "CALL") {
-    return NextResponse.json({ error: "Canal de chamada nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Canal de chamada não encontrado." }, { status: 404 });
   }
 
   const membership = await prisma.serverMember.findUnique({
@@ -32,7 +32,7 @@ export async function POST(
     select: { id: true },
   });
   if (!membership) {
-    return NextResponse.json({ error: "Voce nao e membro desse servidor." }, { status: 403 });
+    return NextResponse.json({ error: "Você não é membro desse servidor." }, { status: 403 });
   }
 
   const presence = await prisma.channelPresence.findUnique({
@@ -44,7 +44,7 @@ export async function POST(
   }
 
   if (channel.isLive) {
-    return NextResponse.json({ error: "Ja tem alguem compartilhando a tela nesse canal." }, { status: 409 });
+    return NextResponse.json({ error: "Já tem alguém compartilhando a tela nesse canal." }, { status: 409 });
   }
 
   await prisma.channel.update({

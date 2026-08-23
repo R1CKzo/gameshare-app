@@ -17,7 +17,7 @@ export async function GET(
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const channel = await prisma.channel.findUnique({
@@ -38,7 +38,7 @@ export async function GET(
   });
 
   if (!channel) {
-    return NextResponse.json({ error: "Canal nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Canal não encontrado." }, { status: 404 });
   }
 
   // Sem isso, qualquer pessoa logada (nao so quem e membro do servidor)
@@ -49,7 +49,7 @@ export async function GET(
     select: { id: true },
   });
   if (!membership) {
-    return NextResponse.json({ error: "Voce nao e membro desse servidor." }, { status: 403 });
+    return NextResponse.json({ error: "Você não é membro desse servidor." }, { status: 403 });
   }
 
   return NextResponse.json({

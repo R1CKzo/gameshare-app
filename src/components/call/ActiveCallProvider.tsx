@@ -150,7 +150,7 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     async (options: ScreenShareOptions) => {
       setCallError(null);
       if (live.isLive && live.broadcaster?.id !== currentUserId) {
-        setCallError("Ja tem alguem compartilhando a tela.");
+        setCallError("Já tem alguém compartilhando a tela.");
         return;
       }
       await mesh.startScreenShare(options);

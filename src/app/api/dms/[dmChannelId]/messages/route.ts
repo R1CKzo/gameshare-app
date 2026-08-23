@@ -28,11 +28,11 @@ async function requireParticipant(userId: string, dmChannelId: string) {
 export async function GET(request: Request, { params }: { params: { dmChannelId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   if (!(await requireParticipant(session.user.id, params.dmChannelId))) {
-    return NextResponse.json({ error: "Conversa nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
   }
 
   const searchParams = new URL(request.url).searchParams;
@@ -73,11 +73,11 @@ export async function GET(request: Request, { params }: { params: { dmChannelId:
 export async function POST(request: Request, { params }: { params: { dmChannelId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   if (!(await requireParticipant(session.user.id, params.dmChannelId))) {
-    return NextResponse.json({ error: "Conversa nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
   }
 
   const body = await request.json().catch(() => ({}));

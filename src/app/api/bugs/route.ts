@@ -14,7 +14,7 @@ const SEVERITIES = ["LOW", "MEDIUM", "HIGH"] as const;
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
   if (!session.user.isAdmin) {
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
@@ -44,7 +44,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -55,10 +55,10 @@ export async function POST(request: Request) {
   const appVersion = typeof body?.appVersion === "string" ? body.appVersion.slice(0, 60) : null;
 
   if (!title || title.length > MAX_TITLE) {
-    return NextResponse.json({ error: "Titulo precisa ter entre 1 e 120 caracteres." }, { status: 400 });
+    return NextResponse.json({ error: "Título precisa ter entre 1 e 120 caracteres." }, { status: 400 });
   }
   if (!description || description.length > MAX_DESCRIPTION) {
-    return NextResponse.json({ error: "Descreva o problema (ate 4000 caracteres)." }, { status: 400 });
+    return NextResponse.json({ error: "Descreva o problema (até 4000 caracteres)." }, { status: 400 });
   }
 
   const report = await prisma.bugReport.create({

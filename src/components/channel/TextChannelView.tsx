@@ -77,7 +77,7 @@ export function TextChannelView({
           <div className="flex h-full items-center justify-center text-sm text-muted">Carregando...</div>
         ) : chat.messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <div className="font-display text-lg font-bold">Este e o comeco de #{channelName}</div>
+            <div className="font-display text-lg font-bold">Este é o começo de #{channelName}</div>
             <div className="max-w-xs text-sm text-muted">Manda a primeira mensagem pro servidor.</div>
           </div>
         ) : (

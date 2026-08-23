@@ -22,28 +22,28 @@ const APP_URL = "https://gameshare-app.vercel.app";
 const CHANGELOG = {
   "1.0.6": {
     version: "1.0.6",
-    title: "Audio automatico por app",
-    intro: "Simplificamos o audio do compartilhamento de tela:",
+    title: "Áudio automático por app",
+    intro: "Simplificamos o áudio do compartilhamento de tela:",
     sections: [
       {
         heading: "Compartilhamento de tela",
         items: [
-          "Tela inteira: sem audio nenhum do sistema, so o video (o microfone continua indo normal) — sem risco de eco.",
-          "Janela de um app ou jogo especifico: o audio daquele app entra sozinho, automaticamente, sem precisar escolher nada.",
+          "Tela inteira: sem áudio nenhum do sistema, só o vídeo (o microfone continua indo normal) — sem risco de eco.",
+          "Janela de um app ou jogo específico: o áudio daquele app entra sozinho, automaticamente, sem precisar escolher nada.",
         ],
       },
     ],
   },
   "1.0.5": {
     version: "1.0.5",
-    title: "Audio do sistema sem eco",
-    intro: "Corrigido o eco que rolava ao compartilhar a tela inteira com audio do sistema:",
+    title: "Áudio do sistema sem eco",
+    intro: "Corrigido o eco que rolava ao compartilhar a tela inteira com áudio do sistema:",
     sections: [
       {
         heading: "Compartilhamento de tela",
         items: [
-          "Nova opcao 'Tudo, menos a chamada': grava jogos, musica e video normalmente, mas exclui so a propria chamada de voz — sem eco pra quem esta ligado.",
-          "Audio do sistema agora e sempre uma escolha explicita (desligado por padrao), com aviso claro do risco de eco em cada opcao.",
+          "Nova opção 'Tudo, menos a chamada': grava jogos, música e vídeo normalmente, mas exclui só a própria chamada de voz — sem eco pra quem está ligado.",
+          "Áudio do sistema agora é sempre uma escolha explícita (desligado por padrão), com aviso claro do risco de eco em cada opção.",
         ],
       },
     ],
@@ -51,14 +51,14 @@ const CHANGELOG = {
   "1.0.4": {
     version: "1.0.4",
     title: "Compartilhamento de tela nativo",
-    intro: "Agora o compartilhamento de tela roda por dentro do proprio app, sem depender do navegador:",
+    intro: "Agora o compartilhamento de tela roda por dentro do próprio app, sem depender do navegador:",
     sections: [
       {
         heading: "Compartilhamento de tela",
         items: [
-          "Escolha entre compartilhar a tela inteira ou so a janela de um app/jogo especifico.",
-          "Selecao de qualidade: 720p, 1080p ou 1440p.",
-          "Selecao de taxa de quadros: 30 ou 60 FPS.",
+          "Escolha entre compartilhar a tela inteira ou só a janela de um app/jogo específico.",
+          "Seleção de qualidade: 720p, 1080p ou 1440p.",
+          "Seleção de taxa de quadros: 30 ou 60 FPS.",
         ],
       },
     ],
@@ -66,36 +66,36 @@ const CHANGELOG = {
   "1.0.3": {
     version: "1.0.3",
     title: "Bem-vindo ao GameShare!",
-    intro: "Essa e a primeira vez que essa tela aparece, entao aqui vai tudo que foi construido ate agora:",
+    intro: "Essa é a primeira vez que essa tela aparece, então aqui vai tudo que foi construído até agora:",
     sections: [
       {
         heading: "Chamadas de voz e tela",
         items: [
-          "Chat de voz em malha: todo mundo na sala se ouve diretamente, sem servidor de midia no meio.",
+          "Chat de voz em malha: todo mundo na sala se ouve diretamente, sem servidor de mídia no meio.",
           "Barra de controle de chamada: mutar microfone, compartilhar tela e desligar.",
-          "Anel visual ao redor do avatar de quem esta falando.",
-          "Compartilhamento de tela sem cortar o audio da chamada.",
-          "Configuracoes de audio: escolher qual microfone usar, ajustar sensibilidade com medidor ao vivo, supressao de ruido, cancelamento de eco e ganho automatico.",
+          "Anel visual ao redor do avatar de quem está falando.",
+          "Compartilhamento de tela sem cortar o áudio da chamada.",
+          "Configurações de áudio: escolher qual microfone usar, ajustar sensibilidade com medidor ao vivo, supressão de ruído, cancelamento de eco e ganho automático.",
         ],
       },
       {
         heading: "Perfil",
-        items: ["Editar nickname e foto de perfil (a tag numerica #XXXXXX e permanente)."],
+        items: ["Editar nickname e foto de perfil (a tag numérica #XXXXXX é permanente)."],
       },
       {
         heading: "Chat de texto",
         items: [
-          "Mensagens de texto reais nos canais do servidor, com historico salvo.",
-          "Entrega em tempo real — a mensagem aparece na hora pra quem esta com a pagina aberta.",
+          "Mensagens de texto reais nos canais do servidor, com histórico salvo.",
+          "Entrega em tempo real — a mensagem aparece na hora pra quem está com a página aberta.",
           "Mensagens agrupadas por autor, estilo Discord.",
         ],
       },
       {
         heading: "Aplicativo de desktop",
         items: [
-          "Cliente de Windows instalavel, com a mesma interface do site.",
-          "Login com Google funcionando de verdade (usa o navegador padrao do sistema).",
-          "Atualizacao automatica: o app se atualiza sozinho, sem precisar baixar de novo no site.",
+          "Cliente de Windows instalável, com a mesma interface do site.",
+          "Login com Google funcionando de verdade (usa o navegador padrão do sistema).",
+          "Atualização automática: o app se atualiza sozinho, sem precisar baixar de novo no site.",
         ],
       },
     ],
@@ -425,7 +425,7 @@ function setupAutoUpdate() {
 
   autoUpdater.on("update-available", (info) => {
     log.info("Atualizacao encontrada:", info.version, "— baixando em segundo plano.");
-    notify("Atualizando o GameShare", `Baixando a versao ${info.version}...`);
+    notify("Atualizando o GameShare", `Baixando a versão ${info.version}...`);
   });
 
   autoUpdater.on("update-not-available", () => {
@@ -438,9 +438,9 @@ function setupAutoUpdate() {
     dialog
       .showMessageBox(mainWindow, {
         type: "info",
-        title: "Atualizacao pronta",
-        message: `Uma nova versao do GameShare (${info.version}) foi baixada.`,
-        detail: "Reinicie o app pra aplicar a atualizacao. Se voce so fechar o app normalmente, ela e aplicada sozinha na proxima vez que abrir.",
+        title: "Atualização pronta",
+        message: `Uma nova versão do GameShare (${info.version}) foi baixada.`,
+        detail: "Reinicie o app pra aplicar a atualização. Se você só fechar o app normalmente, ela é aplicada sozinha na próxima vez que abrir.",
         buttons: ["Reiniciar agora", "Depois"],
         defaultId: 0,
         cancelId: 1,

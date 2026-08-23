@@ -67,7 +67,7 @@ function LandingPage({ callbackUrl, error }: { callbackUrl?: string; error?: str
 
         {error === "OAuthAccountNotLinked" && (
           <p className="mt-4 max-w-sm rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-2.5 text-sm text-danger">
-            Esse email ja tem uma conta com senha — faca login com email e senha em vez do Google.
+            Esse email já tem uma conta com senha — faça login com email e senha em vez do Google.
           </p>
         )}
 

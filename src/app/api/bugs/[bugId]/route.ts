@@ -11,7 +11,7 @@ const STATUSES = ["OPEN", "IN_PROGRESS", "RESOLVED"] as const;
 export async function PATCH(request: Request, { params }: { params: { bugId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
   if (!session.user.isAdmin) {
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
@@ -19,7 +19,7 @@ export async function PATCH(request: Request, { params }: { params: { bugId: str
 
   const body = await request.json().catch(() => ({}));
   if (!STATUSES.includes(body?.status)) {
-    return NextResponse.json({ error: "Status invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Status inválido." }, { status: 400 });
   }
 
   try {
@@ -30,6 +30,6 @@ export async function PATCH(request: Request, { params }: { params: { bugId: str
     });
     return NextResponse.json(updated);
   } catch {
-    return NextResponse.json({ error: "Bug nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Bug não encontrado." }, { status: 404 });
   }
 }

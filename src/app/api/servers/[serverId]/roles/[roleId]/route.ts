@@ -10,17 +10,17 @@ const NAME_MAX = 40;
 export async function PATCH(request: Request, { params }: { params: { serverId: string; roleId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const permissions = await getServerPermissions(params.serverId, session.user.id);
   if (!permissions.canManageRoles) {
-    return NextResponse.json({ error: "Sem permissao pra gerenciar cargos." }, { status: 403 });
+    return NextResponse.json({ error: "Sem permissão pra gerenciar cargos." }, { status: 403 });
   }
 
   const role = await prisma.role.findUnique({ where: { id: params.roleId }, select: { serverId: true } });
   if (!role || role.serverId !== params.serverId) {
-    return NextResponse.json({ error: "Cargo nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Cargo não encontrado." }, { status: 404 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -46,24 +46,24 @@ export async function PATCH(request: Request, { params }: { params: { serverId: 
     });
     return NextResponse.json(updated);
   } catch {
-    return NextResponse.json({ error: "Ja existe um cargo com esse nome nesse servidor." }, { status: 409 });
+    return NextResponse.json({ error: "Já existe um cargo com esse nome nesse servidor." }, { status: 409 });
   }
 }
 
 export async function DELETE(_request: Request, { params }: { params: { serverId: string; roleId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const permissions = await getServerPermissions(params.serverId, session.user.id);
   if (!permissions.canManageRoles) {
-    return NextResponse.json({ error: "Sem permissao pra gerenciar cargos." }, { status: 403 });
+    return NextResponse.json({ error: "Sem permissão pra gerenciar cargos." }, { status: 403 });
   }
 
   const role = await prisma.role.findUnique({ where: { id: params.roleId }, select: { serverId: true } });
   if (!role || role.serverId !== params.serverId) {
-    return NextResponse.json({ error: "Cargo nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Cargo não encontrado." }, { status: 404 });
   }
 
   // Membros com esse cargo voltam pra "sem cargo" (onDelete: SetNull no schema)

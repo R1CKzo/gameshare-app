@@ -35,7 +35,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
     const data = await res.json().catch(() => ({}));
     setSending(false);
     if (!res.ok) {
-      setError(data.error ?? "Nao foi possivel continuar.");
+      setError(data.error ?? "Não foi possível continuar.");
       return;
     }
     setTicketId(data.ticketId);
@@ -54,7 +54,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       setSending(false);
-      setError(data.error ?? "Codigo invalido.");
+      setError(data.error ?? "Código inválido.");
       return;
     }
     // navegacao de verdade — o cookie ja foi setado pela resposta, isso
@@ -76,14 +76,14 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
       setTicketId(data.ticketId);
       setError("");
     } else {
-      setError(data.error ?? "Nao foi possivel reenviar.");
+      setError(data.error ?? "Não foi possível reenviar.");
     }
   }
 
   if (step === "code") {
     return (
       <form onSubmit={submitCode} className="mt-6 w-full max-w-xs space-y-3">
-        <p className="text-xs text-dim">Enviamos um codigo de 6 digitos pro seu email. Confirme pra continuar.</p>
+        <p className="text-xs text-dim">Enviamos um código de 6 dígitos pro seu email. Confirme pra continuar.</p>
         <input
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -97,7 +97,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
           disabled={sending || code.length !== 6}
           className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
         >
-          {sending ? "Confirmando..." : "Confirmar codigo"}
+          {sending ? "Confirmando..." : "Confirmar código"}
         </button>
         <button
           type="button"
@@ -105,7 +105,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
           disabled={resendCooldown}
           className="w-full text-center text-xs font-semibold text-muted transition hover:text-[#d5d7dc] disabled:opacity-50"
         >
-          Reenviar codigo
+          Reenviar código
         </button>
       </form>
     );
@@ -143,7 +143,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
         }}
         className="w-full text-center text-xs font-semibold text-muted transition hover:text-[#d5d7dc]"
       >
-        {mode === "login" ? "Nao tem conta? Criar" : "Ja tem conta? Entrar"}
+        {mode === "login" ? "Não tem conta? Criar" : "Já tem conta? Entrar"}
       </button>
     </form>
   );

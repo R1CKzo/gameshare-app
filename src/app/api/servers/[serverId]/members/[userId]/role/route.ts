@@ -10,12 +10,12 @@ import { pusherServer, ROLE_GRANTED_EVENT, userPusherName } from "@/lib/pusher";
 export async function PATCH(request: Request, { params }: { params: { serverId: string; userId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const permissions = await getServerPermissions(params.serverId, session.user.id);
   if (!permissions.canManageRoles) {
-    return NextResponse.json({ error: "Sem permissao pra gerenciar cargos." }, { status: 403 });
+    return NextResponse.json({ error: "Sem permissão pra gerenciar cargos." }, { status: 403 });
   }
 
   const server = await prisma.server.findUnique({
@@ -23,10 +23,10 @@ export async function PATCH(request: Request, { params }: { params: { serverId: 
     select: { ownerId: true },
   });
   if (!server) {
-    return NextResponse.json({ error: "Servidor nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Servidor não encontrado." }, { status: 404 });
   }
   if (params.userId === server.ownerId) {
-    return NextResponse.json({ error: "O dono nao precisa de cargo — ja tem permissao plena." }, { status: 400 });
+    return NextResponse.json({ error: "O dono não precisa de cargo — já tem permissão plena." }, { status: 400 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -35,7 +35,7 @@ export async function PATCH(request: Request, { params }: { params: { serverId: 
   if (roleId) {
     const role = await prisma.role.findUnique({ where: { id: roleId }, select: { serverId: true } });
     if (!role || role.serverId !== params.serverId) {
-      return NextResponse.json({ error: "Cargo invalido." }, { status: 400 });
+      return NextResponse.json({ error: "Cargo inválido." }, { status: 400 });
     }
   }
 
@@ -44,7 +44,7 @@ export async function PATCH(request: Request, { params }: { params: { serverId: 
     data: { roleId },
   });
   if (updated.count === 0) {
-    return NextResponse.json({ error: "Membro nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Membro não encontrado." }, { status: 404 });
   }
 
   pusherServer

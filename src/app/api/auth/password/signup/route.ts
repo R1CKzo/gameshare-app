@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const password = String(body?.password ?? "");
 
   if (!email || !email.includes("@")) {
-    return NextResponse.json({ error: "Informe um email valido." }, { status: 400 });
+    return NextResponse.json({ error: "Informe um email válido." }, { status: 400 });
   }
   if (!isValidPassword(password)) {
     return NextResponse.json({ error: "A senha precisa ter entre 8 e 72 caracteres." }, { status: 400 });
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   if (existing) {
     // Mensagem generica — nao revela se a conta existente e Google ou senha.
-    return NextResponse.json({ error: "Ja existe uma conta com esse email. Faca login." }, { status: 409 });
+    return NextResponse.json({ error: "Já existe uma conta com esse email. Faça login." }, { status: 409 });
   }
 
   const passwordHash = await hashPassword(password);
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     await sendSecurityCodeEmail({ to: email, code, purpose: "LOGIN" });
   } catch {
     return NextResponse.json(
-      { error: "Conta criada, mas nao foi possivel enviar o codigo por email. Tente fazer login." },
+      { error: "Conta criada, mas não foi possível enviar o código por email. Tente fazer login." },
       { status: 500 },
     );
   }

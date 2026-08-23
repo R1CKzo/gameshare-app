@@ -37,7 +37,7 @@ export function CallControlBar({
     ? "Parar de compartilhar tela"
     : desktop
       ? "Compartilhar tela"
-      : "Compartilhar tela — disponivel so no app para Windows";
+      : "Compartilhar tela — disponível só no app para Windows";
 
   return (
     <>

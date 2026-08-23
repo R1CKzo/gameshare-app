@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function POST(_request: Request, { params }: { params: { dmChannelId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const dmChannel = await prisma.dMChannel.findUnique({
@@ -15,10 +15,10 @@ export async function POST(_request: Request, { params }: { params: { dmChannelI
     select: { id: true, broadcasterId: true },
   });
   if (!dmChannel) {
-    return NextResponse.json({ error: "Conversa nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
   }
   if (dmChannel.broadcasterId !== session.user.id) {
-    return NextResponse.json({ error: "So quem esta compartilhando pode encerrar." }, { status: 403 });
+    return NextResponse.json({ error: "Só quem está compartilhando pode encerrar." }, { status: 403 });
   }
 
   await prisma.dMChannel.update({

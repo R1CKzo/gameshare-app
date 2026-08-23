@@ -65,8 +65,8 @@ function NotFoundScreen() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
       <div>
-        <h1 className="font-display text-xl font-bold">Conversa nao encontrada</h1>
-        <p className="mt-2 text-sm text-muted">Ela pode ter sido apagada, ou voce nao faz parte dela.</p>
+        <h1 className="font-display text-xl font-bold">Conversa não encontrada</h1>
+        <p className="mt-2 text-sm text-muted">Ela pode ter sido apagada, ou você não faz parte dela.</p>
       </div>
     </div>
   );

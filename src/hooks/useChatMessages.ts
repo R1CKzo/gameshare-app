@@ -37,7 +37,7 @@ export function useChatMessages({ apiBase, pusherChannelName }: { apiBase: strin
         setMessages(data.messages ?? []);
         setHasMore(!!data.hasMore);
       })
-      .catch(() => !cancelled && setError("Nao foi possivel carregar as mensagens."))
+      .catch(() => !cancelled && setError("Não foi possível carregar as mensagens."))
       .finally(() => !cancelled && setLoading(false));
 
     fetch(`${apiBase}/read`, { method: "POST" }).catch(() => {});
@@ -104,7 +104,7 @@ export function useChatMessages({ apiBase, pusherChannelName }: { apiBase: strin
       setMessages((prev) => [...(data.messages ?? []), ...prev]);
       setHasMore(!!data.hasMore);
     } catch {
-      setError("Nao foi possivel carregar mensagens mais antigas.");
+      setError("Não foi possível carregar mensagens mais antigas.");
     } finally {
       setLoadingMore(false);
     }
@@ -122,7 +122,7 @@ export function useChatMessages({ apiBase, pusherChannelName }: { apiBase: strin
         });
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error ?? "Nao foi possivel enviar a mensagem.");
+          setError(data.error ?? "Não foi possível enviar a mensagem.");
           return false;
         }
         setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]));

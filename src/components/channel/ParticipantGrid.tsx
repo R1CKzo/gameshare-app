@@ -42,7 +42,7 @@ export function ParticipantGrid({
               <path d="M12 17v4" />
             </svg>
             <span className="truncate">
-              {sharer.id === currentUserId ? "Voce esta compartilhando a tela" : `${sharer.nickname ?? "Alguem"} esta compartilhando a tela`}
+              {sharer.id === currentUserId ? "Você está compartilhando a tela" : `${sharer.nickname ?? "Alguém"} está compartilhando a tela`}
             </span>
           </div>
         </div>
@@ -96,7 +96,7 @@ function ParticipantTile({
   const speaking = useSpeakingDetector(stream, muted);
 
   const initials = (user.nickname ?? "?").slice(0, 1).toUpperCase();
-  const label = `${user.nickname ?? "Alguem"}${user.userTag ? "#" + user.userTag : ""}`;
+  const label = `${user.nickname ?? "Alguém"}${user.userTag ? "#" + user.userTag : ""}`;
 
   return (
     <div
@@ -119,7 +119,7 @@ function ParticipantTile({
       </div>
       <div className="flex max-w-full items-center gap-1 px-2 text-xs font-semibold text-[#d5d7dc]">
         {muted && isSelf && <MutedIcon />}
-        <span className="truncate">{isSelf ? "Voce" : label}</span>
+        <span className="truncate">{isSelf ? "Você" : label}</span>
       </div>
     </div>
   );

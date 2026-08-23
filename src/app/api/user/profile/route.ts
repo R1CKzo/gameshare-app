@@ -14,7 +14,7 @@ const MAX_IMAGE_BASE64_LENGTH = 300_000;
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !session.user.userTag) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -24,7 +24,7 @@ export async function PATCH(request: Request) {
     const nickname = body.nickname.trim();
     if (!NICKNAME_REGEX.test(nickname)) {
       return NextResponse.json(
-        { error: "Nickname invalido. Use 3-16 caracteres: letras, numeros ou underline." },
+        { error: "Nickname inválido. Use 3-16 caracteres: letras, números ou underline." },
         { status: 400 }
       );
     }
@@ -36,7 +36,7 @@ export async function PATCH(request: Request) {
       });
       if (existing && existing.id !== session.user.id) {
         return NextResponse.json(
-          { error: `${nickname}#${session.user.userTag} ja esta em uso.` },
+          { error: `${nickname}#${session.user.userTag} já está em uso.` },
           { status: 409 }
         );
       }
@@ -54,7 +54,7 @@ export async function PATCH(request: Request) {
     // (sem svg+xml) fecha a porta pra alguem contornar o cliente e mandar
     // um SVG com script embutido direto pra API.
     if (!/^data:image\/(jpeg|png|webp|gif);base64,/.test(body.image)) {
-      return NextResponse.json({ error: "Formato de imagem invalido." }, { status: 400 });
+      return NextResponse.json({ error: "Formato de imagem inválido." }, { status: 400 });
     }
     data.image = body.image;
   }

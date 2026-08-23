@@ -14,7 +14,7 @@ import { createSecurityCode } from "@/lib/securityCode";
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     select: { id: true, email: true, passwordHash: true },
   });
   if (!user) {
-    return NextResponse.json({ error: "Usuario nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
   }
 
   if (user.passwordHash) {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   try {
     await sendSecurityCodeEmail({ to: user.email, code, purpose: "PASSWORD_CHANGE" });
   } catch {
-    return NextResponse.json({ error: "Nao foi possivel enviar o codigo por email." }, { status: 500 });
+    return NextResponse.json({ error: "Não foi possível enviar o código por email." }, { status: 500 });
   }
 
   return NextResponse.json({ ticketId, expiresAt });

@@ -172,7 +172,7 @@ function MembrosTab({
   }
 
   async function ban(userId: string) {
-    if (!window.confirm("Banir esse membro? Ele nao vai conseguir reentrar pelo convite.")) return;
+    if (!window.confirm("Banir esse membro? Ele não vai conseguir reentrar pelo convite.")) return;
     setBusyId(userId);
     await fetch(`/api/servers/${serverId}/bans`, {
       method: "POST",
@@ -199,7 +199,7 @@ function MembrosTab({
       router.refresh();
     } else {
       setDeleting(false);
-      window.alert("Nao foi possivel excluir o servidor.");
+      window.alert("Não foi possível excluir o servidor.");
     }
   }
 
@@ -361,7 +361,7 @@ function CargosTab({ serverId, permissions }: { serverId: string; permissions: S
     setCreating(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Nao foi possivel criar o cargo.");
+      setError(data.error ?? "Não foi possível criar o cargo.");
       return;
     }
     setName("");

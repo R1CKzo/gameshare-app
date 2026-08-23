@@ -33,7 +33,7 @@ export async function generateUniqueTag(nickname: string): Promise<string> {
   }
 
   throw new Error(
-    `Nao foi possivel gerar uma tag unica para "${nickname}" apos ${MAX_ATTEMPTS} tentativas. Escolha outro nickname.`
+    `Não foi possível gerar uma tag única para "${nickname}" após ${MAX_ATTEMPTS} tentativas. Escolha outro nickname.`
   );
 }
 

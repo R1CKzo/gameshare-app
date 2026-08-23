@@ -6,7 +6,7 @@ import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { createSecurityCode } from "@/lib/securityCode";
 
-const GENERIC_ERROR = "Email ou senha invalidos.";
+const GENERIC_ERROR = "Email ou senha inválidos.";
 
 // Passo 1 do login por senha: confere email+senha, e se bater manda um
 // codigo por email (nunca cria sessao aqui — isso so acontece depois do
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   try {
     await sendSecurityCodeEmail({ to: email, code, purpose: "LOGIN" });
   } catch {
-    return NextResponse.json({ error: "Nao foi possivel enviar o codigo por email. Tente novamente." }, { status: 500 });
+    return NextResponse.json({ error: "Não foi possível enviar o código por email. Tente novamente." }, { status: 500 });
   }
 
   return NextResponse.json({ ticketId, expiresAt });

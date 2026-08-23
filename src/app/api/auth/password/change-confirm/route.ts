@@ -8,28 +8,28 @@ import { verifySecurityCode } from "@/lib/securityCode";
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => ({}));
   const ticketId = String(body?.ticketId ?? "");
   const code = String(body?.code ?? "");
   if (!ticketId || !code) {
-    return NextResponse.json({ error: "Informe o codigo." }, { status: 400 });
+    return NextResponse.json({ error: "Informe o código." }, { status: 400 });
   }
 
   const result = await verifySecurityCode(ticketId, code, "PASSWORD_CHANGE");
   if (!result.ok) {
     if (result.reason === "too_many_attempts") {
-      return NextResponse.json({ error: "Muitas tentativas erradas. Peca um novo codigo." }, { status: 429 });
+      return NextResponse.json({ error: "Muitas tentativas erradas. Peça um novo código." }, { status: 429 });
     }
-    return NextResponse.json({ error: "Codigo invalido ou expirado." }, { status: 400 });
+    return NextResponse.json({ error: "Código inválido ou expirado." }, { status: 400 });
   }
 
   // Defesa extra alem do ticketId ja ser imprevisivel: o codigo tem que
   // pertencer a quem esta logado agora.
   if (result.userId !== session.user.id || !result.payload) {
-    return NextResponse.json({ error: "Codigo invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Código inválido." }, { status: 400 });
   }
 
   await prisma.user.update({ where: { id: session.user.id }, data: { passwordHash: result.payload } });

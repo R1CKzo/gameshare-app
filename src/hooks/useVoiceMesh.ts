@@ -281,7 +281,7 @@ export function useVoiceMesh({
         });
 
         peer.on("error", (err) => {
-          if (err.type !== "peer-unavailable") setMicError("Erro de conexao WebRTC: " + err.type);
+          if (err.type !== "peer-unavailable") setMicError("Erro de conexão WebRTC: " + err.type);
         });
 
         // A conexao de SINALIZACAO com o broker do PeerJS (WebSocket, separada
@@ -298,7 +298,7 @@ export function useVoiceMesh({
           if (!cancelled) peer.reconnect();
         });
       } catch {
-        if (!cancelled) setMicError("Nao foi possivel acessar o microfone.");
+        if (!cancelled) setMicError("Não foi possível acessar o microfone.");
       }
     }
 
@@ -483,7 +483,7 @@ export function useVoiceMesh({
         audioContext?.close().catch(() => {});
         displayStream?.getTracks().forEach((t) => t.stop());
       }
-      setMicError(err instanceof Error && err.message ? err.message : "Nao foi possivel compartilhar a tela.");
+      setMicError(err instanceof Error && err.message ? err.message : "Não foi possível compartilhar a tela.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase, stopScreenShare]);

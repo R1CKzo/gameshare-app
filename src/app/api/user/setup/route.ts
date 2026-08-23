@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   if (!nickname || !NICKNAME_REGEX.test(nickname)) {
     return NextResponse.json(
-      { error: "Nickname invalido. Use 3-16 caracteres: letras, numeros ou underline." },
+      { error: "Nickname inválido. Use 3-16 caracteres: letras, números ou underline." },
       { status: 400 }
     );
   }
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
   if (currentUser?.nickname && currentUser?.userTag) {
     return NextResponse.json(
-      { error: "Este usuario ja possui um nickname definido." },
+      { error: "Este usuário já possui um nickname definido." },
       { status: 409 }
     );
   }
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Erro ao definir nickname:", error);
     return NextResponse.json(
-      { error: "Nao foi possivel definir o nickname. Tente novamente." },
+      { error: "Não foi possível definir o nickname. Tente novamente." },
       { status: 500 }
     );
   }

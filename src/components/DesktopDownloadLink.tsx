@@ -18,7 +18,7 @@ export function DesktopDownloadLink() {
         </svg>
         Baixar para Windows
       </a>
-      <p className="mt-2 text-xs text-dim">Cliente de desktop, igual o Discord. Verifica atualizacoes sozinho.</p>
+      <p className="mt-2 text-xs text-dim">Cliente de desktop, igual o Discord. Verifica atualizações sozinho.</p>
     </>
   );
 }

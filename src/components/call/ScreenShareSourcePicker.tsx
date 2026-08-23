@@ -62,14 +62,14 @@ export function ScreenShareSourcePicker({
       >
         <div className="border-b border-white/[0.06] px-5 py-4">
           <h2 className="font-display text-lg font-bold">Compartilhar tela</h2>
-          <p className="mt-0.5 text-sm text-muted">Escolha o que compartilhar e a qualidade da transmissao.</p>
+          <p className="mt-0.5 text-sm text-muted">Escolha o que compartilhar e a qualidade da transmissão.</p>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {sources === null ? (
             <div className="py-12 text-center text-sm text-muted">Carregando janelas e telas...</div>
           ) : sources.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted">Nenhuma fonte disponivel pra compartilhar.</div>
+            <div className="py-12 text-center text-sm text-muted">Nenhuma fonte disponível pra compartilhar.</div>
           ) : (
             <>
               <SourceGroup title="Tela inteira" items={screens} selected={selected} onSelect={setSelected} />
@@ -95,12 +95,12 @@ export function ScreenShareSourcePicker({
           </SettingRow>
           {selected?.type === "screen" ? (
             <p className="text-xs text-dim">
-              Compartilhar a tela inteira leva so o video — sem audio nenhum do sistema (seu microfone continua
+              Compartilhar a tela inteira leva só o vídeo — sem áudio nenhum do sistema (seu microfone continua
               indo normalmente).
             </p>
           ) : selected?.type === "window" ? (
             <p className="text-xs text-dim">
-              O audio desse app ou jogo entra automaticamente junto com o video (seu microfone continua indo
+              O áudio desse app ou jogo entra automaticamente junto com o vídeo (seu microfone continua indo
               normalmente).
             </p>
           ) : null}

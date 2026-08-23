@@ -26,9 +26,9 @@ export default async function ServerRedirectPage({ params }: { params: { serverI
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
         <div>
-          <h1 className="font-display text-xl font-bold">Voce nao e membro desse servidor</h1>
+          <h1 className="font-display text-xl font-bold">Você não é membro desse servidor</h1>
           <p className="mt-2 text-sm text-muted">
-            Peca pra quem te chamou o link de convite (algo como /invite/xxxxxxxx).
+            Peça pra quem te chamou o link de convite (algo como /invite/xxxxxxxx).
           </p>
         </div>
       </div>

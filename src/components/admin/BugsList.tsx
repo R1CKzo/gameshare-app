@@ -33,7 +33,7 @@ const STATUS_CLASS: Record<Status, string> = {
   RESOLVED: "bg-[#2d3344] text-muted",
 };
 
-const SEVERITY_LABEL: Record<Severity, string> = { LOW: "Baixa", MEDIUM: "Media", HIGH: "Alta" };
+const SEVERITY_LABEL: Record<Severity, string> = { LOW: "Baixa", MEDIUM: "Média", HIGH: "Alta" };
 const SEVERITY_CLASS: Record<Severity, string> = {
   LOW: "border-[#2d3344] text-muted",
   MEDIUM: "border-accent/40 text-accent",
@@ -104,7 +104,7 @@ export function BugsList({ reports: initialReports }: { reports: BugReport[] }) 
 }
 
 function BugCard({ report, onStatusChange }: { report: BugReport; onStatusChange: (status: Status) => void }) {
-  const label = `${report.user.nickname ?? "Alguem"}${report.user.userTag ? "#" + report.user.userTag : ""}`;
+  const label = `${report.user.nickname ?? "Alguém"}${report.user.userTag ? "#" + report.user.userTag : ""}`;
 
   return (
     <div className="rounded-xl border border-[#2d3344] bg-elevated/40 p-4 sm:p-5">
@@ -163,6 +163,6 @@ function formatTime(iso: string) {
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
   const time = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  if (isToday) return `hoje as ${time}`;
-  return `${date.toLocaleDateString("pt-BR")} as ${time}`;
+  if (isToday) return `hoje às ${time}`;
+  return `${date.toLocaleDateString("pt-BR")} às ${time}`;
 }

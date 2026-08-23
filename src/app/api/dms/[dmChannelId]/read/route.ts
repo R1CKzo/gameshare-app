@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function POST(_request: Request, { params }: { params: { dmChannelId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   await prisma.dMRead.upsert({

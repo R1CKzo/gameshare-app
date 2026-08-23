@@ -10,7 +10,7 @@ const NAME_MAX = 40;
 export async function GET(_request: Request, { params }: { params: { serverId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const permissions = await getServerPermissions(params.serverId, session.user.id);
@@ -30,12 +30,12 @@ export async function GET(_request: Request, { params }: { params: { serverId: s
 export async function POST(request: Request, { params }: { params: { serverId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const permissions = await getServerPermissions(params.serverId, session.user.id);
   if (!permissions.canManageRoles) {
-    return NextResponse.json({ error: "Sem permissao pra gerenciar cargos." }, { status: 403 });
+    return NextResponse.json({ error: "Sem permissão pra gerenciar cargos." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -55,6 +55,6 @@ export async function POST(request: Request, { params }: { params: { serverId: s
     });
     return NextResponse.json(role);
   } catch {
-    return NextResponse.json({ error: "Ja existe um cargo com esse nome nesse servidor." }, { status: 409 });
+    return NextResponse.json({ error: "Já existe um cargo com esse nome nesse servidor." }, { status: 409 });
   }
 }

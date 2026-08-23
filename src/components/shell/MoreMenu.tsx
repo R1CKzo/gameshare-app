@@ -77,7 +77,7 @@ export function MoreMenu({
     } else {
       setLeaving(false);
       const data = await res.json().catch(() => ({}));
-      window.alert(data?.error ?? "Nao foi possivel sair do servidor.");
+      window.alert(data?.error ?? "Não foi possível sair do servidor.");
     }
   }
 
@@ -103,6 +103,15 @@ export function MoreMenu({
             style={{ top: position.top, left: position.left, width: MENU_WIDTH, transform: "translateY(-100%)" }}
             className="fixed z-[100] overflow-hidden rounded-xl border border-white/[0.08] bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
+            <Link
+              href="/novidades"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+            >
+              <SparkleIcon />
+              Novidades
+            </Link>
+
             {!isDesktopApp() && (
               <a
                 href="https://github.com/R1CKzo/gameshare-app/releases/latest/download/GameShare-Setup.exe"
@@ -162,6 +171,15 @@ function MoreIcon() {
       <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function SparkleIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
+      <path d="M6.5 6.5l2.5 2.5M15 15l2.5 2.5M6.5 17.5L9 15M15 9l2.5-2.5" />
     </svg>
   );
 }

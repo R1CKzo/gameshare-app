@@ -21,7 +21,7 @@ export default async function DesktopLoginPage({ params }: { params: { code: str
       <Shell>
         <h1 className="font-display text-2xl font-bold">Entrar no GameShare</h1>
         <p className="mt-3 max-w-sm text-[15px] text-muted">
-          Faca login pra continuar no aplicativo de desktop.
+          Faça login pra continuar no aplicativo de desktop.
         </p>
         <GoogleSignInButton
           callbackUrl={`/desktop-login/${params.code}`}
@@ -52,9 +52,9 @@ export default async function DesktopLoginPage({ params }: { params: { code: str
           <path d="M20 6L9 17l-5-5" />
         </svg>
       </div>
-      <h1 className="font-display text-2xl font-bold">Login concluido</h1>
+      <h1 className="font-display text-2xl font-bold">Login concluído</h1>
       <p className="mt-3 max-w-sm text-[15px] text-muted">
-        Pode voltar pro aplicativo do GameShare — ele vai continuar sozinho. Essa aba ja pode ser fechada.
+        Pode voltar pro aplicativo do GameShare — ele vai continuar sozinho. Essa aba já pode ser fechada.
       </p>
     </Shell>
   );

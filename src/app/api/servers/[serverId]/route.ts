@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 export async function DELETE(_request: Request, { params }: { params: { serverId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const server = await prisma.server.findUnique({
@@ -17,10 +17,10 @@ export async function DELETE(_request: Request, { params }: { params: { serverId
     select: { ownerId: true },
   });
   if (!server) {
-    return NextResponse.json({ error: "Servidor nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Servidor não encontrado." }, { status: 404 });
   }
   if (server.ownerId !== session.user.id) {
-    return NextResponse.json({ error: "So o dono pode excluir o servidor." }, { status: 403 });
+    return NextResponse.json({ error: "Só o dono pode excluir o servidor." }, { status: 403 });
   }
 
   await prisma.server.delete({ where: { id: params.serverId } });

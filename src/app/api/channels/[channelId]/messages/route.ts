@@ -41,12 +41,12 @@ async function requireMembership(userId: string, channelId: string) {
 export async function GET(request: Request, { params }: { params: { channelId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const channel = await requireMembership(session.user.id, params.channelId);
   if (!channel) {
-    return NextResponse.json({ error: "Canal nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Canal não encontrado." }, { status: 404 });
   }
 
   const searchParams = new URL(request.url).searchParams;
@@ -90,12 +90,12 @@ export async function GET(request: Request, { params }: { params: { channelId: s
 export async function POST(request: Request, { params }: { params: { channelId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const channel = await requireMembership(session.user.id, params.channelId);
   if (!channel) {
-    return NextResponse.json({ error: "Canal nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Canal não encontrado." }, { status: 404 });
   }
 
   const body = await request.json().catch(() => ({}));

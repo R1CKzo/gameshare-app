@@ -13,7 +13,7 @@ const userSelect = { id: true, nickname: true, userTag: true, image: true } as c
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const channels = await prisma.dMChannel.findMany({
@@ -46,13 +46,13 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => ({}));
   const friendId = typeof body?.friendId === "string" ? body.friendId : "";
   if (!friendId) {
-    return NextResponse.json({ error: "Amigo invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Amigo inválido." }, { status: 400 });
   }
 
   const friendship = await prisma.friendship.findFirst({
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     select: { id: true },
   });
   if (!friendship) {
-    return NextResponse.json({ error: "Voces precisam ser amigos pra conversar." }, { status: 403 });
+    return NextResponse.json({ error: "Vocês precisam ser amigos pra conversar." }, { status: 403 });
   }
 
   const existing = await prisma.dMChannel.findFirst({

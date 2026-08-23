@@ -17,14 +17,14 @@ export async function sendSecurityCodeEmail({
   const fromName = process.env.EMAIL_FROM_NAME || "GameShare";
 
   if (!apiKey || !fromAddress) {
-    throw new Error("Envio de email nao configurado (BREVO_API_KEY/EMAIL_FROM_ADDRESS ausentes).");
+    throw new Error("Envio de email não configurado (BREVO_API_KEY/EMAIL_FROM_ADDRESS ausentes).");
   }
 
-  const subject = purpose === "LOGIN" ? "Seu codigo de login" : "Confirme a troca de senha";
+  const subject = purpose === "LOGIN" ? "Seu código de login" : "Confirme a troca de senha";
   const intro =
     purpose === "LOGIN"
-      ? "Use o codigo abaixo pra concluir seu login no GameShare:"
-      : "Use o codigo abaixo pra confirmar a troca de senha no GameShare:";
+      ? "Use o código abaixo pra concluir seu login no GameShare:"
+      : "Use o código abaixo pra confirmar a troca de senha no GameShare:";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 420px; margin: 0 auto; padding: 24px;">
@@ -33,7 +33,7 @@ export async function sendSecurityCodeEmail({
       <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; text-align: center; padding: 16px; background: #f4f4f7; border-radius: 8px; margin: 16px 0;">
         ${code}
       </div>
-      <p style="color: #888; font-size: 13px;">Esse codigo expira em 10 minutos. Se voce nao pediu isso, pode ignorar esse email.</p>
+      <p style="color: #888; font-size: 13px;">Esse código expira em 10 minutos. Se você não pediu isso, pode ignorar esse email.</p>
     </div>
   `;
 

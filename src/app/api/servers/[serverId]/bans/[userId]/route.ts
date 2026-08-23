@@ -9,12 +9,12 @@ import { prisma } from "@/lib/prisma";
 export async function DELETE(_request: Request, { params }: { params: { serverId: string; userId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const permissions = await getServerPermissions(params.serverId, session.user.id);
   if (!permissions.canBan) {
-    return NextResponse.json({ error: "Sem permissao pra desbanir membros." }, { status: 403 });
+    return NextResponse.json({ error: "Sem permissão pra desbanir membros." }, { status: 403 });
   }
 
   await prisma.serverBan.deleteMany({

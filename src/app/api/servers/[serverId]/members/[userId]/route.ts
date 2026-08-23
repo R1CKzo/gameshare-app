@@ -9,12 +9,12 @@ import { prisma } from "@/lib/prisma";
 export async function DELETE(_request: Request, { params }: { params: { serverId: string; userId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const permissions = await getServerPermissions(params.serverId, session.user.id);
   if (!permissions.canKick) {
-    return NextResponse.json({ error: "Sem permissao pra expulsar membros." }, { status: 403 });
+    return NextResponse.json({ error: "Sem permissão pra expulsar membros." }, { status: 403 });
   }
 
   const server = await prisma.server.findUnique({
@@ -22,10 +22,10 @@ export async function DELETE(_request: Request, { params }: { params: { serverId
     select: { ownerId: true },
   });
   if (!server) {
-    return NextResponse.json({ error: "Servidor nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Servidor não encontrado." }, { status: 404 });
   }
   if (params.userId === server.ownerId) {
-    return NextResponse.json({ error: "Nao e possivel expulsar o dono do servidor." }, { status: 400 });
+    return NextResponse.json({ error: "Não é possível expulsar o dono do servidor." }, { status: 400 });
   }
 
   await prisma.serverMember.deleteMany({

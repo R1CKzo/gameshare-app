@@ -29,7 +29,7 @@ async function resizeImageToDataUrl(file: File, maxBytes = 180_000): Promise<str
   canvas.width = AVATAR_SIZE;
   canvas.height = AVATAR_SIZE;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas indisponivel.");
+  if (!ctx) throw new Error("Canvas indisponível.");
 
   const side = Math.min(bitmap.width, bitmap.height);
   const sx = (bitmap.width - side) / 2;
@@ -51,7 +51,7 @@ export function SettingsButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        title="Configuracoes"
+        title="Configurações"
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-dim transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
       >
         <GearIcon />
@@ -71,7 +71,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-4">
-          <h2 className="font-display text-lg font-bold">Configuracoes</h2>
+          <h2 className="font-display text-lg font-bold">Configurações</h2>
           <button
             onClick={onClose}
             aria-label="Fechar"
@@ -90,7 +90,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                 tab === t ? "bg-elevated text-[#f5f5f7]" : "text-muted hover:text-[#d5d7dc]"
               }`}
             >
-              {t === "perfil" ? "Perfil" : t === "audio" ? "Audio" : t === "seguranca" ? "Seguranca" : "Reportar bug"}
+              {t === "perfil" ? "Perfil" : t === "audio" ? "Áudio" : t === "seguranca" ? "Segurança" : "Reportar bug"}
             </button>
           ))}
         </div>
@@ -134,13 +134,13 @@ function ProfileTab() {
       const dataUrl = await resizeImageToDataUrl(file);
       setImage(dataUrl);
     } catch {
-      setError("Nao foi possivel processar essa imagem.");
+      setError("Não foi possível processar essa imagem.");
     }
   }
 
   async function handleSave() {
     if (!nicknameValid) {
-      setError("Nickname invalido. Use 3-16 caracteres: letras, numeros ou underline.");
+      setError("Nickname inválido. Use 3-16 caracteres: letras, números ou underline.");
       return;
     }
     setSaving(true);
@@ -160,7 +160,7 @@ function ProfileTab() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Nao foi possivel salvar.");
+        setError(data.error ?? "Não foi possível salvar.");
         return;
       }
 
@@ -197,7 +197,7 @@ function ProfileTab() {
           </div>
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
-        <div className="text-xs text-dim">Clique na foto pra trocar. JPG/PNG, sera recortada em quadrado.</div>
+        <div className="text-xs text-dim">Clique na foto pra trocar. JPG/PNG, será recortada em quadrado.</div>
       </div>
 
       <div>
@@ -215,7 +215,7 @@ function ProfileTab() {
           />
           <span className="text-sm font-bold text-dim">#{userTag}</span>
         </div>
-        <p className="mt-1.5 text-xs text-dim">A tag numerica e permanente e nao pode ser alterada.</p>
+        <p className="mt-1.5 text-xs text-dim">A tag numérica é permanente e não pode ser alterada.</p>
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
@@ -226,7 +226,7 @@ function ProfileTab() {
         disabled={saving || !changed || !nicknameValid}
         className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
       >
-        {saving ? "Salvando..." : "Salvar alteracoes"}
+        {saving ? "Salvando..." : "Salvar alterações"}
       </button>
     </div>
   );
@@ -313,7 +313,7 @@ function AudioTab() {
         }
         tick();
       } catch {
-        if (!cancelled) setMonitorError("Nao foi possivel abrir esse microfone pra teste.");
+        if (!cancelled) setMonitorError("Não foi possível abrir esse microfone pra teste.");
       }
     }
     monitor();
@@ -334,7 +334,7 @@ function AudioTab() {
   return (
     <div className="space-y-4">
       <p className="text-xs text-dim">
-        Aplicado no seu microfone da proxima vez que voce entrar numa chamada. So afeta seu proprio audio, cada
+        Aplicado no seu microfone da próxima vez que você entrar numa chamada. Só afeta seu próprio áudio, cada
         pessoa configura o dela.
       </p>
 
@@ -348,7 +348,7 @@ function AudioTab() {
           onChange={(e) => update({ deviceId: e.target.value || null })}
           className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
         >
-          <option value="">Padrao do sistema</option>
+          <option value="">Padrão do sistema</option>
           {devices.map((d) => (
             <option key={d.deviceId} value={d.deviceId}>
               {d.label || `Microfone ${d.deviceId.slice(0, 6)}`}
@@ -356,7 +356,7 @@ function AudioTab() {
           ))}
         </select>
         <p className="mt-1.5 text-xs text-dim">
-          Se o audio ficar "voltando"/com eco infinito, confira se nao selecionou sem querer um dispositivo de loopback
+          Se o áudio ficar "voltando"/com eco infinito, confira se não selecionou sem querer um dispositivo de loopback
           (ex: "Stereo Mix") em vez do microfone de verdade.
         </p>
       </div>
@@ -378,7 +378,7 @@ function AudioTab() {
           className="w-full accent-primary"
         />
         <p className="mt-1.5 text-xs text-dim">
-          Baixa: so deixa passar sua voz falando alto, corta ruido/eco de fundo. Alta: pega qualquer som, mesmo baixinho.
+          Baixa: só deixa passar sua voz falando alto, corta ruído/eco de fundo. Alta: pega qualquer som, mesmo baixinho.
         </p>
 
         <div className="mt-3">
@@ -394,25 +394,25 @@ function AudioTab() {
             />
           </div>
           <p className="mt-1.5 text-xs text-dim">
-            {monitorError ?? "Fale perto do microfone pra ver o nivel captado. A linha branca e o limiar atual."}
+            {monitorError ?? "Fale perto do microfone pra ver o nível captado. A linha branca é o limiar atual."}
           </p>
         </div>
       </div>
 
       <ToggleRow
-        label="Supressao de ruido"
-        description="Reduz ruido de fundo (ventilador, teclado, etc)."
+        label="Supressão de ruído"
+        description="Reduz ruído de fundo (ventilador, teclado, etc)."
         checked={settings.noiseSuppression}
         onChange={(v) => update({ noiseSuppression: v })}
       />
       <ToggleRow
         label="Cancelamento de eco"
-        description="Evita que sua propria voz volte pelo alto-falante de quem esta ouvindo."
+        description="Evita que sua própria voz volte pelo alto-falante de quem está ouvindo."
         checked={settings.echoCancellation}
         onChange={(v) => update({ echoCancellation: v })}
       />
       <ToggleRow
-        label="Controle automatico de ganho"
+        label="Controle automático de ganho"
         description="Ajusta o volume do microfone automaticamente."
         checked={settings.autoGainControl}
         onChange={(v) => update({ autoGainControl: v })}
@@ -478,7 +478,7 @@ function SegurancaTab() {
     const data = await res.json().catch(() => ({}));
     setSending(false);
     if (!res.ok) {
-      setError(data.error ?? "Nao foi possivel continuar.");
+      setError(data.error ?? "Não foi possível continuar.");
       return;
     }
     setTicketId(data.ticketId);
@@ -497,7 +497,7 @@ function SegurancaTab() {
     const data = await res.json().catch(() => ({}));
     setSending(false);
     if (!res.ok) {
-      setError(data.error ?? "Codigo invalido.");
+      setError(data.error ?? "Código inválido.");
       return;
     }
     await update();
@@ -518,7 +518,7 @@ function SegurancaTab() {
   if (step === "code") {
     return (
       <form onSubmit={confirmChange} className="space-y-4">
-        <p className="text-xs text-dim">Enviamos um codigo de 6 digitos pro seu email. Confirme pra aplicar a nova senha.</p>
+        <p className="text-xs text-dim">Enviamos um código de 6 dígitos pro seu email. Confirme pra aplicar a nova senha.</p>
         <input
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -532,7 +532,7 @@ function SegurancaTab() {
           disabled={sending || code.length !== 6}
           className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
         >
-          {sending ? "Confirmando..." : "Confirmar codigo"}
+          {sending ? "Confirmando..." : "Confirmar código"}
         </button>
       </form>
     );
@@ -542,8 +542,8 @@ function SegurancaTab() {
     <form onSubmit={requestChange} className="space-y-4">
       <p className="text-xs text-dim">
         {hasPassword
-          ? "Trocar sua senha tambem vai pedir um codigo por email pra confirmar."
-          : "Sua conta usa login com Google. Defina uma senha pra tambem poder entrar com email e senha."}
+          ? "Trocar sua senha também vai pedir um código por email pra confirmar."
+          : "Sua conta usa login com Google. Defina uma senha pra também poder entrar com email e senha."}
       </p>
 
       {hasPassword && (
@@ -568,7 +568,7 @@ function SegurancaTab() {
           onChange={(e) => setNewPassword(e.target.value)}
           className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-sm outline-none focus:border-primary"
         />
-        <p className="mt-1.5 text-xs text-dim">Minimo 8 caracteres.</p>
+        <p className="mt-1.5 text-xs text-dim">Mínimo 8 caracteres.</p>
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
@@ -585,8 +585,8 @@ function SegurancaTab() {
 }
 
 const SEVERITIES = [
-  { value: "LOW", label: "Baixa", hint: "Incomoda, mas da pra contornar." },
-  { value: "MEDIUM", label: "Media", hint: "Atrapalha o uso normal." },
+  { value: "LOW", label: "Baixa", hint: "Incomoda, mas dá pra contornar." },
+  { value: "MEDIUM", label: "Média", hint: "Atrapalha o uso normal." },
   { value: "HIGH", label: "Alta", hint: "Trava, quebra ou impede de usar." },
 ] as const;
 
@@ -620,7 +620,7 @@ function BugReportTab({ onClose }: { onClose: () => void }) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Nao foi possivel enviar.");
+        setError(data.error ?? "Não foi possível enviar.");
         return;
       }
       setSent(true);
@@ -646,18 +646,18 @@ function BugReportTab({ onClose }: { onClose: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="text-xs text-dim">Descreva o que aconteceu — quanto mais detalhe, mais rapido da pra achar a causa.</p>
+      <p className="text-xs text-dim">Descreva o que aconteceu — quanto mais detalhe, mais rápido dá pra achar a causa.</p>
 
       <div>
         <label htmlFor="bug-title" className="mb-2 block text-xs font-bold tracking-wide text-muted">
-          TITULO
+TÍTULO
         </label>
         <input
           id="bug-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           maxLength={120}
-          placeholder="Ex: audio corta quando alguem compartilha tela"
+          placeholder="Ex: áudio corta quando alguém compartilha tela"
           className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-sm font-semibold outline-none focus:border-primary"
         />
       </div>
@@ -672,7 +672,7 @@ function BugReportTab({ onClose }: { onClose: () => void }) {
           onChange={(e) => setDescription(e.target.value)}
           maxLength={4000}
           rows={5}
-          placeholder="O que voce esperava que acontecesse, o que aconteceu de verdade, e como reproduzir."
+          placeholder="O que você esperava que acontecesse, o que aconteceu de verdade, e como reproduzir."
           className="w-full resize-none rounded-xl border border-[#2d3344] bg-background px-4 py-3 text-sm outline-none focus:border-primary"
         />
       </div>

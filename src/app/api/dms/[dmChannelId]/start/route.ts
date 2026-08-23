@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 export async function POST(_request: Request, { params }: { params: { dmChannelId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const dmChannel = await prisma.dMChannel.findUnique({
@@ -18,7 +18,7 @@ export async function POST(_request: Request, { params }: { params: { dmChannelI
     select: { id: true, isLive: true },
   });
   if (!dmChannel) {
-    return NextResponse.json({ error: "Conversa nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
   }
 
   const participant = await prisma.dMParticipant.findUnique({
@@ -26,7 +26,7 @@ export async function POST(_request: Request, { params }: { params: { dmChannelI
     select: { id: true },
   });
   if (!participant) {
-    return NextResponse.json({ error: "Conversa nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
   }
 
   const presence = await prisma.dMPresence.findUnique({
@@ -38,7 +38,7 @@ export async function POST(_request: Request, { params }: { params: { dmChannelI
   }
 
   if (dmChannel.isLive) {
-    return NextResponse.json({ error: "Ja tem alguem compartilhando a tela." }, { status: 409 });
+    return NextResponse.json({ error: "Já tem alguém compartilhando a tela." }, { status: 409 });
   }
 
   await prisma.dMChannel.update({

@@ -10,7 +10,7 @@ export async function POST(
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const channel = await prisma.channel.findUnique({
@@ -19,11 +19,11 @@ export async function POST(
   });
 
   if (!channel) {
-    return NextResponse.json({ error: "Canal nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Canal não encontrado." }, { status: 404 });
   }
 
   if (channel.broadcasterId !== session.user.id) {
-    return NextResponse.json({ error: "So quem esta compartilhando pode encerrar." }, { status: 403 });
+    return NextResponse.json({ error: "Só quem está compartilhando pode encerrar." }, { status: 403 });
   }
 
   await prisma.channel.update({

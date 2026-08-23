@@ -25,7 +25,7 @@ export default function NewServerPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Nao foi possivel criar o servidor.");
+        setError(data.error ?? "Não foi possível criar o servidor.");
         return;
       }
       setCreated({ id: data.id, inviteUrl: `${window.location.origin}/invite/${data.inviteCode}` });
@@ -51,7 +51,7 @@ export default function NewServerPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Nao foi possivel entrar no servidor.");
+        setError(data.error ?? "Não foi possível entrar no servidor.");
         return;
       }
       router.push(`/servers/${data.id}`);
@@ -113,7 +113,7 @@ export default function NewServerPage() {
       <div className="relative flex w-full max-w-md flex-col gap-5">
         <div className="rounded-[20px] border border-white/[0.07] bg-surface p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
           <h1 className="font-display text-xl font-bold">Criar um servidor</h1>
-          <p className="mt-1.5 text-sm text-muted">De um nome pro seu servidor e comece a jogar com a galera.</p>
+          <p className="mt-1.5 text-sm text-muted">Dê um nome pro seu servidor e comece a jogar com a galera.</p>
 
           <form onSubmit={handleCreate} className="mt-6 space-y-4">
             <input
@@ -143,7 +143,7 @@ export default function NewServerPage() {
 
         <div className="rounded-[20px] border border-white/[0.07] bg-surface p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
           <h2 className="font-display text-lg font-bold">Entrar com um convite</h2>
-          <p className="mt-1.5 text-sm text-muted">Cole o link ou codigo de convite de um servidor existente.</p>
+          <p className="mt-1.5 text-sm text-muted">Cole o link ou código de convite de um servidor existente.</p>
 
           <form onSubmit={handleJoin} className="mt-6 space-y-4">
             <input

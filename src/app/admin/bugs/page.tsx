@@ -35,7 +35,7 @@ export default async function AdminBugsPage() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-8 flex items-start justify-between gap-3">
           <div>
-            <div className="mb-1 text-xs font-bold tracking-wide text-dim">AREA ADMINISTRATIVA</div>
+            <div className="mb-1 text-xs font-bold tracking-wide text-dim">ÁREA ADMINISTRATIVA</div>
             <h1 className="font-display text-2xl font-bold">Bugs reportados</h1>
             <p className="mt-1 text-sm text-muted">
               {reports.length === 0 ? "Nenhum reporte ainda." : `${reports.length} reporte${reports.length === 1 ? "" : "s"} no total.`}

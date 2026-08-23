@@ -22,5 +22,5 @@ export async function generateUniqueInviteCode(): Promise<string> {
     if (!existing) return candidate;
   }
 
-  throw new Error(`Nao foi possivel gerar um codigo de convite unico apos ${MAX_ATTEMPTS} tentativas.`);
+  throw new Error(`Não foi possível gerar um código de convite único após ${MAX_ATTEMPTS} tentativas.`);
 }

@@ -8,14 +8,14 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => ({}));
   const inviteCode: string = body?.inviteCode?.trim().toLowerCase();
 
   if (!inviteCode) {
-    return NextResponse.json({ error: "Informe um codigo de convite." }, { status: 400 });
+    return NextResponse.json({ error: "Informe um código de convite." }, { status: 400 });
   }
 
   const server = await prisma.server.findUnique({
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   });
 
   if (!server) {
-    return NextResponse.json({ error: "Codigo de convite invalido." }, { status: 404 });
+    return NextResponse.json({ error: "Código de convite inválido." }, { status: 404 });
   }
 
   const ban = await prisma.serverBan.findUnique({
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     select: { id: true },
   });
   if (ban) {
-    return NextResponse.json({ error: "Voce foi banido desse servidor." }, { status: 403 });
+    return NextResponse.json({ error: "Você foi banido desse servidor." }, { status: 403 });
   }
 
   await prisma.serverMember.upsert({

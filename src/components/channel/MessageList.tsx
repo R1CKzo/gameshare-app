@@ -42,7 +42,7 @@ function groupMessages(messages: ChatMessage[]): MessageGroupData[] {
 function MessageGroup({ group, isSelf }: { group: MessageGroupData; isSelf: boolean }) {
   const { user, messages } = group;
   const initials = (user.nickname ?? "?").slice(0, 1).toUpperCase();
-  const label = `${user.nickname ?? "Alguem"}${user.userTag ? "#" + user.userTag : ""}`;
+  const label = `${user.nickname ?? "Alguém"}${user.userTag ? "#" + user.userTag : ""}`;
 
   return (
     <div className="flex gap-3 py-1.5 hover:bg-white/[0.015]">
@@ -73,6 +73,6 @@ function formatTime(iso: string) {
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
   const time = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  if (isToday) return `hoje as ${time}`;
-  return `${date.toLocaleDateString("pt-BR")} as ${time}`;
+  if (isToday) return `hoje às ${time}`;
+  return `${date.toLocaleDateString("pt-BR")} às ${time}`;
 }

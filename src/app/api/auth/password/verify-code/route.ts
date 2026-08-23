@@ -14,15 +14,15 @@ export async function POST(request: Request) {
   const code = String(body?.code ?? "");
 
   if (!ticketId || !code) {
-    return NextResponse.json({ error: "Informe o codigo." }, { status: 400 });
+    return NextResponse.json({ error: "Informe o código." }, { status: 400 });
   }
 
   const result = await verifySecurityCode(ticketId, code, "LOGIN");
   if (!result.ok) {
     if (result.reason === "too_many_attempts") {
-      return NextResponse.json({ error: "Muitas tentativas erradas. Peca um novo codigo." }, { status: 429 });
+      return NextResponse.json({ error: "Muitas tentativas erradas. Peça um novo código." }, { status: 429 });
     }
-    return NextResponse.json({ error: "Codigo invalido ou expirado." }, { status: 400 });
+    return NextResponse.json({ error: "Código inválido ou expirado." }, { status: 400 });
   }
 
   const user = await prisma.user.findUnique({
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     },
   });
   if (!user) {
-    return NextResponse.json({ error: "Usuario nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
   }
 
   if (!user.emailVerified) {

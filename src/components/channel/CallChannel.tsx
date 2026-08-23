@@ -89,7 +89,7 @@ export function CallChannel({
 
   const errorMsg = isActive ? activeCall.callError : null;
   const broadcasterLabel = live.broadcaster
-    ? `${live.broadcaster.nickname ?? "Alguem"}${live.broadcaster.userTag ? "#" + live.broadcaster.userTag : ""}`
+    ? `${live.broadcaster.nickname ?? "Alguém"}${live.broadcaster.userTag ? "#" + live.broadcaster.userTag : ""}`
     : null;
   const someoneElseLive = live.isLive && live.broadcaster?.id !== currentUserId;
   const isSharingScreenHere = isActive && activeCall.isSharingScreen;
@@ -164,10 +164,10 @@ export function CallChannel({
             </svg>
           </div>
           <div className="max-w-sm text-center">
-            <div className="font-display text-xl font-bold">Voce nao esta em {channelName}</div>
+            <div className="font-display text-xl font-bold">Você não está em {channelName}</div>
             <div className="mt-2 text-sm text-muted">
               {someoneElseLive
-                ? `${broadcasterLabel} esta ao vivo aqui agora.`
+                ? `${broadcasterLabel} está ao vivo aqui agora.`
                 : "Entre pra conversar por voz e, se quiser, compartilhar sua tela."}
             </div>
           </div>
@@ -188,7 +188,7 @@ export function CallChannel({
                     <PresenceAvatar key={u.id} user={u} style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 5 - i }} />
                   ))}
               </div>
-              <span className="text-xs text-muted">tambem estao na sala</span>
+              <span className="text-xs text-muted">também estão na sala</span>
             </div>
           )}
         </div>

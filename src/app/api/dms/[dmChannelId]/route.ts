@@ -14,7 +14,7 @@ const PRESENCE_WINDOW_MS = 30_000;
 export async function GET(_request: Request, { params }: { params: { dmChannelId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const dmChannel = await prisma.dMChannel.findUnique({
@@ -35,7 +35,7 @@ export async function GET(_request: Request, { params }: { params: { dmChannelId
   });
 
   if (!dmChannel || !dmChannel.participants.some((p) => p.userId === session.user.id)) {
-    return NextResponse.json({ error: "Conversa nao encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Conversa não encontrada." }, { status: 404 });
   }
 
   return NextResponse.json({

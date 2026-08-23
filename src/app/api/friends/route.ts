@@ -14,7 +14,7 @@ const userSelect = { id: true, nickname: true, userTag: true, image: true } as c
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const friendships = await prisma.friendship.findMany({
@@ -58,7 +58,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -74,10 +74,10 @@ export async function POST(request: Request) {
     select: { id: true },
   });
   if (!target) {
-    return NextResponse.json({ error: "Ninguem com esse Nick#Tag." }, { status: 404 });
+    return NextResponse.json({ error: "Ninguém com esse Nick#Tag." }, { status: 404 });
   }
   if (target.id === session.user.id) {
-    return NextResponse.json({ error: "Voce nao pode adicionar a si mesmo." }, { status: 400 });
+    return NextResponse.json({ error: "Você não pode adicionar a si mesmo." }, { status: 400 });
   }
 
   const reverse = await prisma.friendship.findUnique({
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
   });
   if (reverse) {
     if (reverse.status === "ACCEPTED") {
-      return NextResponse.json({ error: "Voces ja sao amigos." }, { status: 409 });
+      return NextResponse.json({ error: "Vocês já são amigos." }, { status: 409 });
     }
     const updated = await prisma.friendship.update({
       where: { id: reverse.id },
@@ -107,6 +107,6 @@ export async function POST(request: Request) {
     pusherServer.trigger(userPusherName(target.id), FRIEND_REQUEST_EVENT, { friendshipId: created.id }).catch(() => {});
     return NextResponse.json({ friendshipId: created.id, status: created.status });
   } catch {
-    return NextResponse.json({ error: "Pedido ja enviado." }, { status: 409 });
+    return NextResponse.json({ error: "Pedido já enviado." }, { status: 409 });
   }
 }

@@ -13,14 +13,14 @@ import { pusherServer } from "@/lib/pusher";
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const body = await request.formData();
   const socketId = body.get("socket_id");
   const channelName = body.get("channel_name");
   if (typeof socketId !== "string" || typeof channelName !== "string") {
-    return NextResponse.json({ error: "Requisicao invalida." }, { status: 400 });
+    return NextResponse.json({ error: "Requisição inválida." }, { status: 400 });
   }
 
   const authorized = channelName.startsWith("private-dm-")

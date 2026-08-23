@@ -29,7 +29,7 @@ export async function POST(
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   // Sem isso, qualquer pessoa logada (nao so membro do servidor)
@@ -37,7 +37,7 @@ export async function POST(
   // pessoas discarem pra ela na malha de voz — inclusive de servidores
   // que ela nunca entrou.
   if (!(await requireMembership(session.user.id, params.channelId))) {
-    return NextResponse.json({ error: "Voce nao e membro desse servidor." }, { status: 403 });
+    return NextResponse.json({ error: "Você não é membro desse servidor." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -65,7 +65,7 @@ export async function DELETE(
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   await prisma.channelPresence

@@ -60,11 +60,11 @@ export function FriendsView() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Nao foi possivel enviar o pedido.");
+        setError(data.error ?? "Não foi possível enviar o pedido.");
         return;
       }
       setTag("");
-      setNotice(data.status === "ACCEPTED" ? "Voces agora sao amigos!" : "Pedido enviado.");
+      setNotice(data.status === "ACCEPTED" ? "Vocês agora são amigos!" : "Pedido enviado.");
       load();
     } catch {
       setError("Erro de rede. Tente novamente.");
@@ -135,7 +135,7 @@ export function FriendsView() {
 
         {!loading && incoming.length === 0 && outgoing.length === 0 && friends.length === 0 && (
           <div className="mt-10 text-center text-sm text-muted">
-            Voce ainda nao tem amigos por aqui. Manda um pedido usando o Nick#Tag de alguem.
+            Você ainda não tem amigos por aqui. Manda um pedido usando o Nick#Tag de alguém.
           </div>
         )}
 
