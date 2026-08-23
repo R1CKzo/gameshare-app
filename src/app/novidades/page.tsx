@@ -2,8 +2,9 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 import { CloseNovidadesButton } from "@/components/novidades/CloseNovidadesButton";
-import { changelog } from "@/data/changelog";
+import { changelog, changelogKey } from "@/data/changelog";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,15 @@ function formatDate(iso: string): string {
 export default async function NovidadesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/");
+
+  // Visitar essa pagina (seja por link ou pelo redirecionamento automatico
+  // do GlobalNotificationListener) sempre marca a entrada mais recente como
+  // vista — e o que faz o redirecionamento automatico so acontecer uma vez
+  // por atualizacao.
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { lastSeenChangelogKey: changelogKey(changelog[0]) },
+  });
 
   return (
     <div className="min-h-screen bg-background px-4 py-10 sm:px-8">

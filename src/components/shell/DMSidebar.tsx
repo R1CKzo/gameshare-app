@@ -18,7 +18,8 @@ export function DMSidebar({
   currentDmId?: string;
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const { isDmUnread, dmActivity, incomingFriendRequestCount } = useUnread();
+  const { isDmUnread, dmActivity, incomingFriendRequestCount, unreadDmCount } = useUnread();
+  const friendsBadgeTotal = incomingFriendRequestCount + unreadDmCount;
 
   useEffect(() => {
     let cancelled = false;
@@ -78,9 +79,9 @@ export function DMSidebar({
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           <span className="flex-1">Amigos</span>
-          {incomingFriendRequestCount > 0 && (
+          {friendsBadgeTotal > 0 && (
             <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">
-              {incomingFriendRequestCount}
+              {friendsBadgeTotal}
             </span>
           )}
         </Link>

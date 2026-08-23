@@ -1,10 +1,11 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { type DmActivity, UnreadContext } from "@/components/notifications/UnreadContext";
+import { setUnreadBadge } from "@/lib/desktop";
 import { getPusherClient } from "@/lib/pusherClient";
 import {
   dmChannelPusherName,
@@ -29,6 +30,7 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
   const { data: session } = useSession();
   const userId = session?.user?.id ?? null;
   const pathname = usePathname();
+  const router = useRouter();
 
   const [channelMeta, setChannelMeta] = useState<ChannelMeta[]>([]);
   const [dmIds, setDmIds] = useState<string[]>([]);
@@ -77,6 +79,27 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       cancelled = true;
     };
   }, [userId, friendsEventVersion]);
+
+  // Se a pessoa ainda nao viu a entrada mais recente do changelog, leva ela
+  // pra /novidades sozinho ao abrir o app — substitui a telinha separada que
+  // existia so no app de desktop. So roda uma vez por sessao (depende so de
+  // userId): a propria pagina de Novidades marca como vista ao renderizar,
+  // entao um recarregamento depois nao redireciona de novo.
+  useEffect(() => {
+    if (!userId) return;
+    if (pathname === "/novidades") return;
+    let cancelled = false;
+    fetch("/api/me/changelog-status")
+      .then((r) => r.json())
+      .then((data: { shouldRedirect?: boolean }) => {
+        if (!cancelled && data.shouldRedirect) router.replace("/novidades");
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // Assina cada canal de texto + DM pra mensagem nova, e o canal privado do
   // usuario pra pedido de amizade/aceito/cargo atribuido.
@@ -180,6 +203,17 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
     return set;
   }, [unreadChannelIds, serverIdByChannel]);
 
+  const unreadDmCount = unreadDmIds.size;
+  const hasAnyUnread = unreadChannelIds.size > 0 || unreadDmCount > 0 || incomingFriendRequestCount > 0;
+
+  // Avisa o app de desktop (se for o caso — no-op no navegador comum) toda
+  // vez que esse total muda, pra ele mostrar/esconder o ponto vermelho no
+  // icone da bandeja do sistema, ja que esse e o unico icone visivel quando
+  // a janela esta minimizada pra la.
+  useEffect(() => {
+    setUnreadBadge(hasAnyUnread);
+  }, [hasAnyUnread]);
+
   const value = useMemo(
     () => ({
       isChannelUnread: (channelId: string) => unreadChannelIds.has(channelId),
@@ -188,8 +222,19 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       dmActivity,
       friendsEventVersion,
       incomingFriendRequestCount,
+      unreadDmCount,
+      hasAnyUnread,
     }),
-    [unreadChannelIds, unreadServerIds, unreadDmIds, dmActivity, friendsEventVersion, incomingFriendRequestCount],
+    [
+      unreadChannelIds,
+      unreadServerIds,
+      unreadDmIds,
+      dmActivity,
+      friendsEventVersion,
+      incomingFriendRequestCount,
+      unreadDmCount,
+      hasAnyUnread,
+    ],
   );
 
   return <UnreadContext.Provider value={value}>{children}</UnreadContext.Provider>;

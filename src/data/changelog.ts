@@ -14,7 +14,24 @@ export type ChangelogEntry = {
   bugsFixed?: string[];
 };
 
+// Identifica uma entrada de forma estavel mesmo sem versao numerada (varias
+// entradas podem cair no mesmo dia) — usado pra saber se a pessoa ja viu a
+// mais recente e decidir se leva ela pra /novidades sozinho ao abrir o app.
+export function changelogKey(entry: ChangelogEntry): string {
+  return `${entry.date}::${entry.title}`;
+}
+
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "1.0.8",
+    date: "2026-08-23",
+    title: "Notificações completas e sem popup separado",
+    items: [
+      "Mensagem nova numa conversa direta também acende o aviso no ícone de Amigos, não só pedido de amizade",
+      "O ícone do app na bandeja do sistema ganha um ponto vermelho quando tem qualquer notificação não lida (mensagem, DM ou pedido de amizade)",
+      "A tela separada de novidades do app de desktop foi removida — agora, ao abrir o app depois de uma atualização, você é levado direto pra essa página (só uma vez por atualização)",
+    ],
+  },
   {
     version: "1.0.7",
     date: "2026-08-23",

@@ -23,6 +23,7 @@ type GameshareDesktopBridge = {
   startAppAudio: (hwnd: number) => Promise<StartSystemAudioResult>;
   stopAppAudio: () => void;
   onSystemAudioChunk: (callback: (chunk: ArrayBuffer) => void) => () => void;
+  setUnreadBadge: (hasUnread: boolean) => void;
 };
 
 declare global {
@@ -83,4 +84,11 @@ export function stopAppAudio(): void {
 export function onSystemAudioChunk(callback: (chunk: ArrayBuffer) => void): () => void {
   if (typeof window === "undefined" || !window.gameshareDesktop) return () => {};
   return window.gameshareDesktop.onSystemAudioChunk(callback);
+}
+
+// Liga/desliga o ponto vermelho de notificacao no icone da bandeja do
+// sistema (ver GlobalNotificationListener) — no-op no navegador comum, ja
+// que la nao tem bandeja nenhuma pra marcar.
+export function setUnreadBadge(hasUnread: boolean): void {
+  window.gameshareDesktop?.setUnreadBadge(hasUnread);
 }

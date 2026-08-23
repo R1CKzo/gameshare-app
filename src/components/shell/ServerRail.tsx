@@ -11,16 +11,18 @@ type ServerSummary = {
   name: string;
 };
 
-// Mostra quantos pedidos de amizade estao esperando, direto na barra de
-// servidores — antes esse aviso so existia dentro da tela de Amigos/DM
-// (DMSidebar), entao dava pra ter um pedido esperando e nunca saber, se a
-// pessoa vivesse dentro de um servidor.
-function FriendRequestBadge() {
-  const { incomingFriendRequestCount } = useUnread();
-  if (incomingFriendRequestCount === 0) return null;
+// Mostra quantos pedidos de amizade estao esperando + quantas DMs tem
+// mensagem nao lida, direto na barra de servidores — antes esse aviso so
+// existia dentro da tela de Amigos/DM (DMSidebar) e so contava pedido de
+// amizade, entao dava pra ter uma mensagem nova esperando e nunca saber, se
+// a pessoa vivesse dentro de um servidor.
+function FriendsBadge() {
+  const { incomingFriendRequestCount, unreadDmCount } = useUnread();
+  const total = incomingFriendRequestCount + unreadDmCount;
+  if (total === 0) return null;
   return (
     <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-rail bg-danger px-0.5 text-[9px] font-bold text-white">
-      {incomingFriendRequestCount}
+      {total}
     </span>
   );
 }
@@ -111,7 +113,7 @@ export function ServerRail({
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         </Link>
-        <FriendRequestBadge />
+        <FriendsBadge />
       </div>
 
       <div className="my-1 h-px w-8 bg-white/10" />

@@ -37,5 +37,10 @@ if (location.origin === ALLOWED_ORIGIN) {
       ipcRenderer.on("screen-share:audio-chunk", listener);
       return () => ipcRenderer.removeListener("screen-share:audio-chunk", listener);
     },
+
+    // Liga/desliga o ponto vermelho de notificacao no icone da bandeja —
+    // chamado pelo GlobalNotificationListener toda vez que o total de
+    // notificacoes nao lidas do app muda.
+    setUnreadBadge: (hasUnread) => ipcRenderer.send("badge:set", hasUnread),
   });
 }
