@@ -6,6 +6,7 @@ declare module "next-auth" {
       id: string;
       nickname: string | null;
       userTag: string | null;
+      isAdmin: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -15,5 +16,6 @@ declare module "next-auth/jwt" {
     id: string;
     nickname: string | null;
     userTag: string | null;
+    isAdmin: boolean;
   }
 }

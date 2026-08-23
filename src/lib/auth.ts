@@ -30,10 +30,11 @@ export const authOptions: NextAuthOptions = {
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { nickname: true, userTag: true },
+          select: { nickname: true, userTag: true, isAdmin: true },
         });
         token.nickname = dbUser?.nickname ?? null;
         token.userTag = dbUser?.userTag ?? null;
+        token.isAdmin = dbUser?.isAdmin ?? false;
       }
 
       return token;
@@ -43,6 +44,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.nickname = (token.nickname as string | null) ?? null;
         session.user.userTag = (token.userTag as string | null) ?? null;
+        session.user.isAdmin = Boolean(token.isAdmin);
       }
       return session;
     },

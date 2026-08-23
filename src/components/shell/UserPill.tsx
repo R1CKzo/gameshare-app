@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 import { SettingsButton } from "@/components/shell/SettingsButton";
 import { SignOutButton } from "@/components/shell/SignOutButton";
@@ -10,6 +12,8 @@ export function UserPill({
 }: {
   user: { nickname: string | null; userTag: string | null; image: string | null };
 }) {
+  const { data: session } = useSession();
+
   return (
     <div className="flex h-14 shrink-0 items-center gap-2 border-t border-white/[0.06] bg-black/20 px-2">
       <div className="relative">
@@ -39,8 +43,26 @@ export function UserPill({
           <path d="M12 15V3" />
         </svg>
       </a>
+      {session?.user?.isAdmin && (
+        <Link
+          href="/admin/bugs"
+          title="Bugs reportados"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-dim transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+        >
+          <BugIcon />
+        </Link>
+      )}
       <SettingsButton />
       <SignOutButton />
     </div>
+  );
+}
+
+function BugIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="8" y="6" width="8" height="14" rx="4" />
+      <path d="M19 7l-3 2M5 7l3 2M19 19l-3-2M5 19l3-2M12 2v4M8 13H2M22 13h-6" />
+    </svg>
   );
 }

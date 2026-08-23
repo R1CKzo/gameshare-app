@@ -64,6 +64,11 @@ model User {
   nickname  String?
   userTag   String? // 6 digitos numericos, ex: "123456"
 
+  // Acesso a area interna de bugs reportados (/admin/bugs) — nao e um
+  // sistema de permissoes de verdade, so uma trava booleana pra uma unica
+  // conta administradora por enquanto.
+  isAdmin Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -83,9 +88,44 @@ model User {
   dmMessages          DMMessage[]
   dmPresences         DMPresence[]
   dmBroadcasting      DMChannel[]     @relation("DMBroadcaster")
+  bugReports          BugReport[]
 
   // O par nickname+userTag deve ser unico no banco
   @@unique([nickname, userTag])
+}
+
+// ---------- Bugs reportados pelos usuarios ----------
+
+enum BugSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum BugStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model BugReport {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  severity    BugSeverity @default(MEDIUM)
+  status      BugStatus   @default(OPEN)
+  // Onde a pessoa estava e em que versao, capturado automaticamente no
+  // momento do envio — evita ter que perguntar "em que tela" toda vez.
+  context     String?
+  appVersion  String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
 }
 
 // ---------- Servidores (comunidades tipo Discord) ----------

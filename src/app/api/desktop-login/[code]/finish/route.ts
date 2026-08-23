@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: { params: { code: string
 
   const user = await prisma.user.findUnique({
     where: { id: loginRequest.userId },
-    select: { id: true, name: true, email: true, image: true, nickname: true, userTag: true },
+    select: { id: true, name: true, email: true, image: true, nickname: true, userTag: true, isAdmin: true },
   });
   if (!user) {
     return NextResponse.redirect(new URL("/?error=desktop-login-expired", request.url));
@@ -43,6 +43,7 @@ export async function GET(request: Request, { params }: { params: { code: string
       picture: user.image,
       nickname: user.nickname,
       userTag: user.userTag,
+      isAdmin: user.isAdmin,
     },
   });
 

@@ -6,6 +6,8 @@ node_modules
 *.tsbuildinfo
 desktop/release
 desktop/loopback_helper.exe
+desktop/native/loopback-helper/loopback_helper.exe
+desktop/native/loopback-helper/*.obj
 
 .vercel
 .env*

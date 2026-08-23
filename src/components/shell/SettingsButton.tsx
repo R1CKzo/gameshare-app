@@ -14,6 +14,7 @@ import {
   sensitivityToGateThreshold,
   type AudioSettings,
 } from "@/lib/audioSettings";
+import { isDesktopApp } from "@/lib/desktop";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 const AVATAR_SIZE = 256;
@@ -61,7 +62,7 @@ export function SettingsButton() {
 }
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<"perfil" | "audio">("perfil");
+  const [tab, setTab] = useState<"perfil" | "audio" | "bug">("perfil");
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
@@ -81,7 +82,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex shrink-0 gap-1 border-b border-white/[0.06] px-3 pt-3">
-          {(["perfil", "audio"] as const).map((t) => (
+          {(["perfil", "audio", "bug"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -89,13 +90,13 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                 tab === t ? "bg-elevated text-[#f5f5f7]" : "text-muted hover:text-[#d5d7dc]"
               }`}
             >
-              {t === "perfil" ? "Perfil" : "Audio"}
+              {t === "perfil" ? "Perfil" : t === "audio" ? "Audio" : "Reportar bug"}
             </button>
           ))}
         </div>
 
         <div className="overflow-y-auto p-5">
-          {tab === "perfil" ? <ProfileTab /> : <AudioTab />}
+          {tab === "perfil" ? <ProfileTab /> : tab === "audio" ? <AudioTab /> : <BugReportTab onClose={onClose} />}
         </div>
       </div>
     </div>,
@@ -436,6 +437,141 @@ function ToggleRow({
         className="mt-1 h-5 w-5 shrink-0 accent-primary"
       />
     </label>
+  );
+}
+
+const SEVERITIES = [
+  { value: "LOW", label: "Baixa", hint: "Incomoda, mas da pra contornar." },
+  { value: "MEDIUM", label: "Media", hint: "Atrapalha o uso normal." },
+  { value: "HIGH", label: "Alta", hint: "Trava, quebra ou impede de usar." },
+] as const;
+
+// Manda titulo + descricao pro banco junto com contexto capturado sozinho
+// (em que pagina a pessoa estava, se e o app desktop ou o navegador) — a
+// pessoa que reporta nao precisa descrever isso, so o problema em si.
+function BugReportTab({ onClose }: { onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [severity, setSeverity] = useState<(typeof SEVERITIES)[number]["value"]>("MEDIUM");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim() || !description.trim() || sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/bugs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          severity,
+          context: typeof window !== "undefined" ? window.location.pathname : null,
+          appVersion: isDesktopApp() ? "App desktop" : "Navegador",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Nao foi possivel enviar.");
+        return;
+      }
+      setSent(true);
+      setTimeout(onClose, 1400);
+    } catch {
+      setError("Erro de rede. Tente novamente.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (sent) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-8 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <CheckIcon />
+        </div>
+        <p className="text-sm font-bold text-[#f5f5f7]">Reportado, valeu!</p>
+        <p className="text-xs text-dim">Assim que der uma olhada, resolvemos.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-xs text-dim">Descreva o que aconteceu — quanto mais detalhe, mais rapido da pra achar a causa.</p>
+
+      <div>
+        <label htmlFor="bug-title" className="mb-2 block text-xs font-bold tracking-wide text-muted">
+          TITULO
+        </label>
+        <input
+          id="bug-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={120}
+          placeholder="Ex: audio corta quando alguem compartilha tela"
+          className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-sm font-semibold outline-none focus:border-primary"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="bug-description" className="mb-2 block text-xs font-bold tracking-wide text-muted">
+          O QUE ACONTECEU
+        </label>
+        <textarea
+          id="bug-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={4000}
+          rows={5}
+          placeholder="O que voce esperava que acontecesse, o que aconteceu de verdade, e como reproduzir."
+          className="w-full resize-none rounded-xl border border-[#2d3344] bg-background px-4 py-3 text-sm outline-none focus:border-primary"
+        />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-xs font-bold tracking-wide text-muted">GRAVIDADE</label>
+        <div className="flex gap-2">
+          {SEVERITIES.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              onClick={() => setSeverity(s.value)}
+              title={s.hint}
+              className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                severity === s.value
+                  ? "border-primary bg-primary/10 text-[#f5f5f7]"
+                  : "border-[#2d3344] text-muted hover:text-[#d5d7dc]"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-danger">{error}</p>}
+
+      <button
+        type="submit"
+        disabled={sending || !title.trim() || !description.trim()}
+        className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+      >
+        {sending ? "Enviando..." : "Enviar reporte"}
+      </button>
+    </form>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
   );
 }
 
