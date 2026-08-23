@@ -11,6 +11,20 @@ type ServerSummary = {
   name: string;
 };
 
+// Mostra quantos pedidos de amizade estao esperando, direto na barra de
+// servidores — antes esse aviso so existia dentro da tela de Amigos/DM
+// (DMSidebar), entao dava pra ter um pedido esperando e nunca saber, se a
+// pessoa vivesse dentro de um servidor.
+function FriendRequestBadge() {
+  const { incomingFriendRequestCount } = useUnread();
+  if (incomingFriendRequestCount === 0) return null;
+  return (
+    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-rail bg-danger px-0.5 text-[9px] font-bold text-white">
+      {incomingFriendRequestCount}
+    </span>
+  );
+}
+
 // Aponta direto pro ultimo canal visitado desse servidor quando conhecido
 // (localStorage), pulando a pagina de redirecionamento /servers/[id] — so
 // cai nela na primeira visita, quando ainda nao sabemos qual canal abrir.
@@ -62,7 +76,9 @@ export function ServerRail({
   return (
     <div className="flex w-[72px] shrink-0 flex-col items-center gap-2 bg-rail py-3">
       <Link
-        href="/"
+        href="/novidades"
+        prefetch
+        title="Novidades"
         className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -95,6 +111,7 @@ export function ServerRail({
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         </Link>
+        <FriendRequestBadge />
       </div>
 
       <div className="my-1 h-px w-8 bg-white/10" />

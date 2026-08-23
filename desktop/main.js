@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, dialog, Notification, ipcMain, desktopCapturer } = require("electron");
+const { app, BrowserWindow, shell, dialog, Notification, ipcMain, desktopCapturer, Tray, Menu, nativeImage } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const crypto = require("crypto");
@@ -14,12 +14,42 @@ autoUpdater.logger = log;
 
 const APP_URL = "https://gameshare-app.vercel.app";
 
+// So uma instancia por vez — sem isso, abrir o app de novo enquanto ele ja
+// esta rodando minimizado na bandeja abriria um processo novo do zero em
+// vez de so trazer a janela existente pra frente (igual o Discord faz).
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
 // Novidades de cada versao (mostradas uma vez, numa telinha, ao abrir o
 // app depois de atualizar). So versoes com uma entrada aqui mostram a
 // tela — se uma versao nao tiver nada digno de nota, so nao entra na
 // lista e o app abre direto. A 1.0.3 junta tudo desde o lancamento porque
 // e a primeira vez que essa tela existe.
 const CHANGELOG = {
+  "1.0.7": {
+    version: "1.0.7",
+    title: "Roda em segundo plano",
+    intro: "O app agora se comporta como o Discord fora da tela de chamada:",
+    sections: [
+      {
+        heading: "Bandeja do sistema",
+        items: [
+          "Fechar a janela (o X) não encerra mais o app — ele minimiza pra bandeja e continua rodando, com a chamada de voz ativa e as notificações funcionando.",
+          "Clique no ícone da bandeja pra abrir a janela de novo, ou use \"Sair\" no menu dele pra encerrar de verdade.",
+        ],
+      },
+    ],
+  },
   "1.0.6": {
     version: "1.0.6",
     title: "Áudio automático por app",
@@ -323,6 +353,8 @@ ipcMain.on("screen-share:stop-app-audio", () => {
 
 let mainWindow;
 let loginPollInterval = null;
+let tray = null;
+let isQuitting = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -363,9 +395,63 @@ function createWindow() {
     return { action: "deny" };
   });
 
+  // Clicar no X so esconde a janela (fica rodando na bandeja, igual o
+  // Discord) — o app so encerra de verdade pelo "Sair" no menu da bandeja.
+  // Sem isso, fechar a janela por engano tambem derrubava qualquer chamada
+  // de voz em andamento.
+  mainWindow.on("close", (event) => {
+    if (isQuitting) return;
+    event.preventDefault();
+    mainWindow.hide();
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
     stopLoopbackCapture();
+  });
+}
+
+function createTray() {
+  if (tray) return;
+
+  const icon = nativeImage.createFromPath(path.join(__dirname, "build", "icon.ico"));
+  tray = new Tray(icon.isEmpty() ? icon : icon.resize({ width: 16, height: 16 }));
+  tray.setToolTip("GameShare");
+
+  const menu = Menu.buildFromTemplate([
+    {
+      label: "Abrir GameShare",
+      click: () => {
+        if (!mainWindow) {
+          createWindow();
+          return;
+        }
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Sair",
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+  tray.setContextMenu(menu);
+
+  // Clique simples no icone (padrao no Windows) tambem traz a janela pra
+  // frente — o menu com "Sair" continua so no clique direito.
+  tray.on("click", () => {
+    if (!mainWindow) {
+      createWindow();
+      return;
+    }
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
   });
 }
 
@@ -481,6 +567,7 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+  createTray();
   allowQuitOnAllClosed = true;
   setupAutoUpdate();
 
@@ -498,3 +585,12 @@ app.on("window-all-closed", () => {
 // pai saiu — sem isso o loopback_helper.exe podia ficar orfao rodando se o
 // app fechasse de um jeito que nao passa por mainWindow.on("closed").
 app.on("before-quit", stopLoopbackCapture);
+
+// "before-quit" dispara em QUALQUER caminho de saida (menu da bandeja,
+// autoUpdater.quitAndInstall() pra instalar uma atualizacao, etc) — marcar
+// isQuitting aqui, num lugar so, garante que o handler de "close" da janela
+// deixa fechar de verdade dessa vez, em vez de so esconder pra bandeja de
+// novo (o que travaria a instalacao da atualizacao, por exemplo).
+app.on("before-quit", () => {
+  isQuitting = true;
+});

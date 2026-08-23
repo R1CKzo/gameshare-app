@@ -18,23 +18,17 @@ export function DMSidebar({
   currentDmId?: string;
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [incomingCount, setIncomingCount] = useState(0);
-  const { isDmUnread, dmActivity, friendsEventVersion } = useUnread();
+  const { isDmUnread, dmActivity, incomingFriendRequestCount } = useUnread();
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const [dmsRes, friendsRes] = await Promise.all([
-          fetch("/api/dms", { cache: "no-store" }),
-          fetch("/api/friends", { cache: "no-store" }),
-        ]);
+        const res = await fetch("/api/dms", { cache: "no-store" });
         if (cancelled) return;
-        const dmsData = await dmsRes.json();
-        const friendsData = await friendsRes.json();
-        setConversations(dmsData.conversations ?? []);
-        setIncomingCount((friendsData.incoming ?? []).length);
+        const data = await res.json();
+        setConversations(data.conversations ?? []);
       } catch {
         // ignora falhas transitorias
       }
@@ -46,7 +40,7 @@ export function DMSidebar({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [friendsEventVersion]);
+  }, []);
 
   // Sobrepoe a previa com a mensagem mais recente recebida em tempo real
   // (o GlobalNotificationListener ja sabe dela antes do proximo poll de
@@ -84,9 +78,9 @@ export function DMSidebar({
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           <span className="flex-1">Amigos</span>
-          {incomingCount > 0 && (
+          {incomingFriendRequestCount > 0 && (
             <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">
-              {incomingCount}
+              {incomingFriendRequestCount}
             </span>
           )}
         </Link>

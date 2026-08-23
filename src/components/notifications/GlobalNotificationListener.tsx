@@ -36,6 +36,7 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
   const [unreadDmIds, setUnreadDmIds] = useState<Set<string>>(new Set());
   const [dmActivity, setDmActivity] = useState<Map<string, DmActivity>>(new Map());
   const [friendsEventVersion, setFriendsEventVersion] = useState(0);
+  const [incomingFriendRequestCount, setIncomingFriendRequestCount] = useState(0);
 
   // Carrega a lista de canais/DMs + estado inicial de nao lido, uma vez.
   useEffect(() => {
@@ -57,6 +58,25 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       cancelled = true;
     };
   }, [userId]);
+
+  // Contagem de pedidos de amizade recebidos — carrega de cara e de novo
+  // toda vez que um evento de amizade chega (friendsEventVersion), pra
+  // funcionar em qualquer tela, nao so na de Amigos/DM (era ai que o aviso
+  // ficava "escondido": no resto do app nao tinha como saber que tinha
+  // pedido esperando).
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    fetch("/api/friends", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: { incoming?: unknown[] }) => {
+        if (!cancelled) setIncomingFriendRequestCount((data.incoming ?? []).length);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, friendsEventVersion]);
 
   // Assina cada canal de texto + DM pra mensagem nova, e o canal privado do
   // usuario pra pedido de amizade/aceito/cargo atribuido.
@@ -167,8 +187,9 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       isDmUnread: (dmChannelId: string) => unreadDmIds.has(dmChannelId),
       dmActivity,
       friendsEventVersion,
+      incomingFriendRequestCount,
     }),
-    [unreadChannelIds, unreadServerIds, unreadDmIds, dmActivity, friendsEventVersion],
+    [unreadChannelIds, unreadServerIds, unreadDmIds, dmActivity, friendsEventVersion, incomingFriendRequestCount],
   );
 
   return <UnreadContext.Provider value={value}>{children}</UnreadContext.Provider>;
