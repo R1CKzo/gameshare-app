@@ -1,9 +1,41 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import { getLastChannel } from "@/lib/lastChannel";
 
 type ServerSummary = {
   id: string;
   name: string;
 };
+
+// Aponta direto pro ultimo canal visitado desse servidor quando conhecido
+// (localStorage), pulando a pagina de redirecionamento /servers/[id] — so
+// cai nela na primeira visita, quando ainda nao sabemos qual canal abrir.
+function ServerIconLink({ server, active }: { server: ServerSummary; active: boolean }) {
+  const [href, setHref] = useState(`/servers/${server.id}`);
+
+  useEffect(() => {
+    const lastChannelId = getLastChannel(server.id);
+    if (lastChannelId) {
+      setHref(`/servers/${server.id}/channels/${lastChannelId}`);
+    }
+  }, [server.id]);
+
+  return (
+    <Link
+      href={href}
+      prefetch
+      title={server.name}
+      className={`flex h-12 w-12 items-center justify-center font-display text-sm font-bold transition-[border-radius] hover:rounded-2xl ${
+        active ? "rounded-2xl bg-primary text-white" : "rounded-full bg-elevated text-muted"
+      }`}
+    >
+      {initials(server.name)}
+    </Link>
+  );
+}
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -67,16 +99,7 @@ export function ServerRail({
             {active && (
               <div className="absolute -left-3 top-1 h-10 w-2 rounded-r-md bg-[#f5f5f7]" />
             )}
-            <Link
-              href={`/servers/${server.id}`}
-              prefetch
-              title={server.name}
-              className={`flex h-12 w-12 items-center justify-center font-display text-sm font-bold transition-[border-radius] hover:rounded-2xl ${
-                active ? "rounded-2xl bg-primary text-white" : "rounded-full bg-elevated text-muted"
-              }`}
-            >
-              {initials(server.name)}
-            </Link>
+            <ServerIconLink server={server} active={active} />
           </div>
         );
       })}

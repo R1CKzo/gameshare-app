@@ -8,6 +8,7 @@ import { ChannelSidebar } from "@/components/shell/ChannelSidebar";
 import { MemberList } from "@/components/shell/MemberList";
 import { MobileUIContext } from "@/components/shell/MobileUIContext";
 import { ServerRail } from "@/components/shell/ServerRail";
+import { setLastChannel } from "@/lib/lastChannel";
 
 type ServerSummary = { id: string; name: string };
 type ChannelSummary = {
@@ -50,6 +51,12 @@ export function AppShell({
     setSidebarOpen(false);
     setMembersOpen(false);
   }, [pathname]);
+
+  // Lembra o ultimo canal visitado desse servidor, pra ServerRail poder
+  // linkar direto pra ca da proxima vez (ver src/lib/lastChannel.ts)
+  useEffect(() => {
+    setLastChannel(currentServerId, currentChannelId);
+  }, [currentServerId, currentChannelId]);
 
   return (
     <MobileUIContext.Provider

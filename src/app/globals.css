@@ -22,7 +22,7 @@ body {
 }
 
 .page-fade-in {
-  animation: page-fade-in 180ms ease-out;
+  animation: page-fade-in 120ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {

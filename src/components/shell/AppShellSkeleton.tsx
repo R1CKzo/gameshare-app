@@ -6,7 +6,7 @@
 // tela de verdade substitui esse esqueleto.
 export function AppShellSkeleton() {
   return (
-    <div className="page-fade-in flex h-[100dvh] w-screen overflow-hidden bg-main">
+    <div className="flex h-[100dvh] w-screen overflow-hidden bg-main">
       <div className="hidden shrink-0 md:flex">
         <div className="flex w-[72px] shrink-0 flex-col items-center gap-2 bg-rail py-3">
           <div className="h-12 w-12 shrink-0 animate-pulse rounded-2xl bg-elevated" />
