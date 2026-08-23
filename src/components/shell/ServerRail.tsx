@@ -43,6 +43,7 @@ export function ServerRail({
         {friendsActive && <div className="absolute -left-3 top-1 h-10 w-2 rounded-r-md bg-[#f5f5f7]" />}
         <Link
           href="/friends"
+          prefetch
           title="Amigos"
           className={`flex h-12 w-12 items-center justify-center transition-[border-radius] hover:rounded-2xl ${
             friendsActive ? "rounded-2xl bg-primary text-white" : "rounded-full bg-elevated text-muted"
@@ -68,6 +69,7 @@ export function ServerRail({
             )}
             <Link
               href={`/servers/${server.id}`}
+              prefetch
               title={server.name}
               className={`flex h-12 w-12 items-center justify-center font-display text-sm font-bold transition-[border-radius] hover:rounded-2xl ${
                 active ? "rounded-2xl bg-primary text-white" : "rounded-full bg-elevated text-muted"

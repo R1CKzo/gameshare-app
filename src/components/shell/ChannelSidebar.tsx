@@ -73,6 +73,7 @@ function ChannelRow({
   return (
     <Link
       href={`/servers/${serverId}/channels/${channel.id}`}
+      prefetch
       className={`mb-0.5 flex items-center gap-2 rounded-md px-2 py-1.5 transition ${
         hasActivity
           ? "border-l-2 border-accent bg-accent/[0.08]"
