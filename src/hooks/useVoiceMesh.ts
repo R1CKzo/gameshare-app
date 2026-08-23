@@ -197,6 +197,15 @@ export function useVoiceMesh({
       streamedPeerIdsRef.current.add(peerId);
       setRemoteStreams((prev) => new Map(prev).set(peerId, stream));
     });
+    // So diagnostico: se uma chamada nunca disparar "stream" nem "error"
+    // (trava na negociacao ICE em silencio, o caso que o timeout de
+    // CALL_CONNECT_TIMEOUT_MS existe pra contornar), isso aqui deixa visivel
+    // NO console em que estado exatamente ela travou, pra a proxima vez
+    // que alguem relatar o problema dar pra confirmar a causa de verdade
+    // em vez de so suspeitar.
+    call.peerConnection?.addEventListener("iceconnectionstatechange", () => {
+      console.log(`[voiceMesh] ICE (${peerId}):`, call.peerConnection?.iceConnectionState);
+    });
     const drop = () => {
       connectionsRef.current.delete(peerId);
       streamedPeerIdsRef.current.delete(peerId);

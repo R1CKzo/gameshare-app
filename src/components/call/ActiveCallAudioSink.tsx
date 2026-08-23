@@ -27,7 +27,16 @@ function RemoteAudio({ stream }: { stream: MediaStream }) {
   const ref = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    if (ref.current) ref.current.srcObject = stream;
+    const el = ref.current;
+    if (!el) return;
+    el.srcObject = stream;
+    // O atributo autoPlay e "solte e esqueça" — se o navegador bloquear
+    // (politica de autoplay) isso falha em silencio, sem erro nenhum em
+    // lugar nenhum. Chamando play() na mao a gente pelo menos consegue ver
+    // no console quando isso acontece, em vez de só "sem audio, sem pista".
+    el.play().catch((err) => {
+      console.error("[ActiveCallAudioSink] play() falhou:", err);
+    });
   }, [stream]);
 
   return <audio ref={ref} autoPlay />;
