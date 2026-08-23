@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -9,12 +10,22 @@ import { isDesktopApp } from "@/lib/desktop";
 
 const MENU_WIDTH = 220;
 
-// Junta as acoes menos frequentes (baixar o app, area de bugs, sair) num
-// so menu — sem isso, cada uma virava um icone fixo do lado do nome, e com
-// 3-4 icones espremidos numa barra lateral estreita o nome do usuario
-// ficava cortado ("D...").
-export function MoreMenu({ isAdmin }: { isAdmin: boolean }) {
+// Junta as acoes menos frequentes (baixar o app, area de bugs, sair do
+// servidor, sair da conta) num so menu — sem isso, cada uma virava um
+// icone fixo do lado do nome, e com varios icones espremidos numa barra
+// lateral estreita o nome do usuario ficava cortado ("D...").
+export function MoreMenu({
+  isAdmin,
+  serverId,
+  isServerOwner,
+}: {
+  isAdmin: boolean;
+  serverId?: string;
+  isServerOwner?: boolean;
+}) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -54,6 +65,21 @@ export function MoreMenu({ isAdmin }: { isAdmin: boolean }) {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  async function leaveServer() {
+    if (!serverId || leaving) return;
+    setLeaving(true);
+    const res = await fetch(`/api/servers/${serverId}/leave`, { method: "DELETE" });
+    if (res.ok) {
+      setOpen(false);
+      router.push("/");
+      router.refresh();
+    } else {
+      setLeaving(false);
+      const data = await res.json().catch(() => ({}));
+      window.alert(data?.error ?? "Nao foi possivel sair do servidor.");
+    }
+  }
 
   return (
     <>
@@ -101,7 +127,20 @@ export function MoreMenu({ isAdmin }: { isAdmin: boolean }) {
               </Link>
             )}
 
-            {(!isDesktopApp() || isAdmin) && <div className="my-1.5 border-t border-white/[0.06]" />}
+            {serverId && !isServerOwner && (
+              <button
+                onClick={leaveServer}
+                disabled={leaving}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7] disabled:opacity-50"
+              >
+                <LeaveIcon />
+                {leaving ? "Saindo..." : "Sair do servidor"}
+              </button>
+            )}
+
+            {(!isDesktopApp() || isAdmin || (serverId && !isServerOwner)) && (
+              <div className="my-1.5 border-t border-white/[0.06]" />
+            )}
 
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
@@ -142,6 +181,16 @@ function BugIcon() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <rect x="8" y="6" width="8" height="14" rx="4" />
       <path d="M19 7l-3 2M5 7l3 2M19 19l-3-2M5 19l3-2M12 2v4M8 13H2M22 13h-6" />
+    </svg>
+  );
+}
+
+function LeaveIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l-4-5 4-5" />
+      <path d="M20 12H9" />
     </svg>
   );
 }

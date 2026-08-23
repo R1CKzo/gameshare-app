@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { InviteButton } from "@/components/shell/InviteButton";
+import { ServerSettingsButton } from "@/components/shell/ServerSettingsButton";
 import { UserPill } from "@/components/shell/UserPill";
 
 type ChannelSummary = {
@@ -11,6 +12,16 @@ type ChannelSummary = {
   broadcaster: { nickname: string | null } | null;
   presenceCount: number;
 };
+type RoleSummary = { id: string; name: string; color: string | null };
+type MemberSummary = {
+  id: string;
+  nickname: string | null;
+  userTag: string | null;
+  image: string | null;
+  roleId: string | null;
+  role: RoleSummary | null;
+};
+type ServerPermissions = { isOwner: boolean; canKick: boolean; canBan: boolean; canManageRoles: boolean };
 
 export function ChannelSidebar({
   serverId,
@@ -18,6 +29,9 @@ export function ChannelSidebar({
   inviteCode,
   channels,
   currentChannelId,
+  members,
+  ownerId,
+  permissions,
   user,
 }: {
   serverId: string;
@@ -25,16 +39,25 @@ export function ChannelSidebar({
   inviteCode: string;
   channels: ChannelSummary[];
   currentChannelId: string;
+  members: MemberSummary[];
+  ownerId: string;
+  permissions: ServerPermissions;
   user: { nickname: string | null; userTag: string | null; image: string | null };
 }) {
   const textChannels = channels.filter((c) => c.type === "TEXT");
   const callChannels = channels.filter((c) => c.type === "CALL");
+  const canManageServer = permissions.isOwner || permissions.canKick || permissions.canBan || permissions.canManageRoles;
 
   return (
     <div className="flex w-[252px] shrink-0 flex-col border-r border-white/[0.06] bg-sidebar">
       <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-white/[0.06] px-4">
         <span className="truncate font-bold">{serverName}</span>
-        <InviteButton inviteCode={inviteCode} />
+        <div className="flex items-center gap-1">
+          {canManageServer && (
+            <ServerSettingsButton serverId={serverId} ownerId={ownerId} members={members} permissions={permissions} />
+          )}
+          <InviteButton inviteCode={inviteCode} />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
@@ -53,7 +76,7 @@ export function ChannelSidebar({
         ))}
       </div>
 
-      <UserPill user={user} />
+      <UserPill user={user} serverId={serverId} isServerOwner={permissions.isOwner} />
     </div>
   );
 }

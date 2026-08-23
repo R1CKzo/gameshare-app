@@ -28,6 +28,21 @@ export default async function InvitePage({ params }: { params: { code: string } 
     );
   }
 
+  const ban = await prisma.serverBan.findUnique({
+    where: { serverId_userId: { serverId: server.id, userId: session.user.id } },
+    select: { id: true },
+  });
+  if (ban) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
+        <div>
+          <h1 className="font-display text-xl font-bold">Voce foi banido desse servidor</h1>
+          <p className="mt-2 text-sm text-muted">Nao e possivel entrar por esse convite.</p>
+        </div>
+      </div>
+    );
+  }
+
   await prisma.serverMember.upsert({
     where: { userId_serverId: { userId: session.user.id, serverId: server.id } },
     create: { userId: session.user.id, serverId: server.id },

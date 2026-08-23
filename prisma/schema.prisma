@@ -81,6 +81,7 @@ model User {
   presences    ChannelPresence[]
   messages     Message[]
   desktopLoginRequests DesktopLoginRequest[]
+  serverBans   ServerBan[]
 
   friendshipsSent     Friendship[]    @relation("FriendshipRequester")
   friendshipsReceived Friendship[]    @relation("FriendshipAddressee")
@@ -141,6 +142,8 @@ model Server {
 
   members  ServerMember[]
   channels Channel[]
+  roles    Role[]
+  bans     ServerBan[]
 }
 
 model ServerMember {
@@ -153,7 +156,54 @@ model ServerMember {
   serverId String
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
 
+  // Cargo opcional (um so por membro, nao varios como o Discord permite —
+  // simplicidade proposital, cobre bem "tornar alguem moderador" sem
+  // logica de combinar permissoes de multiplos cargos). O dono do
+  // servidor nunca precisa de cargo: permissao plena vem direto de
+  // Server.ownerId, checado antes mesmo de olhar isso aqui.
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
   @@unique([userId, serverId])
+}
+
+// Cargo customizado de um servidor, com um conjunto enxuto de permissoes
+// de moderacao — cobre o que o dono realmente pediu (expulsar, banir,
+// gerenciar outros cargos), sem tentar reproduzir o sistema de bitmask
+// gigante do Discord.
+model Role {
+  id       String  @id @default(uuid())
+  name     String
+  color    String?
+  position Int     @default(0)
+
+  serverId String
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  canKick        Boolean @default(false)
+  canBan         Boolean @default(false)
+  canManageRoles Boolean @default(false)
+
+  members ServerMember[]
+
+  @@unique([serverId, name])
+  @@index([serverId])
+}
+
+// Quem foi banido de um servidor: alem de remover a pessoa (like um kick),
+// impede que ela reentre pelo link de convite.
+model ServerBan {
+  id        String   @id @default(uuid())
+  reason    String?
+  createdAt DateTime @default(now())
+
+  serverId String
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([serverId, userId])
 }
 
 enum ChannelType {

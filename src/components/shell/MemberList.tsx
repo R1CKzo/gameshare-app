@@ -4,7 +4,13 @@ import Image from "next/image";
 
 import { useMobileUI } from "@/components/shell/MobileUIContext";
 
-type Member = { id: string; nickname: string | null; userTag: string | null; image: string | null };
+type Member = {
+  id: string;
+  nickname: string | null;
+  userTag: string | null;
+  image: string | null;
+  role?: { id: string; name: string; color: string | null } | null;
+};
 
 export function MemberList({ members }: { members: Member[] }) {
   const { toggleMembers } = useMobileUI();
@@ -39,7 +45,16 @@ export function MemberList({ members }: { members: Member[] }) {
             </div>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-[#f5f5f7]">{member.nickname}</div>
-              <div className="truncate text-xs text-muted">#{member.userTag}</div>
+              {member.role ? (
+                <div
+                  className="truncate text-xs font-semibold"
+                  style={{ color: member.role.color ?? undefined }}
+                >
+                  {member.role.name}
+                </div>
+              ) : (
+                <div className="truncate text-xs text-muted">#{member.userTag}</div>
+              )}
             </div>
           </div>
         ))}

@@ -26,11 +26,14 @@ export default async function ChannelPage({
     prisma.serverMember.findUnique({
       where: { userId_serverId: { userId: session.user.id, serverId: params.serverId } },
       select: {
+        roleId: true,
+        role: { select: { canKick: true, canBan: true, canManageRoles: true } },
         server: {
           select: {
             id: true,
             name: true,
             inviteCode: true,
+            ownerId: true,
             channels: {
               orderBy: { position: "asc" },
               select: {
@@ -56,11 +59,23 @@ export default async function ChannelPage({
     prisma.serverMember.findMany({
       where: { serverId: params.serverId },
       orderBy: { createdAt: "asc" },
-      select: { user: { select: { id: true, nickname: true, userTag: true, image: true } } },
+      select: {
+        roleId: true,
+        role: { select: { id: true, name: true, color: true } },
+        user: { select: { id: true, nickname: true, userTag: true, image: true } },
+      },
     }),
   ]);
 
   if (!membership) return <NotAMemberScreen />;
+
+  const isOwner = membership.server.ownerId === session.user.id;
+  const permissions = {
+    isOwner,
+    canKick: isOwner || (membership.role?.canKick ?? false),
+    canBan: isOwner || (membership.role?.canBan ?? false),
+    canManageRoles: isOwner || (membership.role?.canManageRoles ?? false),
+  };
 
   const channel = membership.server.channels.find((c) => c.id === params.channelId);
   if (!channel) notFound();
@@ -82,7 +97,9 @@ export default async function ChannelPage({
       inviteCode={membership.server.inviteCode}
       channels={channelsForSidebar}
       currentChannelId={channel.id}
-      members={members.map((m) => m.user)}
+      members={members.map((m) => ({ ...m.user, roleId: m.roleId, role: m.role }))}
+      ownerId={membership.server.ownerId}
+      permissions={permissions}
       user={{ nickname: session.user.nickname, userTag: session.user.userTag, image: session.user.image ?? null }}
     >
       {channel.type === "TEXT" ? (

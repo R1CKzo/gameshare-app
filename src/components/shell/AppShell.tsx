@@ -19,7 +19,16 @@ type ChannelSummary = {
   broadcaster: { nickname: string | null } | null;
   presenceCount: number;
 };
-type MemberSummary = { id: string; nickname: string | null; userTag: string | null; image: string | null };
+type RoleSummary = { id: string; name: string; color: string | null };
+type MemberSummary = {
+  id: string;
+  nickname: string | null;
+  userTag: string | null;
+  image: string | null;
+  roleId: string | null;
+  role: RoleSummary | null;
+};
+type ServerPermissions = { isOwner: boolean; canKick: boolean; canBan: boolean; canManageRoles: boolean };
 
 export function AppShell({
   servers,
@@ -29,6 +38,8 @@ export function AppShell({
   channels,
   currentChannelId,
   members,
+  ownerId,
+  permissions,
   user,
   children,
 }: {
@@ -39,6 +50,8 @@ export function AppShell({
   channels: ChannelSummary[];
   currentChannelId: string;
   members: MemberSummary[];
+  ownerId: string;
+  permissions: ServerPermissions;
   user: { nickname: string | null; userTag: string | null; image: string | null };
   children: ReactNode;
 }) {
@@ -88,6 +101,9 @@ export function AppShell({
             inviteCode={inviteCode}
             channels={channels}
             currentChannelId={currentChannelId}
+            members={members}
+            ownerId={ownerId}
+            permissions={permissions}
             user={user}
           />
         </div>

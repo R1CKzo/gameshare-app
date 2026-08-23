@@ -8,8 +8,12 @@ import { SettingsButton } from "@/components/shell/SettingsButton";
 
 export function UserPill({
   user,
+  serverId,
+  isServerOwner,
 }: {
   user: { nickname: string | null; userTag: string | null; image: string | null };
+  serverId?: string;
+  isServerOwner?: boolean;
 }) {
   const { data: session } = useSession();
   const label = user.nickname ?? "Alguem";
@@ -42,7 +46,7 @@ export function UserPill({
 
       <div className="flex shrink-0 items-center gap-0.5">
         <SettingsButton />
-        <MoreMenu isAdmin={session?.user?.isAdmin ?? false} />
+        <MoreMenu isAdmin={session?.user?.isAdmin ?? false} serverId={serverId} isServerOwner={isServerOwner} />
       </div>
     </div>
   );
