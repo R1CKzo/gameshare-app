@@ -13,17 +13,26 @@ export default async function DMPage({ params }: { params: { dmChannelId: string
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) notFound();
 
-  const dmChannel = await prisma.dMChannel.findUnique({
-    where: { id: params.dmChannelId },
-    select: {
-      id: true,
-      isLive: true,
-      broadcaster: { select: { id: true, nickname: true, userTag: true } },
-      participants: {
-        select: { user: { select: { id: true, nickname: true, userTag: true, image: true } } },
+  // Nenhuma das duas depende da outra — rodar junto em vez de uma depois
+  // da outra corta pela metade a viagem ate o banco.
+  const [dmChannel, servers] = await Promise.all([
+    prisma.dMChannel.findUnique({
+      where: { id: params.dmChannelId },
+      select: {
+        id: true,
+        isLive: true,
+        broadcaster: { select: { id: true, nickname: true, userTag: true } },
+        participants: {
+          select: { user: { select: { id: true, nickname: true, userTag: true, image: true } } },
+        },
       },
-    },
-  });
+    }),
+    prisma.server.findMany({
+      where: { members: { some: { userId: session.user.id } } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   const isParticipant = dmChannel?.participants.some((p) => p.user.id === session.user.id) ?? false;
   const otherUser = dmChannel?.participants.map((p) => p.user).find((u) => u.id !== session.user.id);
@@ -31,12 +40,6 @@ export default async function DMPage({ params }: { params: { dmChannelId: string
   if (!dmChannel || !isParticipant || !otherUser) {
     return <NotFoundScreen />;
   }
-
-  const servers = await prisma.server.findMany({
-    where: { members: { some: { userId: session.user.id } } },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, name: true },
-  });
 
   return (
     <FriendsShell

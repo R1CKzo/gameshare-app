@@ -8,10 +8,20 @@ export default async function ServerRedirectPage({ params }: { params: { serverI
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) notFound();
 
-  const membership = await prisma.serverMember.findUnique({
-    where: { userId_serverId: { userId: session.user.id, serverId: params.serverId } },
-    select: { id: true },
-  });
+  // firstChannel nao depende do resultado de membership (so precisa do
+  // serverId, ja disponivel na URL) — busca os dois juntos e so usa
+  // firstChannel se a checagem de membro passar.
+  const [membership, firstChannel] = await Promise.all([
+    prisma.serverMember.findUnique({
+      where: { userId_serverId: { userId: session.user.id, serverId: params.serverId } },
+      select: { id: true },
+    }),
+    prisma.channel.findFirst({
+      where: { serverId: params.serverId },
+      orderBy: { position: "asc" },
+      select: { id: true },
+    }),
+  ]);
   if (!membership) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
@@ -25,11 +35,6 @@ export default async function ServerRedirectPage({ params }: { params: { serverI
     );
   }
 
-  const firstChannel = await prisma.channel.findFirst({
-    where: { serverId: params.serverId },
-    orderBy: { position: "asc" },
-    select: { id: true },
-  });
   if (!firstChannel) notFound();
 
   redirect(`/servers/${params.serverId}/channels/${firstChannel.id}`);

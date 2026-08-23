@@ -19,45 +19,48 @@ export default async function ChannelPage({
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) notFound();
 
-  const membership = await prisma.serverMember.findUnique({
-    where: { userId_serverId: { userId: session.user.id, serverId: params.serverId } },
-    select: {
-      server: {
-        select: {
-          id: true,
-          name: true,
-          inviteCode: true,
-          channels: {
-            orderBy: { position: "asc" },
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              isLive: true,
-              broadcaster: { select: { id: true, nickname: true, userTag: true } },
-              _count: {
-                select: { presences: { where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } } } },
+  // Nenhuma dessas 3 consultas depende do resultado das outras (o
+  // serverId ja vem pronto da URL) — rodar em paralelo em vez de uma atras
+  // da outra corta a viagem ate o banco de 3 idas e voltas pra 1 so.
+  const [membership, servers, members] = await Promise.all([
+    prisma.serverMember.findUnique({
+      where: { userId_serverId: { userId: session.user.id, serverId: params.serverId } },
+      select: {
+        server: {
+          select: {
+            id: true,
+            name: true,
+            inviteCode: true,
+            channels: {
+              orderBy: { position: "asc" },
+              select: {
+                id: true,
+                name: true,
+                type: true,
+                isLive: true,
+                broadcaster: { select: { id: true, nickname: true, userTag: true } },
+                _count: {
+                  select: { presences: { where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } } } },
+                },
               },
             },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.server.findMany({
+      where: { members: { some: { userId: session.user.id } } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.serverMember.findMany({
+      where: { serverId: params.serverId },
+      orderBy: { createdAt: "asc" },
+      select: { user: { select: { id: true, nickname: true, userTag: true, image: true } } },
+    }),
+  ]);
 
   if (!membership) return <NotAMemberScreen />;
-
-  const servers = await prisma.server.findMany({
-    where: { members: { some: { userId: session.user.id } } },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, name: true },
-  });
-
-  const members = await prisma.serverMember.findMany({
-    where: { serverId: membership.server.id },
-    orderBy: { createdAt: "asc" },
-    select: { user: { select: { id: true, nickname: true, userTag: true, image: true } } },
-  });
 
   const channel = membership.server.channels.find((c) => c.id === params.channelId);
   if (!channel) notFound();

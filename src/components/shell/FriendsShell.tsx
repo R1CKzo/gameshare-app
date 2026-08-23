@@ -36,7 +36,7 @@ export function FriendsShell({
         toggleMembers: () => {},
       }}
     >
-      <div className="relative flex h-[100dvh] w-screen overflow-hidden bg-main">
+      <div className="page-fade-in relative flex h-[100dvh] w-screen overflow-hidden bg-main">
         {sidebarOpen && (
           <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-40 bg-black/60 md:hidden" />
         )}

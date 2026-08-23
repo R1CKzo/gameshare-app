@@ -58,7 +58,7 @@ export function AppShell({
         toggleMembers: () => setMembersOpen((v) => !v),
       }}
     >
-      <div className="relative flex h-[100dvh] w-screen overflow-hidden bg-main">
+      <div className="page-fade-in relative flex h-[100dvh] w-screen overflow-hidden bg-main">
         {(sidebarOpen || membersOpen) && (
           <div
             onClick={() => {
