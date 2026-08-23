@@ -1,10 +1,9 @@
-import { encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 
+import { buildSessionCookie, setSessionCookie } from "@/lib/mintSession";
 import { prisma } from "@/lib/prisma";
 
 const EXPIRATION_MS = 10 * 60 * 1000;
-const MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // igual ao padrao do NextAuth (30 dias)
 
 // A janela do app de desktop navega direto pra ca (nao e um fetch em
 // segundo plano) assim que o poll em /api/desktop-login/[code] disser
@@ -25,38 +24,23 @@ export async function GET(request: Request, { params }: { params: { code: string
 
   const user = await prisma.user.findUnique({
     where: { id: loginRequest.userId },
-    select: { id: true, name: true, email: true, image: true, nickname: true, userTag: true, isAdmin: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      nickname: true,
+      userTag: true,
+      isAdmin: true,
+      passwordHash: true,
+    },
   });
   if (!user) {
     return NextResponse.redirect(new URL("/?error=desktop-login-expired", request.url));
   }
 
-  const secret = process.env.NEXTAUTH_SECRET as string;
-  const jwt = await encode({
-    secret,
-    maxAge: MAX_AGE_SECONDS,
-    token: {
-      sub: user.id,
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      picture: user.image,
-      nickname: user.nickname,
-      userTag: user.userTag,
-      isAdmin: user.isAdmin,
-    },
-  });
-
-  const secure = (process.env.NEXTAUTH_URL ?? "").startsWith("https");
-  const cookieName = secure ? "__Secure-next-auth.session-token" : "next-auth.session-token";
-
+  const cookie = await buildSessionCookie(user);
   const response = NextResponse.redirect(new URL("/", request.url));
-  response.cookies.set(cookieName, jwt, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure,
-    path: "/",
-    maxAge: MAX_AGE_SECONDS,
-  });
+  setSessionCookie(response, cookie);
   return response;
 }

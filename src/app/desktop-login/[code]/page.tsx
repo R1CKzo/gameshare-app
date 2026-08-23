@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { PasswordSignInForm } from "@/components/PasswordSignInForm";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -26,6 +27,14 @@ export default async function DesktopLoginPage({ params }: { params: { code: str
           callbackUrl={`/desktop-login/${params.code}`}
           className="mt-8 rounded-full bg-primary px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_4px_16px_rgba(124,58,237,0.35)] transition hover:-translate-y-px"
         />
+
+        <div className="mt-4 flex items-center gap-3 text-xs text-dim">
+          <div className="h-px w-12 bg-white/10" />
+          ou
+          <div className="h-px w-12 bg-white/10" />
+        </div>
+
+        <PasswordSignInForm callbackUrl={`/desktop-login/${params.code}`} />
       </Shell>
     );
   }

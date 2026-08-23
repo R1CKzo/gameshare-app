@@ -51,6 +51,41 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+enum SecurityCodePurpose {
+  LOGIN
+  PASSWORD_CHANGE
+}
+
+// Codigo de 6 digitos enviado por email — usado tanto pra confirmar login
+// por senha (sempre, a cada login) quanto pra confirmar troca/definicao de
+// senha nas configuracoes. Um modelo so pras duas finalidades, pra nao
+// duplicar a logica de gerar/validar/expirar em dois lugares.
+model SecurityCode {
+  id         String              @id @default(uuid())
+  purpose    SecurityCodePurpose
+  codeHash   String              // sha256 do codigo — nunca guarda em texto puro
+  payload    String?             @db.Text // so PASSWORD_CHANGE: o novo hash de senha, aplicado quando o codigo bate
+  attempts   Int                 @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime            @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+}
+
+// Contador simples de tentativas pra limitar forca bruta (login por senha,
+// reenvio de codigo) — sem Redis, uma tabela basta nessa escala.
+model AuthThrottle {
+  id          String    @id @default(uuid())
+  key         String    @unique // ex: "login_pwd:email@x.com", "resend:{userId}"
+  count       Int       @default(0)
+  windowStart DateTime  @default(now())
+  lockedUntil DateTime?
+}
+
 // ---------- Dominio da aplicacao ----------
 
 model User {
@@ -59,6 +94,11 @@ model User {
   emailVerified DateTime?
   name          String?
   image         String?
+
+  // Hash bcryptjs da senha (login por email+senha, sem Google). Nulo =
+  // conta so-Google, sem senha definida — usado pra decidir se a tela de
+  // "Seguranca" mostra "Definir senha" ou "Alterar senha".
+  passwordHash String?
 
   // Identificador unico: nickname + "#" + userTag (6 digitos)
   nickname  String?
@@ -82,6 +122,7 @@ model User {
   messages     Message[]
   desktopLoginRequests DesktopLoginRequest[]
   serverBans   ServerBan[]
+  securityCodes SecurityCode[]
 
   friendshipsSent     Friendship[]    @relation("FriendshipRequester")
   friendshipsReceived Friendship[]    @relation("FriendshipAddressee")

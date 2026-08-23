@@ -62,7 +62,7 @@ export function SettingsButton() {
 }
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<"perfil" | "audio" | "bug">("perfil");
+  const [tab, setTab] = useState<"perfil" | "audio" | "seguranca" | "bug">("perfil");
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
@@ -82,7 +82,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex shrink-0 gap-1 border-b border-white/[0.06] px-3 pt-3">
-          {(["perfil", "audio", "bug"] as const).map((t) => (
+          {(["perfil", "audio", "seguranca", "bug"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -90,13 +90,21 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                 tab === t ? "bg-elevated text-[#f5f5f7]" : "text-muted hover:text-[#d5d7dc]"
               }`}
             >
-              {t === "perfil" ? "Perfil" : t === "audio" ? "Audio" : "Reportar bug"}
+              {t === "perfil" ? "Perfil" : t === "audio" ? "Audio" : t === "seguranca" ? "Seguranca" : "Reportar bug"}
             </button>
           ))}
         </div>
 
         <div className="overflow-y-auto p-5">
-          {tab === "perfil" ? <ProfileTab /> : tab === "audio" ? <AudioTab /> : <BugReportTab onClose={onClose} />}
+          {tab === "perfil" ? (
+            <ProfileTab />
+          ) : tab === "audio" ? (
+            <AudioTab />
+          ) : tab === "seguranca" ? (
+            <SegurancaTab />
+          ) : (
+            <BugReportTab onClose={onClose} />
+          )}
         </div>
       </div>
     </div>,
@@ -437,6 +445,142 @@ function ToggleRow({
         className="mt-1 h-5 w-5 shrink-0 accent-primary"
       />
     </label>
+  );
+}
+
+type PwStep = "form" | "code";
+
+// Definir senha (conta so-Google) ou trocar (ja tem uma) — os dois casos
+// sempre passam por um codigo enviado por email antes de valer, mesma
+// logica do login por senha.
+function SegurancaTab() {
+  const { data: session, update } = useSession();
+  const hasPassword = session?.user?.hasPassword ?? false;
+
+  const [step, setStep] = useState<PwStep>("form");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [ticketId, setTicketId] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  async function requestChange(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+    const res = await fetch("/api/auth/password/change-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword: hasPassword ? currentPassword : undefined, newPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok) {
+      setError(data.error ?? "Nao foi possivel continuar.");
+      return;
+    }
+    setTicketId(data.ticketId);
+    setStep("code");
+  }
+
+  async function confirmChange(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+    const res = await fetch("/api/auth/password/change-confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticketId, code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok) {
+      setError(data.error ?? "Codigo invalido.");
+      return;
+    }
+    await update();
+    setDone(true);
+  }
+
+  if (done) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-8 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <CheckIcon />
+        </div>
+        <p className="text-sm font-bold text-[#f5f5f7]">{hasPassword ? "Senha alterada!" : "Senha definida!"}</p>
+      </div>
+    );
+  }
+
+  if (step === "code") {
+    return (
+      <form onSubmit={confirmChange} className="space-y-4">
+        <p className="text-xs text-dim">Enviamos um codigo de 6 digitos pro seu email. Confirme pra aplicar a nova senha.</p>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          inputMode="numeric"
+          placeholder="000000"
+          className="h-12 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-primary"
+        />
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <button
+          type="submit"
+          disabled={sending || code.length !== 6}
+          className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+        >
+          {sending ? "Confirmando..." : "Confirmar codigo"}
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={requestChange} className="space-y-4">
+      <p className="text-xs text-dim">
+        {hasPassword
+          ? "Trocar sua senha tambem vai pedir um codigo por email pra confirmar."
+          : "Sua conta usa login com Google. Defina uma senha pra tambem poder entrar com email e senha."}
+      </p>
+
+      {hasPassword && (
+        <div>
+          <label className="mb-2 block text-xs font-bold tracking-wide text-muted">SENHA ATUAL</label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-sm outline-none focus:border-primary"
+          />
+        </div>
+      )}
+
+      <div>
+        <label className="mb-2 block text-xs font-bold tracking-wide text-muted">
+          {hasPassword ? "NOVA SENHA" : "SENHA"}
+        </label>
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-sm outline-none focus:border-primary"
+        />
+        <p className="mt-1.5 text-xs text-dim">Minimo 8 caracteres.</p>
+      </div>
+
+      {error && <p className="text-sm text-danger">{error}</p>}
+
+      <button
+        type="submit"
+        disabled={sending || newPassword.length < 8 || (hasPassword && !currentPassword)}
+        className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+      >
+        {sending ? "Enviando..." : hasPassword ? "Trocar senha" : "Definir senha"}
+      </button>
+    </form>
   );
 }
 
