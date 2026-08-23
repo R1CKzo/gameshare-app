@@ -1,19 +1,56 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 import { useMobileUI } from "@/components/shell/MobileUIContext";
+import { StatusDot } from "@/components/shell/StatusDot";
+import { deriveStatus, type RawStatus } from "@/lib/presence";
 
 type Member = {
   id: string;
   nickname: string | null;
   userTag: string | null;
   image: string | null;
+  status: RawStatus;
+  lastActiveAt: string | Date | null;
   role?: { id: string; name: string; color: string | null } | null;
 };
 
-export function MemberList({ members }: { members: Member[] }) {
+type StatusUpdate = { id: string; status: RawStatus; lastActiveAt: string | null };
+
+const POLL_INTERVAL_MS = 15_000;
+
+export function MemberList({ serverId, members }: { serverId: string; members: Member[] }) {
   const { toggleMembers } = useMobileUI();
+
+  // So a presenca (status/lastActiveAt) e atualizada por poll — o resto dos
+  // dados do membro (nome, foto, cargo) vem fixo da renderizacao inicial no
+  // servidor, sem precisar reconsultar tudo de novo a cada ciclo.
+  const [statusById, setStatusById] = useState<Map<string, StatusUpdate>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const res = await fetch(`/api/servers/${serverId}/member-status`, { cache: "no-store" });
+        const data = await res.json();
+        if (cancelled) return;
+        const updates: StatusUpdate[] = data.members ?? [];
+        setStatusById(new Map(updates.map((u) => [u.id, u])));
+      } catch {
+        // ignora falhas transitorias
+      }
+    }
+
+    poll();
+    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [serverId]);
 
   return (
     <div className="flex h-full w-[228px] shrink-0 flex-col border-l border-white/[0.06] bg-sidebar p-3">
@@ -32,7 +69,13 @@ export function MemberList({ members }: { members: Member[] }) {
       </div>
 
       <div className="flex-1 space-y-0.5 overflow-y-auto">
-        {members.map((member) => (
+        {members.map((member) => {
+          const update = statusById.get(member.id);
+          const status = deriveStatus(
+            update ? update.status : member.status,
+            update ? update.lastActiveAt : member.lastActiveAt,
+          );
+          return (
           <div key={member.id} className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-white/[0.03]">
             <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-primary">
               {member.image ? (
@@ -42,6 +85,7 @@ export function MemberList({ members }: { members: Member[] }) {
                   {(member.nickname ?? "?").slice(0, 1).toUpperCase()}
                 </div>
               )}
+              <StatusDot status={status} className="-bottom-0.5 -right-0.5" />
             </div>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-[#f5f5f7]">{member.nickname}</div>
@@ -57,7 +101,8 @@ export function MemberList({ members }: { members: Member[] }) {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

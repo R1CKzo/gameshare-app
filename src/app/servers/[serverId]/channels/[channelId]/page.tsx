@@ -62,7 +62,7 @@ export default async function ChannelPage({
       select: {
         roleId: true,
         role: { select: { id: true, name: true, color: true } },
-        user: { select: { id: true, nickname: true, userTag: true, image: true } },
+        user: { select: { id: true, nickname: true, userTag: true, image: true, status: true, lastActiveAt: true } },
       },
     }),
   ]);

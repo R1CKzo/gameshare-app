@@ -6,8 +6,17 @@ import { useEffect, useState } from "react";
 
 import { useUnread } from "@/components/notifications/UnreadContext";
 import { HamburgerIcon, useMobileUI } from "@/components/shell/MobileUIContext";
+import { StatusDot } from "@/components/shell/StatusDot";
+import { deriveStatus, type RawStatus } from "@/lib/presence";
 
-type FriendUser = { id: string; nickname: string | null; userTag: string | null; image: string | null };
+type FriendUser = {
+  id: string;
+  nickname: string | null;
+  userTag: string | null;
+  image: string | null;
+  status: RawStatus;
+  lastActiveAt: string | null;
+};
 type FriendRow = { friendshipId: string; user: FriendUser };
 
 export function FriendsView() {
@@ -213,6 +222,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function FriendRowItem({ user, children }: { user: FriendUser; children: React.ReactNode }) {
   const initials = (user.nickname ?? "?").slice(0, 1).toUpperCase();
+  const status = deriveStatus(user.status, user.lastActiveAt);
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-primary">
@@ -221,6 +231,7 @@ function FriendRowItem({ user, children }: { user: FriendUser; children: React.R
         ) : (
           <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">{initials}</div>
         )}
+        <StatusDot status={status} className="-bottom-0.5 -right-0.5" borderClassName="border-elevated" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-[#f5f5f7]">{user.nickname}</div>

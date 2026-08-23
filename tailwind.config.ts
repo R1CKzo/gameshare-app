@@ -18,6 +18,7 @@ const config: Config = {
         primary: "#7c3aed",
         "primary-hover": "#8b5cf6",
         accent: "#22d3ee",
+        away: "#f5a524",
         danger: "#ef4444",
         "danger-hover": "#f87171",
         muted: "#838a99",

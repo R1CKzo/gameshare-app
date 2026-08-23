@@ -5,9 +5,18 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { useUnread } from "@/components/notifications/UnreadContext";
+import { StatusDot } from "@/components/shell/StatusDot";
 import { UserPill } from "@/components/shell/UserPill";
+import { deriveStatus, type RawStatus } from "@/lib/presence";
 
-type DMUser = { id: string; nickname: string | null; userTag: string | null; image: string | null };
+type DMUser = {
+  id: string;
+  nickname: string | null;
+  userTag: string | null;
+  image: string | null;
+  status: RawStatus;
+  lastActiveAt: string | null;
+};
 type Conversation = { id: string; user: DMUser | null; lastMessage: { content: string; createdAt: string } | null };
 
 export function DMSidebar({
@@ -107,6 +116,7 @@ export function DMSidebar({
                     {(c.user.nickname ?? "?").slice(0, 1).toUpperCase()}
                   </div>
                 )}
+                <StatusDot status={deriveStatus(c.user.status, c.user.lastActiveAt)} className="-bottom-0.5 -right-0.5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div

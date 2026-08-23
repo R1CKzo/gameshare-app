@@ -21,6 +21,8 @@ type MemberSummary = {
   nickname: string | null;
   userTag: string | null;
   image: string | null;
+  status: "ONLINE" | "AWAY" | null;
+  lastActiveAt: string | Date | null;
   roleId: string | null;
   role: RoleSummary | null;
 };

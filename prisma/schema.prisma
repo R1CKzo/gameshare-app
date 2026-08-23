@@ -13,6 +13,15 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// Status de presenca. So guarda ONLINE/AWAY de verdade — "offline" nunca e
+// gravado explicitamente, e inferido pela ausencia de heartbeat recente (ver
+// src/lib/presence.ts) — senao a pessoa ficaria "offline" instantaneamente
+// so por fechar a aba sem internet pra avisar o servidor.
+enum UserStatus {
+  ONLINE
+  AWAY
+}
+
 // ---------- Autenticacao (NextAuth / Auth.js + Google OAuth) ----------
 
 model Account {
@@ -104,6 +113,12 @@ model User {
   // pessoa ja viu — compara com a mais recente pra saber se leva pra
   // /novidades sozinho ao abrir o app. Nulo = nunca viu nenhuma.
   lastSeenChangelogKey String?
+
+  // Status de presenca (ver PresenceHeartbeat.tsx / src/lib/presence.ts).
+  // Nulo = nunca mandou heartbeat nenhum, tratado como offline igual a um
+  // heartbeat velho demais.
+  status       UserStatus?
+  lastActiveAt DateTime?
 
   // Identificador unico: nickname + "#" + userTag (6 digitos)
   nickname  String?

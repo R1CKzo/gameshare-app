@@ -23,6 +23,14 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-08-23",
+    title: "Status online, ausente e offline",
+    items: [
+      "Bolinha de status no avatar de cada pessoa: verde quando está com o app em foco, amarela quando está com o app aberto mas em segundo plano, e cinza quando não está conectada",
+      "Aparece na lista de membros do servidor, nas conversas diretas e na tela de Amigos",
+    ],
+  },
+  {
     version: "1.0.8",
     date: "2026-08-23",
     title: "Notificações completas",
