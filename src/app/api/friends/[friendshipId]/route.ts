@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { FRIEND_ACCEPTED_EVENT, pusherServer, userPusherName } from "@/lib/pusher";
 
 // Aceita um pedido de amizade recebido. So o "addressee" (quem recebeu)
 // pode aceitar — o requester so pode cancelar (DELETE).
@@ -14,7 +15,7 @@ export async function PATCH(request: Request, { params }: { params: { friendship
 
   const friendship = await prisma.friendship.findUnique({
     where: { id: params.friendshipId },
-    select: { addresseeId: true, status: true },
+    select: { addresseeId: true, requesterId: true, status: true },
   });
   if (!friendship || friendship.addresseeId !== session.user.id) {
     return NextResponse.json({ error: "Pedido nao encontrado." }, { status: 404 });
@@ -27,6 +28,9 @@ export async function PATCH(request: Request, { params }: { params: { friendship
     where: { id: params.friendshipId },
     data: { status: "ACCEPTED" },
   });
+  pusherServer
+    .trigger(userPusherName(friendship.requesterId), FRIEND_ACCEPTED_EVENT, { friendshipId: params.friendshipId })
+    .catch(() => {});
   return NextResponse.json({ ok: true });
 }
 

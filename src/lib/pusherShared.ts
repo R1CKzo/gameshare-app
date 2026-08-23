@@ -10,4 +10,14 @@ export function dmChannelPusherName(dmChannelId: string) {
   return `private-dm-${dmChannelId}`;
 }
 
+// Canal privado de um usuario especifico — pra notificacoes que nao sao de
+// um canal/DM (pedido de amizade, pedido aceito, cargo atribuido). So o
+// proprio dono pode se inscrever (ver src/app/api/pusher/auth/route.ts).
+export function userPusherName(userId: string) {
+  return `private-user-${userId}`;
+}
+
 export const NEW_MESSAGE_EVENT = "new-message";
+export const FRIEND_REQUEST_EVENT = "friend-request";
+export const FRIEND_ACCEPTED_EVENT = "friend-accepted";
+export const ROLE_GRANTED_EVENT = "role-granted";

@@ -123,12 +123,14 @@ model User {
   desktopLoginRequests DesktopLoginRequest[]
   serverBans   ServerBan[]
   securityCodes SecurityCode[]
+  channelReads ChannelRead[]
 
   friendshipsSent     Friendship[]    @relation("FriendshipRequester")
   friendshipsReceived Friendship[]    @relation("FriendshipAddressee")
   dmParticipations    DMParticipant[]
   dmMessages          DMMessage[]
   dmPresences         DMPresence[]
+  dmReads             DMRead[]
   dmBroadcasting      DMChannel[]     @relation("DMBroadcaster")
   bugReports          BugReport[]
 
@@ -275,6 +277,7 @@ model Channel {
 
   presences ChannelPresence[]
   messages  Message[]
+  reads     ChannelRead[]
 
   @@index([serverId])
 }
@@ -295,6 +298,22 @@ model Message {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([channelId, createdAt])
+}
+
+// Ate onde cada pessoa ja leu um canal de texto. Sem linha = "lido" (evita
+// inundar todo mundo de nao-lido retroativo no dia desse recurso entrar no
+// ar) — a primeira visita ao canal ja grava a leitura.
+model ChannelRead {
+  id         String   @id @default(uuid())
+  lastReadAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  channelId String
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
 }
 
 // Presenca "leve" (heartbeat) de quem esta com a sala de chamada aberta
@@ -361,6 +380,7 @@ model DMChannel {
   participants DMParticipant[]
   messages     DMMessage[]
   presences    DMPresence[]
+  reads        DMRead[]
 
   // Mesmo papel do Channel.isLive/broadcasterId: quem esta compartilhando
   // a tela agora nessa DM (a chamada de voz em si nao precisa disso, so
@@ -398,6 +418,21 @@ model DMMessage {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([dmChannelId, createdAt])
+}
+
+// Mesma logica do ChannelRead, so que pra uma DM em vez de um canal de
+// servidor.
+model DMRead {
+  id         String   @id @default(uuid())
+  lastReadAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dmChannelId String
+  dmChannel   DMChannel @relation(fields: [dmChannelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dmChannelId])
 }
 
 // Mesma logica do ChannelPresence, so que pra uma DM em vez de um canal

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { useUnread } from "@/components/notifications/UnreadContext";
 import { HamburgerIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 
 type FriendUser = { id: string; nickname: string | null; userTag: string | null; image: string | null };
@@ -12,6 +13,7 @@ type FriendRow = { friendshipId: string; user: FriendUser };
 export function FriendsView() {
   const { toggleSidebar } = useMobileUI();
   const router = useRouter();
+  const { friendsEventVersion } = useUnread();
 
   const [friends, setFriends] = useState<FriendRow[]>([]);
   const [incoming, setIncoming] = useState<FriendRow[]>([]);
@@ -42,7 +44,7 @@ export function FriendsView() {
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [friendsEventVersion]);
 
   async function handleAddFriend(e: React.FormEvent) {
     e.preventDefault();

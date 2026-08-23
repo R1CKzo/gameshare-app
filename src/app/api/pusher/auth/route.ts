@@ -27,7 +27,9 @@ export async function POST(request: Request) {
     ? await canAccessDM(session.user.id, channelName.replace(/^private-dm-/, ""))
     : channelName.startsWith("private-channel-")
       ? await canAccessServerChannel(session.user.id, channelName.replace(/^private-channel-/, ""))
-      : false;
+      : channelName.startsWith("private-user-")
+        ? channelName.replace(/^private-user-/, "") === session.user.id
+        : false;
 
   if (!authorized) {
     return NextResponse.json({ error: "Sem acesso a esse canal." }, { status: 403 });

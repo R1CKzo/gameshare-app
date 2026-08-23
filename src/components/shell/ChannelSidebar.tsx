@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 
+import { useUnread } from "@/components/notifications/UnreadContext";
 import { InviteButton } from "@/components/shell/InviteButton";
 import { ServerSettingsButton } from "@/components/shell/ServerSettingsButton";
 import { UserPill } from "@/components/shell/UserPill";
@@ -92,6 +95,8 @@ function ChannelRow({
 }) {
   const isCall = channel.type === "CALL";
   const hasActivity = isCall && (channel.isLive || channel.presenceCount > 0);
+  const { isChannelUnread } = useUnread();
+  const unread = !isCall && isChannelUnread(channel.id);
 
   return (
     <Link
@@ -122,9 +127,14 @@ function ChannelRow({
       ) : (
         <span className="w-4 text-center text-base font-semibold text-muted">#</span>
       )}
-      <span className={`flex-1 truncate text-sm ${active || hasActivity ? "font-semibold text-[#f5f5f7]" : "text-[#9aa0ae]"}`}>
+      <span
+        className={`flex-1 truncate text-sm ${
+          active || hasActivity || unread ? "font-semibold text-[#f5f5f7]" : "text-[#9aa0ae]"
+        }`}
+      >
         {channel.name}
       </span>
+      {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />}
       {isCall && channel.isLive && channel.broadcaster && (
         <div
           className="flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-sidebar bg-primary text-[8px] font-bold"

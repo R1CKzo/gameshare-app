@@ -21,7 +21,9 @@ export function useChatMessages({ apiBase, pusherChannelName }: { apiBase: strin
   const [error, setError] = useState<string | null>(null);
   const latestCreatedAtRef = useRef<string | null>(null);
 
-  // Carrega o historico mais recente ao abrir a conversa.
+  // Carrega o historico mais recente ao abrir a conversa, e marca "lido ate
+  // agora" na hora — mesma rota (`${apiBase}/read`) serve tanto canal de
+  // servidor quanto DM, ja que os dois seguem o mesmo prefixo de API.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -38,6 +40,8 @@ export function useChatMessages({ apiBase, pusherChannelName }: { apiBase: strin
       .catch(() => !cancelled && setError("Nao foi possivel carregar as mensagens."))
       .finally(() => !cancelled && setLoading(false));
 
+    fetch(`${apiBase}/read`, { method: "POST" }).catch(() => {});
+
     return () => {
       cancelled = true;
     };
@@ -51,6 +55,9 @@ export function useChatMessages({ apiBase, pusherChannelName }: { apiBase: strin
 
     function onNewMessage(message: ChatMessage) {
       setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+      // Ja esta vendo essa conversa quando a mensagem chegou — marca lida
+      // na hora, sem esperar a pessoa trocar de tela e voltar.
+      fetch(`${apiBase}/read`, { method: "POST" }).catch(() => {});
     }
     channel.bind(NEW_MESSAGE_EVENT, onNewMessage);
 
@@ -58,7 +65,7 @@ export function useChatMessages({ apiBase, pusherChannelName }: { apiBase: strin
       channel.unbind(NEW_MESSAGE_EVENT, onNewMessage);
       pusher.unsubscribe(pusherChannelName);
     };
-  }, [pusherChannelName]);
+  }, [pusherChannelName, apiBase]);
 
   useEffect(() => {
     latestCreatedAtRef.current = messages.length > 0 ? messages[messages.length - 1].createdAt : null;

@@ -1,6 +1,14 @@
 import PusherServer from "pusher";
 
-export { NEW_MESSAGE_EVENT, textChannelPusherName, dmChannelPusherName } from "@/lib/pusherShared";
+export {
+  NEW_MESSAGE_EVENT,
+  FRIEND_REQUEST_EVENT,
+  FRIEND_ACCEPTED_EVENT,
+  ROLE_GRANTED_EVENT,
+  textChannelPusherName,
+  dmChannelPusherName,
+  userPusherName,
+} from "@/lib/pusherShared";
 
 // Cliente de servidor do Pusher, usado pra: (1) disparar o evento de
 // mensagem nova quando alguem manda uma (ver

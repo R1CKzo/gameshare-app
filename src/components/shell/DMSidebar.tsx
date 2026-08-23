@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { useUnread } from "@/components/notifications/UnreadContext";
 import { UserPill } from "@/components/shell/UserPill";
 
 type DMUser = { id: string; nickname: string | null; userTag: string | null; image: string | null };
@@ -18,6 +19,7 @@ export function DMSidebar({
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [incomingCount, setIncomingCount] = useState(0);
+  const { isDmUnread, dmActivity, friendsEventVersion } = useUnread();
 
   useEffect(() => {
     let cancelled = false;
@@ -44,7 +46,24 @@ export function DMSidebar({
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [friendsEventVersion]);
+
+  // Sobrepoe a previa com a mensagem mais recente recebida em tempo real
+  // (o GlobalNotificationListener ja sabe dela antes do proximo poll de
+  // 10s chegar) e reordena pra quem mandou mensagem agora subir pro topo.
+  const sortedConversations = useMemo(() => {
+    return [...conversations]
+      .map((c) => {
+        const activity = dmActivity.get(c.id);
+        if (!activity) return c;
+        return { ...c, lastMessage: activity };
+      })
+      .sort((a, b) => {
+        const aTime = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+        const bTime = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
+  }, [conversations, dmActivity]);
 
   return (
     <div className="flex w-[252px] shrink-0 flex-col border-r border-white/[0.06] bg-sidebar">
@@ -73,8 +92,10 @@ export function DMSidebar({
         </Link>
 
         <div className="px-2 pb-1 pt-2 text-[11px] font-bold tracking-wider text-muted">MENSAGENS DIRETAS</div>
-        {conversations.map((c) =>
-          c.user ? (
+        {sortedConversations.map((c) => {
+          if (!c.user) return null;
+          const unread = c.id !== currentDmId && isDmUnread(c.id);
+          return (
             <Link
               key={c.id}
               href={`/dms/${c.id}`}
@@ -94,17 +115,20 @@ export function DMSidebar({
               </div>
               <div className="min-w-0 flex-1">
                 <div
-                  className={`truncate text-sm ${c.id === currentDmId ? "font-semibold text-[#f5f5f7]" : "text-[#d5d7dc]"}`}
+                  className={`truncate text-sm ${
+                    c.id === currentDmId || unread ? "font-semibold text-[#f5f5f7]" : "text-[#d5d7dc]"
+                  }`}
                 >
                   {c.user.nickname}
                 </div>
                 {c.lastMessage && (
-                  <div className="truncate text-xs text-dim">{c.lastMessage.content}</div>
+                  <div className={`truncate text-xs ${unread ? "text-[#d5d7dc]" : "text-dim"}`}>{c.lastMessage.content}</div>
                 )}
               </div>
+              {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />}
             </Link>
-          ) : null
-        )}
+          );
+        })}
       </div>
 
       <UserPill user={user} />

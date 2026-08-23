@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getServerPermissions } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { pusherServer, ROLE_GRANTED_EVENT, userPusherName } from "@/lib/pusher";
 
 // Atribui (ou remove, com roleId: null) o cargo de um membro.
 export async function PATCH(request: Request, { params }: { params: { serverId: string; userId: string } }) {
@@ -45,6 +46,10 @@ export async function PATCH(request: Request, { params }: { params: { serverId: 
   if (updated.count === 0) {
     return NextResponse.json({ error: "Membro nao encontrado." }, { status: 404 });
   }
+
+  pusherServer
+    .trigger(userPusherName(params.userId), ROLE_GRANTED_EVENT, { serverId: params.serverId, roleId })
+    .catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

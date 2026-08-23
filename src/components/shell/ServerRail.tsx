@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useUnread } from "@/components/notifications/UnreadContext";
 import { getLastChannel } from "@/lib/lastChannel";
 
 type ServerSummary = {
@@ -15,6 +16,7 @@ type ServerSummary = {
 // cai nela na primeira visita, quando ainda nao sabemos qual canal abrir.
 function ServerIconLink({ server, active }: { server: ServerSummary; active: boolean }) {
   const [href, setHref] = useState(`/servers/${server.id}`);
+  const { isServerUnread } = useUnread();
 
   useEffect(() => {
     const lastChannelId = getLastChannel(server.id);
@@ -24,16 +26,21 @@ function ServerIconLink({ server, active }: { server: ServerSummary; active: boo
   }, [server.id]);
 
   return (
-    <Link
-      href={href}
-      prefetch
-      title={server.name}
-      className={`flex h-12 w-12 items-center justify-center font-display text-sm font-bold transition-[border-radius] hover:rounded-2xl ${
-        active ? "rounded-2xl bg-primary text-white" : "rounded-full bg-elevated text-muted"
-      }`}
-    >
-      {initials(server.name)}
-    </Link>
+    <div className="relative">
+      <Link
+        href={href}
+        prefetch
+        title={server.name}
+        className={`flex h-12 w-12 items-center justify-center font-display text-sm font-bold transition-[border-radius] hover:rounded-2xl ${
+          active ? "rounded-2xl bg-primary text-white" : "rounded-full bg-elevated text-muted"
+        }`}
+      >
+        {initials(server.name)}
+      </Link>
+      {isServerUnread(server.id) && (
+        <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-rail bg-danger" />
+      )}
+    </div>
   );
 }
 

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { FRIEND_ACCEPTED_EVENT, FRIEND_REQUEST_EVENT, pusherServer, userPusherName } from "@/lib/pusher";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,10 @@ export async function POST(request: Request) {
       where: { id: reverse.id },
       data: { status: "ACCEPTED" },
     });
+    // A outra pessoa que mandou o pedido original precisa saber que foi
+    // aceito (do lado dela, ela nao fez nada agora — quem aceitou fomos
+    // "nos", ao mandar um pedido que ja tinha uma reciproca pendente).
+    pusherServer.trigger(userPusherName(target.id), FRIEND_ACCEPTED_EVENT, { friendshipId: updated.id }).catch(() => {});
     return NextResponse.json({ friendshipId: updated.id, status: updated.status });
   }
 
@@ -99,6 +104,7 @@ export async function POST(request: Request) {
       data: { requesterId: session.user.id, addresseeId: target.id },
       select: { id: true, status: true },
     });
+    pusherServer.trigger(userPusherName(target.id), FRIEND_REQUEST_EVENT, { friendshipId: created.id }).catch(() => {});
     return NextResponse.json({ friendshipId: created.id, status: created.status });
   } catch {
     return NextResponse.json({ error: "Pedido ja enviado." }, { status: 409 });
