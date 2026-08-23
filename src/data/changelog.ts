@@ -25,11 +25,11 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.8",
     date: "2026-08-23",
-    title: "Notificações completas e sem popup separado",
+    title: "Notificações completas",
     items: [
       "Mensagem nova numa conversa direta também acende o aviso no ícone de Amigos, não só pedido de amizade",
       "O ícone do app na bandeja do sistema ganha um ponto vermelho quando tem qualquer notificação não lida (mensagem, DM ou pedido de amizade)",
-      "A tela separada de novidades do app de desktop foi removida — agora, ao abrir o app depois de uma atualização, você é levado direto pra essa página (só uma vez por atualização)",
+      "Ao abrir o app depois de uma atualização, você já é levado direto pra essa página de Novidades, sem precisar procurar",
     ],
   },
   {
@@ -37,7 +37,7 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-08-23",
     title: "App roda em segundo plano",
     items: [
-      "No app de desktop, fechar a janela (o X) não encerra mais o GameShare — ele minimiza pra bandeja do sistema e continua rodando, igual o Discord",
+      "No app de desktop, fechar a janela (o X) não encerra mais o GameShare — ele minimiza pra bandeja do sistema e continua rodando em segundo plano, com a chamada de voz e as notificações ativas",
       "Ícone da logo, no topo da barra de servidores, agora abre a página de Novidades",
     ],
     bugsFixed: [
@@ -68,14 +68,14 @@ export const changelog: ChangelogEntry[] = [
       "Criar conta com email e senha, além do login com Google",
       "Código de segurança enviado por email a cada login por senha",
       "Opção de definir ou trocar senha nas configurações",
-      "Área administrativa para reportar e acompanhar bugs",
+      "Nova opção pra reportar bugs direto pelo app",
       "Nome de usuário não aparece mais cortado na barra lateral",
       "Troca de servidor e canal ficou praticamente instantânea",
     ],
     bugsFixed: [
       "Status de bug reportado voltava sozinho ao valor antigo ao sair da tela e voltar",
       "Transição entre servidores escurecia a tela por um instante antes de carregar",
-      "Chamada de voz não reconectava direito ao sair e voltar da sala (várias causas: corrida ao salvar presença, cache desatualizado no servidor, conexão que travava sem erro, e a conexão de sinalização caindo sozinha sem avisar)",
+      "Corrigidos vários problemas que faziam a chamada de voz não reconectar direito depois de sair e voltar pra sala",
     ],
   },
   {
@@ -87,7 +87,7 @@ export const changelog: ChangelogEntry[] = [
       "Compartilhar a janela de um app ou jogo leva o áudio daquele app sozinho, automaticamente",
     ],
     bugsFixed: [
-      "Chamada de voz parou de funcionar (o servidor TURN gratuito usado desde o início saiu do ar; trocado por um novo)",
+      "Chamada de voz parou de funcionar (um serviço externo usado pra conectar as chamadas saiu do ar) — já trocamos por um novo",
       "Áudio do compartilhamento de tela não chegava para quem estava assistindo",
     ],
   },
@@ -119,10 +119,10 @@ export const changelog: ChangelogEntry[] = [
       "Sistema de amigos: mandar e aceitar pedido por Nick#Tag",
       "Mensagens diretas (DM) e chamada de voz privada com um amigo",
       "Chamada de voz e compartilhamento de tela continuam mesmo trocando de servidor, canal ou DM",
-      "Tela de novidades do app (a versão de dentro do instalador desktop — essa página web é a evolução dela)",
+      "Tela de novidades dentro do app de desktop, mostrando o que mudou em cada atualização",
     ],
     bugsFixed: [
-      "Duas brechas de segurança encontradas numa auditoria (checagem de permissão fraca em duas rotas)",
+      "Duas brechas de segurança identificadas e corrigidas numa auditoria interna",
       "Popup de convite sobrepondo outros elementos da tela",
       "Áudio ficava mudo se a pessoa navegasse pra outra tela durante uma chamada",
     ],
@@ -148,22 +148,22 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-08-22",
-    title: "Chat de voz em malha e chat de texto",
+    title: "Chamada de voz e chat de texto",
     items: [
-      "Chamada de voz real entre todo mundo na sala (sem servidor de mídia no meio), com barra de controle: mutar, compartilhar tela, desligar",
+      "Chamada de voz real entre todo mundo na sala, com barra de controle: mutar, compartilhar tela, desligar",
       "Anel visual ao redor do avatar de quem está falando",
       "Escolha de microfone, redutor de ruído e sensibilidade ajustável com medidor ao vivo",
       "Mensagens de texto reais nos canais do servidor, chegando em tempo real",
       "Convite por link para entrar num servidor",
       "Lista de membros do servidor, e presença de quem está numa sala de chamada",
       "Layout adaptado para celular",
-      "Servidor TURN para a chamada conectar em qualquer tipo de rede/roteador",
+      "Chamada de voz conecta certinho mesmo em redes mais restritas, tipo Wi-Fi de empresa ou faculdade",
     ],
     bugsFixed: [
       "Compartilhamento de tela não funcionava para quem assistia pelo Safari/iPhone",
-      "Presença na sala de chamada sumia sozinha por causa do heartbeat",
+      "Às vezes a presença na sala de chamada sumia sozinha, mesmo com todo mundo ainda conectado",
       "Áudio \"repetindo\"/cortando, causado pelo redutor de ruído",
-      "Anel de quem está falando e o modal de configurações com bugs visuais",
+      "Bugs visuais no anel de quem está falando e na janela de configurações",
     ],
   },
   {
@@ -171,7 +171,7 @@ export const changelog: ChangelogEntry[] = [
     title: "Primeira versão do GameShare",
     items: [
       "Login com Google",
-      "Servidores estilo Discord, com canais",
+      "Servidores com canais, pra organizar sua galera",
       "Compartilhamento de tela dentro de uma sala de chamada",
     ],
   },
