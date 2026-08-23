@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 const userSelect = { id: true, nickname: true, userTag: true, image: true } as const;
 
 // Lista minhas conversas diretas, com a outra pessoa e a ultima mensagem
