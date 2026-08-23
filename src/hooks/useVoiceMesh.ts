@@ -283,6 +283,20 @@ export function useVoiceMesh({
         peer.on("error", (err) => {
           if (err.type !== "peer-unavailable") setMicError("Erro de conexao WebRTC: " + err.type);
         });
+
+        // A conexao de SINALIZACAO com o broker do PeerJS (WebSocket, separada
+        // do nosso proprio heartbeat de presenca) pode cair sozinha depois de
+        // um tempo — sono do notebook, rede oscilando, etc — sem que o app
+        // perceba: quem ainda esta com a aba aberta continua aparecendo
+        // "presente" (nosso heartbeat HTTP e independente disso), mas o
+        // broker nao consegue mais ENTREGAR chamadas novas pra esse peer. De
+        // quem chama, parece exatamente uma negociacao que trava sem nunca
+        // dar erro. peer.reconnect() e a recuperacao recomendada pelo
+        // proprio PeerJS pra esse caso.
+        peer.on("disconnected", () => {
+          console.warn("[voiceMesh] sinalizacao caiu, tentando reconectar...");
+          if (!cancelled) peer.reconnect();
+        });
       } catch {
         if (!cancelled) setMicError("Nao foi possivel acessar o microfone.");
       }
@@ -328,7 +342,15 @@ export function useVoiceMesh({
   useEffect(() => {
     if (!enabled) return;
     const peer = peerRef.current;
-    if (!peer || peer.disconnected) return;
+    if (!peer) return;
+    if (peer.disconnected) {
+      // Nao so desiste — sem isso, uma sinalizacao que caiu e nunca disparou
+      // o evento "disconnected" (conexao "zumbi", comum atras de proxy/NAT
+      // que derruba WebSocket ocioso sem avisar) deixava a malha inteira
+      // permanentemente incapaz de discar pra qualquer coisa nova.
+      peer.reconnect();
+      return;
+    }
 
     const stillHerePeerIds = new Set(present.map((u) => u.peerId).filter(Boolean) as string[]);
     connectionsRef.current.forEach((call, peerId) => {
