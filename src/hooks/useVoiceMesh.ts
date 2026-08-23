@@ -46,6 +46,13 @@ export type PresentUser = {
   peerId: string | null;
 };
 
+// Prazo pra uma chamada de saida (peer.call) produzir audio de verdade
+// antes de considerarmos que ela travou na negociacao ICE sem nunca
+// disparar erro — mais generoso que uma negociacao normal (que costuma
+// fechar em segundos) pra dar tempo de sobra ao relay TURN em redes mais
+// lentas, sem deixar a malha presa indefinidamente se travar de verdade.
+const CALL_CONNECT_TIMEOUT_MS = 12_000;
+
 export type ScreenShareOptions = {
   sourceId: string;
   sourceType: "screen" | "window";
@@ -174,6 +181,7 @@ export function useVoiceMesh({
   const outgoingStreamRef = useRef<MediaStream | null>(null);
   const micProcessingRef = useRef<{ audioContext: AudioContext; rawStream: MediaStream } | null>(null);
   const connectionsRef = useRef<Map<string, MediaConnection>>(new Map()); // peerId -> conexao
+  const streamedPeerIdsRef = useRef<Set<string>>(new Set()); // quem ja mandou audio de verdade
   const peerIdRef = useRef<string | null>(null);
   const shareMixRef = useRef<{
     audioContext: AudioContext;
@@ -186,10 +194,12 @@ export function useVoiceMesh({
   function registerConnection(peerId: string, call: MediaConnection) {
     connectionsRef.current.set(peerId, call);
     call.on("stream", (stream) => {
+      streamedPeerIdsRef.current.add(peerId);
       setRemoteStreams((prev) => new Map(prev).set(peerId, stream));
     });
     const drop = () => {
       connectionsRef.current.delete(peerId);
+      streamedPeerIdsRef.current.delete(peerId);
       setRemoteStreams((prev) => {
         if (!prev.has(peerId)) return prev;
         const next = new Map(prev);
@@ -198,7 +208,10 @@ export function useVoiceMesh({
       });
     };
     call.on("close", drop);
-    call.on("error", drop);
+    call.on("error", (err) => {
+      console.error("[voiceMesh] erro na conexao com", peerId, err);
+      drop();
+    });
   }
 
   // Setup: pega o microfone, abre o peer local e comeca a mandar heartbeat
@@ -272,6 +285,7 @@ export function useVoiceMesh({
       cancelled = true;
       connectionsRef.current.forEach((c) => c.close());
       connectionsRef.current.clear();
+      streamedPeerIdsRef.current.clear();
       setRemoteStreams(new Map());
       peerRef.current?.destroy();
       peerRef.current = null;
@@ -312,6 +326,7 @@ export function useVoiceMesh({
       if (!stillHerePeerIds.has(peerId)) {
         call.close();
         connectionsRef.current.delete(peerId);
+        streamedPeerIdsRef.current.delete(peerId);
         setRemoteStreams((prev) => {
           if (!prev.has(peerId)) return prev;
           const next = new Map(prev);
@@ -328,8 +343,23 @@ export function useVoiceMesh({
       if (user.id === currentUserId || !user.peerId) continue;
       if (connectionsRef.current.has(user.peerId)) continue;
       if (currentUserId < user.id) {
-        const call = peer.call(user.peerId, outgoing);
-        if (call) registerConnection(user.peerId, call);
+        const peerId = user.peerId;
+        const call = peer.call(peerId, outgoing);
+        if (call) {
+          registerConnection(peerId, call);
+          // Negociacao ICE que trava sem nunca disparar "error" (comum
+          // atras de rede/NAT mais restritiva) deixava a conexao presa
+          // pra sempre — nem tocava audio, nem liberava a vaga pra
+          // reconciliacao tentar de novo. Se nao chegou audio nenhum
+          // depois de um tempo razoavel, fecha e deixa o proximo poll
+          // (~4s) discar de novo com uma tentativa nova.
+          setTimeout(() => {
+            if (!streamedPeerIdsRef.current.has(peerId) && connectionsRef.current.get(peerId) === call) {
+              call.close();
+              connectionsRef.current.delete(peerId);
+            }
+          }, CALL_CONNECT_TIMEOUT_MS);
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
