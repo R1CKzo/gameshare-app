@@ -45,6 +45,7 @@ export const changelog: ChangelogEntry[] = [
       "Status fixado manualmente (ex: \"Ocupado\") podia ser sobrescrito por engano logo depois de recarregar a página, aparecendo errado pra outras pessoas",
       "Bolinha de status aparecia cortada no avatar dos membros do servidor, das conversas diretas e da tela de Amigos",
       "Nova auditoria de segurança interna: atualizado um componente do site que tinha uma falha crítica conhecida, reforçada a proteção contra tentativa de adivinhar código de convite de servidor, e outras camadas de proteção adicionadas nos bastidores",
+      "Dados como nickname, tag e configurações de segurança agora se atualizam sozinhos em qualquer tela, sem precisar sair e entrar de novo",
     ],
   },
   {
