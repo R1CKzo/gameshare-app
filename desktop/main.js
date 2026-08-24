@@ -19,7 +19,13 @@ const APP_URL = "https://gameshare-app.vercel.app";
 // vez de so trazer a janela existente pra frente (igual o Discord faz).
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
+  // Sai imediatamente, sem deixar o resto do arquivo rodar — o app.quit()
+  // sozinho e assincrono, entao sem esse "return" o whenReady() la embaixo
+  // ainda chegava a criar uma janela e um icone de bandeja novos por um
+  // instante antes do quit() completar (o "pisca e some" que acontecia ao
+  // abrir o app com ele ja rodando minimizado).
   app.quit();
+  return;
 } else {
   app.on("second-instance", () => {
     if (mainWindow) {
