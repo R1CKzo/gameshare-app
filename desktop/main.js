@@ -538,8 +538,8 @@ function createDebugDesktopUiWindow() {
   win.webContents.on("console-message", (_event, level, message) => {
     console.log("[debug-ui:renderer]", level, message);
   });
-  console.log("[debug-ui] carregando", `${DEBUG_UI_ORIGIN}/friends.html`);
-  win.loadURL(`${DEBUG_UI_ORIGIN}/friends.html`);
+  console.log("[debug-ui] carregando", `${DEBUG_UI_ORIGIN}/`);
+  win.loadURL(`${DEBUG_UI_ORIGIN}/`);
 }
 
 // Checa atualizacao toda vez que o app abre (e depois, a cada 4h se ficar
@@ -633,20 +633,31 @@ app.whenReady().then(() => {
     };
     protocol.handle(DEBUG_UI_SCHEME, (request) => {
       const url = new URL(request.url);
-      const filePath = path.join(DEBUG_UI_DIR, decodeURIComponent(url.pathname));
-      if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-        // Status 404 de verdade (nao 200 com o conteudo da pagina de erro)
-        // -- servia 200 antes, entao qualquer chamada de API com o
-        // endereco errado (ex: NEXT_PUBLIC_API_BASE_URL nao configurado no
-        // build) parecia ter dado certo e so falhava mais tarde, ao tentar
-        // interpretar HTML como JSON, com um erro confuso.
+      const pathname = decodeURIComponent(url.pathname);
+      const filePath = path.join(DEBUG_UI_DIR, pathname);
+
+      if (fs.existsSync(filePath) && !fs.statSync(filePath).isDirectory()) {
+        const contentType = MIME_TYPES[path.extname(filePath)] ?? "application/octet-stream";
+        return new Response(fs.readFileSync(filePath), { headers: { "Content-Type": contentType } });
+      }
+
+      // Sem arquivo estatico com esse nome: se o caminho tem extensao
+      // (ex: .js, .css — um recurso de verdade que devia existir), 404
+      // de verdade. Se nao tem (ex: /servers/abc/channels/def — uma
+      // rota do app, nao um arquivo), serve a mesma pagina raiz de
+      // sempre com 200 -- o export estatico nao suporta rota dinamica
+      // pra id desconhecido no build (server/canal/DM sao dados de cada
+      // pessoa), entao essa pagina unica le a URL na hora e decide o que
+      // mostrar sozinha (ver desktop-ui/app/page.tsx).
+      if (path.extname(pathname)) {
         return new Response(fs.readFileSync(path.join(DEBUG_UI_DIR, "404.html")), {
           status: 404,
           headers: { "Content-Type": "text/html" },
         });
       }
-      const contentType = MIME_TYPES[path.extname(filePath)] ?? "application/octet-stream";
-      return new Response(fs.readFileSync(filePath), { headers: { "Content-Type": contentType } });
+      return new Response(fs.readFileSync(path.join(DEBUG_UI_DIR, "index.html")), {
+        headers: { "Content-Type": "text/html" },
+      });
     });
     createDebugDesktopUiWindow();
   }
