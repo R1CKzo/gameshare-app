@@ -35,7 +35,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Tag com "-beta" na versao (ex: desktop-v1.0.9-beta.1) publica como
+      # pre-lancamento -- o electron-builder ja gera um beta.yml separado
+      # do latest.yml sozinho a partir do sufixo de prerelease na versao
+      # do package.json, entao quem esta na trilha estavel nunca ve esse
+      # build (ver applyUpdaterChannel em main.js).
       - name: Build and publish
-        run: npm run release
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == *-beta* ]]; then
+            npm run release -- -c.publish.releaseType=prerelease
+          else
+            npm run release
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
