@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { checkAndBumpThrottle } from "@/lib/authThrottle";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
@@ -9,6 +10,18 @@ export async function POST(request: Request) {
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
+
+  // Um convite e um segredo (quem tiver o codigo entra no servidor) — sem
+  // isso, uma conta logada podia tentar codigo atras de codigo ate acertar
+  // um valido, mesmo o codigo sendo dificil de adivinhar de primeira.
+  const throttle = await checkAndBumpThrottle(`server_join:${session.user.id}`, {
+    maxAttempts: 20,
+    windowMs: 10 * 60 * 1000,
+    lockoutMs: 10 * 60 * 1000,
+  });
+  if (!throttle.allowed) {
+    return NextResponse.json({ error: "Muitas tentativas. Tente de novo mais tarde." }, { status: 429 });
   }
 
   const body = await request.json().catch(() => ({}));

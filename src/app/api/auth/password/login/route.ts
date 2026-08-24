@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { checkAndBumpThrottle } from "@/lib/authThrottle";
 import { sendSecurityCodeEmail } from "@/lib/email";
-import { verifyPassword } from "@/lib/password";
+import { verifyPasswordConstantTime } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { createSecurityCode } from "@/lib/securityCode";
 
@@ -35,13 +35,12 @@ export async function POST(request: Request) {
   });
 
   // Mesma mensagem genérica pros 3 casos (nao existe / conta so-Google /
-  // senha errada) — nao revela qual e o caso real.
-  if (!user || !user.passwordHash) {
-    return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
-  }
-
-  const valid = await verifyPassword(password, user.passwordHash);
-  if (!valid) {
+  // senha errada) — nao revela qual e o caso real. E, pra nao dar pra
+  // distinguir os casos pelo TEMPO de resposta, os 3 passam pelo mesmo
+  // bcrypt.compare (verifyPasswordConstantTime roda contra um hash
+  // generico quando nao tem conta/senha, em vez de responder na hora).
+  const valid = await verifyPasswordConstantTime(password, user?.passwordHash ?? null);
+  if (!user || !valid) {
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
   }
 
