@@ -1,0 +1,51 @@
+name: Build desktop test installer (Fase 2 do app nativo)
+
+# Workflow temporario, so nessa branch de teste (test-native-installer) --
+# builda um instalador separado (appId/nome proprios, nunca publicado nos
+# Releases) com a interface embutida do desktop-ui/ pra confirmar que o
+# mecanismo todo funciona de ponta a ponta num Windows de verdade. Sobe o
+# instalador como artifact do workflow (nao como Release) e nao mexe em
+# nada do instalador publicado de verdade.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Compile loopback_helper.exe (captura de audio nativa)
+        working-directory: desktop/native/loopback-helper
+        run: cl /nologo /EHsc /std:c++17 /O2 /W4 loopback_helper.cpp /link /OUT:..\..\loopback_helper.exe
+
+      - name: Install desktop-ui dependencies
+        working-directory: desktop-ui
+        run: npm install
+
+      - name: Build desktop-ui (export estatico)
+        working-directory: desktop-ui
+        run: npm run build
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm install
+
+      - name: Build test installer
+        working-directory: desktop
+        run: npx electron-builder --win nsis --publish never --config builder-test-config.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GameShare-Teste-Setup
+          path: desktop/release-test/GameShare-Teste-Setup.exe
+          retention-days: 3
