@@ -49,5 +49,9 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     // login de novo do outro lado.
     getChannel: () => ipcRenderer.invoke("channel:get"),
     setChannel: (channel) => ipcRenderer.invoke("channel:set", channel),
+
+    // Versao do instalador — ver o selo de trilha/versao nas Configuracoes
+    // e na barra lateral.
+    getAppVersion: () => ipcRenderer.invoke("app:get-version"),
   });
 }

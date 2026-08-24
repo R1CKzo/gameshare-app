@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useSession } from "next-auth/react";
 
 import { usePresence } from "@/components/notifications/PresenceProvider";
+import { ChannelBadge } from "@/components/shell/ChannelBadge";
 import { MoreMenu } from "@/components/shell/MoreMenu";
 import { SettingsButton } from "@/components/shell/SettingsButton";
 import { StatusMenu } from "@/components/shell/StatusMenu";
@@ -52,7 +53,10 @@ export function UserPill({
         <div title={label} className="truncate text-[13.5px] font-bold leading-tight text-foreground">
           {label}
         </div>
-        <div className="truncate text-[11px] font-medium leading-tight text-muted">#{user.userTag}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-[11px] font-medium leading-tight text-muted">#{user.userTag}</span>
+          <ChannelBadge />
+        </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-0.5">

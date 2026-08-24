@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { ChannelBadge } from "@/components/shell/ChannelBadge";
 import { useTheme } from "@/components/ThemeProvider";
 import {
   DEFAULT_AUDIO_SETTINGS,
@@ -229,7 +230,10 @@ function ProfileTab() {
 
       {isDesktopApp() && (
         <div>
-          <label className="mb-2 block text-xs font-bold tracking-wide text-muted">PROGRAMA BETA</label>
+          <div className="mb-2 flex items-center gap-2">
+            <label className="block text-xs font-bold tracking-wide text-muted">PROGRAMA BETA</label>
+            <ChannelBadge />
+          </div>
           <div className="flex gap-1.5">
             <button
               type="button"

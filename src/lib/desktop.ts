@@ -26,6 +26,7 @@ type GameshareDesktopBridge = {
   setUnreadBadge: (hasUnread: boolean) => void;
   getChannel: () => Promise<"stable" | "beta">;
   setChannel: (channel: "stable" | "beta") => Promise<"stable" | "beta">;
+  getAppVersion: () => Promise<string>;
 };
 
 declare global {
@@ -107,4 +108,11 @@ export function getChannel(): Promise<"stable" | "beta"> {
 export function setChannel(channel: "stable" | "beta"): Promise<"stable" | "beta"> {
   if (typeof window === "undefined" || !window.gameshareDesktop) return Promise.resolve("stable");
   return window.gameshareDesktop.setChannel(channel);
+}
+
+// Versao do instalador — so existe no app de desktop (o navegador nao tem
+// "versao instalada" nenhuma, so o proprio deploy do site).
+export function getAppVersion(): Promise<string | null> {
+  if (typeof window === "undefined" || !window.gameshareDesktop) return Promise.resolve(null);
+  return window.gameshareDesktop.getAppVersion();
 }

@@ -328,6 +328,12 @@ ipcMain.handle("channel:set", (_event, channel) => {
   return next;
 });
 
+// Versao do PROPRIO instalador (de package.json, via app.getVersion()) —
+// pro selo visual de trilha/versao nas Configuracoes e na barra lateral
+// (ver ChannelBadge.tsx). E a mesma pra estavel e beta hoje (so o site
+// muda de endereco entre as trilhas, ver getAppUrl acima).
+ipcMain.handle("app:get-version", () => app.getVersion());
+
 function createTray() {
   if (tray) return;
 
