@@ -23,18 +23,11 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
-    version: "1.0.10",
-    date: "2026-08-24",
-    title: "Selo de trilha e versão",
-    items: [
-      "Selo mostrando se você está na trilha Estável ou Beta, e a versão do app instalado — visível ao lado do seu nome e nas Configurações",
-    ],
-  },
-  {
     version: "1.0.9",
     date: "2026-08-24",
     title: "Programa beta",
     items: [
+      "Selo mostrando se você está na trilha Estável ou Beta, e a versão do app instalado — visível ao lado do seu nome e nas Configurações",
       "Nova opção em Configurações > Perfil > Programa Beta (só no app de desktop): dá pra testar novidades antes do lançamento oficial, num ambiente separado do app de todo mundo",
       "Quem não entrar no beta continua exatamente como está, sem nenhuma mudança — só quem ligar a opção vê as novidades em teste",
     ],
