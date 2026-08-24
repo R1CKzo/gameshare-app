@@ -15,6 +15,12 @@ export type ScreenSource = {
 
 export type StartSystemAudioResult = { ok: true } | { ok: false; reason: string };
 
+export type BetaCheckResult =
+  | { available: true; version: string; publishedAt: string; notes: string; downloadUrl: string }
+  | { available: false };
+
+export type BetaInstallResult = { ok: true } | { ok: false; error: string };
+
 type GameshareDesktopBridge = {
   isDesktop: true;
   getScreenSources: () => Promise<ScreenSource[]>;
@@ -32,6 +38,13 @@ type GameshareDesktopBridge = {
   getAuthToken?: () => Promise<string | null>;
   startLogin?: () => Promise<{ ok: boolean; error?: string }>;
   clearAuthToken?: () => Promise<void>;
+  // Programa beta (ver SettingsButton.tsx e desktop/main.js) — checa se
+  // tem uma build beta publicada no GitHub e baixa/instala se a pessoa
+  // confirmar. Sempre existe no app de desktop atual (nao e exclusivo da
+  // janela de teste do app nativo, ao contrario dos 3 de cima).
+  checkBetaBuild: () => Promise<BetaCheckResult>;
+  downloadAndInstallBeta: (downloadUrl: string) => Promise<BetaInstallResult>;
+  getAppVersion: () => Promise<string>;
 };
 
 declare global {
@@ -99,4 +112,28 @@ export function onSystemAudioChunk(callback: (chunk: ArrayBuffer) => void): () =
 // que la nao tem bandeja nenhuma pra marcar.
 export function setUnreadBadge(hasUnread: boolean): void {
   window.gameshareDesktop?.setUnreadBadge(hasUnread);
+}
+
+// Verifica se tem uma build beta publicada (ver desktop/main.js) — so faz
+// sentido no app de desktop; no navegador nunca ha build beta pra baixar.
+export function checkBetaBuild(): Promise<BetaCheckResult> {
+  if (typeof window === "undefined" || !window.gameshareDesktop) {
+    return Promise.resolve({ available: false });
+  }
+  return window.gameshareDesktop.checkBetaBuild();
+}
+
+export function downloadAndInstallBeta(downloadUrl: string): Promise<BetaInstallResult> {
+  if (typeof window === "undefined" || !window.gameshareDesktop) {
+    return Promise.resolve({ ok: false, error: "not-desktop" });
+  }
+  return window.gameshareDesktop.downloadAndInstallBeta(downloadUrl);
+}
+
+// Versao do instalador rodando agora — so usado pro selo "BETA" (ver
+// UserPill.tsx). String vazia no navegador (nunca ha versao de instalador
+// nenhuma la).
+export function getAppVersion(): Promise<string> {
+  if (typeof window === "undefined" || !window.gameshareDesktop) return Promise.resolve("");
+  return window.gameshareDesktop.getAppVersion();
 }

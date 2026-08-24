@@ -35,7 +35,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Tag com "-beta" (ex: desktop-v1.0.11-beta.1) publica como prerelease
+      # do GitHub em vez de release normal -- nunca aparece em
+      # /releases/latest (o site e o auto-update normal ignoram sozinhos),
+      # so aparece pra quem ligar "Permitir versoes beta" nas Configuracoes
+      # do app (ver src/lib/desktop.ts checkBetaBuild). channel=beta e
+      # necessario mesmo sem o app usar canal do electron-updater pra beta
+      # -- sem essa flag o provider do GitHub sobrescreve o latest.yml da
+      # versao estavel de qualquer jeito (bug ja visto antes).
       - name: Build and publish
-        run: npm run release
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_name }}" == *-beta* ]]; then
+            npm run release -- -c.publish.releaseType=prerelease -c.publish.channel=beta
+          else
+            npm run release
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

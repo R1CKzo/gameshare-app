@@ -16,10 +16,11 @@ import {
   type AudioSettings,
 } from "@/lib/audioSettings";
 import { apiUrl } from "@/lib/apiUrl";
-import { isDesktopApp } from "@/lib/desktop";
+import { checkBetaBuild, downloadAndInstallBeta, isDesktopApp, type BetaCheckResult } from "@/lib/desktop";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 const AVATAR_SIZE = 256;
+const BETA_STORAGE_KEY = "gameshare-allow-beta";
 
 // Redimensiona a foto pro navegador nunca mandar um arquivo gigante — vira
 // um quadrado de 256x256 em JPEG, com a qualidade reduzida ate caber num
@@ -64,7 +65,8 @@ export function SettingsButton() {
 }
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<"perfil" | "audio" | "seguranca" | "bug">("perfil");
+  const [tab, setTab] = useState<"perfil" | "audio" | "seguranca" | "beta" | "bug">("perfil");
+  const tabs = (["perfil", "audio", "seguranca", ...(isDesktopApp() ? (["beta"] as const) : []), "bug"] as const);
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
@@ -84,7 +86,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex shrink-0 gap-1 border-b border-overlay px-3 pt-3">
-          {(["perfil", "audio", "seguranca", "bug"] as const).map((t) => (
+          {tabs.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -92,7 +94,15 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                 tab === t ? "bg-elevated text-foreground" : "text-muted hover:text-foreground-secondary"
               }`}
             >
-              {t === "perfil" ? "Perfil" : t === "audio" ? "Áudio" : t === "seguranca" ? "Segurança" : "Reportar bug"}
+              {t === "perfil"
+                ? "Perfil"
+                : t === "audio"
+                  ? "Áudio"
+                  : t === "seguranca"
+                    ? "Segurança"
+                    : t === "beta"
+                      ? "Beta"
+                      : "Reportar bug"}
             </button>
           ))}
         </div>
@@ -104,6 +114,8 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             <AudioTab />
           ) : tab === "seguranca" ? (
             <SegurancaTab />
+          ) : tab === "beta" ? (
+            <BetaTab />
           ) : (
             <BugReportTab onClose={onClose} />
           )}
@@ -450,6 +462,101 @@ function AudioTab() {
         checked={settings.autoGainControl}
         onChange={(v) => update({ autoGainControl: v })}
       />
+    </div>
+  );
+}
+
+// Programa beta simplificado: sem canal do electron-updater nem download
+// em segundo plano (o sistema anterior fazia isso e quebrou repetidas
+// vezes) -- so um interruptor local (guardado no localStorage desse
+// computador, sem rota de API) que, ligado, checa o GitHub direto (ver
+// checkBetaBuild em src/lib/desktop.ts) e mostra um botao pra baixar e
+// abrir o instalador na hora.
+function BetaTab() {
+  const [allowed, setAllowed] = useState(false);
+  const [checkState, setCheckState] = useState<"idle" | "checking" | "none" | "available">("idle");
+  const [beta, setBeta] = useState<Extract<BetaCheckResult, { available: true }> | null>(null);
+  const [installing, setInstalling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAllowed(localStorage.getItem(BETA_STORAGE_KEY) === "true");
+  }, []);
+
+  useEffect(() => {
+    if (!allowed) return;
+    let cancelled = false;
+    setCheckState("checking");
+    checkBetaBuild().then((result) => {
+      if (cancelled) return;
+      if (result.available) {
+        setBeta(result);
+        setCheckState("available");
+      } else {
+        setBeta(null);
+        setCheckState("none");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowed]);
+
+  function handleToggle(v: boolean) {
+    setAllowed(v);
+    try {
+      localStorage.setItem(BETA_STORAGE_KEY, String(v));
+    } catch {
+      // modo privado ou storage cheio — a escolha so nao sobrevive a um
+      // recarregamento, sem quebrar nada
+    }
+  }
+
+  async function handleInstall() {
+    if (!beta) return;
+    setInstalling(true);
+    setError(null);
+    const result = await downloadAndInstallBeta(beta.downloadUrl);
+    if (!result.ok) {
+      setError(result.error);
+      setInstalling(false);
+    }
+    // Se deu certo o app fecha sozinho em seguida (ver
+    // downloadAndInstallBeta) -- nao precisa desligar o "instalando".
+  }
+
+  return (
+    <div className="space-y-4">
+      <ToggleRow
+        label="Permitir versões beta"
+        description="Mostra aqui quando tiver uma versão de teste (beta) disponível pra baixar — nunca aparece no site nem é instalada sozinha."
+        checked={allowed}
+        onChange={handleToggle}
+      />
+
+      {allowed && (
+        <div className="rounded-xl bg-elevated/60 p-3.5">
+          {checkState === "checking" && <p className="text-sm text-muted">Procurando versão beta…</p>}
+          {checkState === "none" && <p className="text-sm text-muted">Nenhuma versão beta disponível no momento.</p>}
+          {checkState === "available" && beta && (
+            <div className="space-y-2">
+              <p className="text-sm font-bold text-foreground">Versão beta {beta.version} disponível</p>
+              {beta.notes && <p className="whitespace-pre-wrap text-xs text-dim">{beta.notes}</p>}
+              <button
+                onClick={handleInstall}
+                disabled={installing}
+                className="rounded-md bg-primary px-3 py-1.5 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {installing ? "Baixando…" : "Baixar e instalar"}
+              </button>
+              {installing && (
+                <p className="text-xs text-dim">O app vai fechar sozinho assim que o instalador abrir.</p>
+              )}
+              {error && <p className="text-xs text-danger">{error}</p>}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

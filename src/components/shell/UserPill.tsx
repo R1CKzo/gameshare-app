@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 
 import { usePresence } from "@/components/notifications/PresenceProvider";
 import { MoreMenu } from "@/components/shell/MoreMenu";
 import { SettingsButton } from "@/components/shell/SettingsButton";
 import { StatusMenu } from "@/components/shell/StatusMenu";
+import { getAppVersion } from "@/lib/desktop";
 
 export function UserPill({
   user,
@@ -20,6 +22,14 @@ export function UserPill({
   const { data: session } = useSession();
   const { effectiveStatus } = usePresence();
   const label = user.nickname ?? "Alguem";
+
+  // So preenche fora do navegador (ver getAppVersion) -- mostra o selo
+  // "BETA" quando a build instalada veio do programa beta (ver
+  // SettingsButton.tsx), pra nunca esquecer que nao e a versao estavel.
+  const [isBeta, setIsBeta] = useState(false);
+  useEffect(() => {
+    getAppVersion().then((version) => setIsBeta(version.includes("beta")));
+  }, []);
 
   return (
     <div className="flex h-16 shrink-0 items-center gap-2.5 border-t border-overlay bg-black/20 px-3">
@@ -49,8 +59,15 @@ export function UserPill({
       </StatusMenu>
 
       <div className="min-w-0 flex-1">
-        <div title={label} className="truncate text-[13.5px] font-bold leading-tight text-foreground">
-          {label}
+        <div className="flex items-center gap-1.5">
+          <div title={label} className="truncate text-[13.5px] font-bold leading-tight text-foreground">
+            {label}
+          </div>
+          {isBeta && (
+            <span className="shrink-0 rounded bg-accent px-1 py-px text-[9px] font-bold leading-tight text-background">
+              BETA
+            </span>
+          )}
         </div>
         <div className="truncate text-[11px] font-medium leading-tight text-muted">#{user.userTag}</div>
       </div>

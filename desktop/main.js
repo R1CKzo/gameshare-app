@@ -595,6 +595,78 @@ function setupAutoUpdate() {
   setInterval(check, 4 * 60 * 60 * 1000);
 }
 
+// --- Programa beta (verificacao manual, sem canal do electron-updater) ---
+// Builds beta saem como prerelease no GitHub (nunca em /releases/latest,
+// nunca no latest.yml que o auto-update normal acima le -- ver
+// .github/workflows/build-desktop.yml) e so aparecem pra quem ligou
+// "Permitir versoes beta" nas Configuracoes (ver SettingsButton.tsx). Sem
+// download em segundo plano nem troca de canal: a pessoa clica, baixa, o
+// instalador assume — a mesma causa dos bugs do sistema anterior (canal do
+// electron-updater, precedencia de semver de prerelease) nunca entra em
+// jogo aqui.
+const GITHUB_RELEASES_URL = "https://api.github.com/repos/R1CKzo/gameshare-app/releases";
+
+async function checkBetaBuild() {
+  try {
+    const res = await fetch(GITHUB_RELEASES_URL, { headers: { Accept: "application/vnd.github+json" } });
+    if (!res.ok) return { available: false };
+
+    const releases = await res.json();
+    const beta = releases.find((r) => r.prerelease);
+    if (!beta) return { available: false };
+
+    const version = beta.tag_name.replace(/^desktop-v/, "");
+    if (version === app.getVersion()) return { available: false };
+
+    const asset = beta.assets.find((a) => a.name.endsWith(".exe"));
+    if (!asset) return { available: false };
+
+    return {
+      available: true,
+      version,
+      publishedAt: beta.published_at,
+      notes: beta.body ?? "",
+      downloadUrl: asset.browser_download_url,
+    };
+  } catch (err) {
+    log.error("[beta] erro ao checar build beta", err);
+    return { available: false };
+  }
+}
+
+ipcMain.handle("beta:check", () => checkBetaBuild());
+
+// Versao rodando agora — so pra mostrar o selo "BETA" na interface quando
+// a pessoa instalou uma build beta por cima (ver SettingsButton.tsx/
+// UserPill.tsx). Nada a ver com checkBetaBuild acima (que olha o GitHub
+// atras de uma build NOVA); esse aqui e so o app.getVersion() local.
+ipcMain.handle("app:get-version", () => app.getVersion());
+
+async function downloadAndInstallBeta(downloadUrl) {
+  try {
+    const res = await fetch(downloadUrl);
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const dest = path.join(app.getPath("temp"), "GameShare-Beta-Setup.exe");
+    fs.writeFileSync(dest, buffer);
+
+    // Instalador destacado, sem esperar ele terminar — e fecha o app logo
+    // em seguida, pra nao brigar com o processo atual rodando (mesma
+    // mecanica de sempre, so sem precisar fechar na mao primeiro).
+    const child = spawn(dest, [], { detached: true, stdio: "ignore" });
+    child.unref();
+    setTimeout(() => app.quit(), 500);
+
+    return { ok: true };
+  } catch (err) {
+    log.error("[beta] erro ao baixar/instalar build beta", err);
+    return { ok: false, error: err.message ?? String(err) };
+  }
+}
+
+ipcMain.handle("beta:download-and-install", (_event, downloadUrl) => downloadAndInstallBeta(downloadUrl));
+
 function notify(title, body) {
   if (!Notification.isSupported()) return;
   new Notification({ title, body, icon: path.join(__dirname, "build", "icon.ico") }).show();
