@@ -168,6 +168,7 @@ export function DMChatView({
               remoteStreams={activeCall.remoteStreams}
               isMuted={activeCall.isMuted}
               sharingUserId={sharingUserId}
+              connectionQuality={activeCall.connectionQuality}
             />
           </div>
           <CallControlBar isMuted={activeCall.isMuted} onToggleMute={activeCall.toggleMute} onDisconnect={leaveCall} />

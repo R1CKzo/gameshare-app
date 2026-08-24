@@ -38,6 +38,8 @@ export const changelog: ChangelogEntry[] = [
       "Selinho no avatar de quem está compartilhando a tela, mesmo na miniatura pequena",
       "As miniaturas da chamada encolhem conforme mais gente entra na sala",
       "Som ao entrar/sair da chamada e ao mutar/desmutar o microfone",
+      "Lista de quem está em cada sala de chamada aparece embaixo do nome dela na barra lateral, sem precisar entrar pra ver quem tá lá",
+      "Sinal de conexão (barrinhas) acima do nome de cada pessoa durante a chamada, pra acompanhar como está a qualidade da conexão",
     ],
     bugsFixed: [
       "Status fixado manualmente (ex: \"Ocupado\") podia ser sobrescrito por engano logo depois de recarregar a página, aparecendo errado pra outras pessoas",

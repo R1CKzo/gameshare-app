@@ -48,6 +48,14 @@ export type PresentUser = {
   isMuted: boolean;
 };
 
+// "good"/"medium"/"bad" a partir de RTT e perda de pacote reais (ver
+// pollConnectionQuality) — so da pra medir pra quem a gente tem conexao
+// P2P direta (a malha e full-mesh, entao isso cobre todo mundo que esta
+// na MESMA sala que a gente, nunca outras salas).
+export type ConnectionQuality = "good" | "medium" | "bad";
+
+const QUALITY_POLL_MS = 3000;
+
 // Prazo pra uma chamada de saida (peer.call) produzir audio de verdade
 // antes de considerarmos que ela travou na negociacao ICE sem nunca
 // disparar erro — mais generoso que uma negociacao normal (que costuma
@@ -175,6 +183,7 @@ export function useVoiceMesh({
   const [isMuted, setIsMuted] = useState(false);
   const [isSharingScreen, setIsSharingScreen] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
+  const [connectionQuality, setConnectionQuality] = useState<Map<string, ConnectionQuality>>(new Map());
 
   const peerRef = useRef<Peer | null>(null);
   const micTrackRef = useRef<MediaStreamTrack | null>(null); // faixa de mic ja processada pelo gate de ruido
@@ -400,6 +409,51 @@ export function useVoiceMesh({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, present, currentUserId]);
 
+  // Qualidade de conexao por participante, medida de verdade via
+  // RTCPeerConnection.getStats() de cada conexao P2P ativa — RTT (do par
+  // de candidatos ICE em uso) e perda de pacote (do audio recebido).
+  // Nunca inventa numero: se uma conexao ainda nao tem estatistica valida
+  // (acabou de abrir), ela simplesmente nao aparece no mapa ainda.
+  useEffect(() => {
+    if (!enabled) return;
+
+    async function poll() {
+      const next = new Map<string, ConnectionQuality>();
+      for (const [peerId, call] of connectionsRef.current) {
+        const pc = call.peerConnection;
+        if (!pc) continue;
+        try {
+          const stats = await pc.getStats();
+          let rtt: number | null = null;
+          let packetsLost = 0;
+          let packetsReceived = 0;
+          stats.forEach((report) => {
+            if (report.type === "candidate-pair" && report.state === "succeeded" && typeof report.currentRoundTripTime === "number") {
+              rtt = report.currentRoundTripTime;
+            }
+            if (report.type === "inbound-rtp" && report.kind === "audio") {
+              packetsLost = report.packetsLost ?? 0;
+              packetsReceived = report.packetsReceived ?? 0;
+            }
+          });
+          const lossRatio = packetsReceived > 0 ? packetsLost / (packetsLost + packetsReceived) : 0;
+          let quality: ConnectionQuality = "good";
+          if ((rtt !== null && rtt > 0.3) || lossRatio > 0.08) quality = "bad";
+          else if ((rtt !== null && rtt > 0.15) || lossRatio > 0.03) quality = "medium";
+          next.set(peerId, quality);
+        } catch {
+          // sem estatistica valida nesse ciclo — mantem o participante de
+          // fora do mapa em vez de arriscar um numero errado
+        }
+      }
+      setConnectionQuality(next);
+    }
+
+    poll();
+    const interval = setInterval(poll, QUALITY_POLL_MS);
+    return () => clearInterval(interval);
+  }, [enabled]);
+
   // Muda o estado local e avisa a malha na hora (nao espera o proximo
   // heartbeat periodico de ActiveCallProvider, que pode demorar ate
   // HEARTBEAT_MS) — assim quem esta ouvindo ve o icone de mudo
@@ -533,5 +587,6 @@ export function useVoiceMesh({
     micError,
     getPeerId,
     getIsMuted,
+    connectionQuality,
   };
 }

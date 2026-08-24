@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-import { type PresentUser, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { type ConnectionQuality, type PresentUser, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
 import { playJoinCallSound, playLeaveCallSound } from "@/lib/sound";
 
 export type ActiveCallTarget =
@@ -24,6 +24,7 @@ type ActiveCallContextValue = {
   remoteStreams: Map<string, MediaStream>;
   isMuted: boolean;
   isSharingScreen: boolean;
+  connectionQuality: Map<string, ConnectionQuality>;
   micError: string | null;
   callError: string | null;
   setCallError: (error: string | null) => void;
@@ -181,6 +182,7 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
         remoteStreams: mesh.remoteStreams,
         isMuted: mesh.isMuted,
         isSharingScreen: mesh.isSharingScreen,
+        connectionQuality: mesh.connectionQuality,
         micError: mesh.micError,
         callError,
         setCallError,

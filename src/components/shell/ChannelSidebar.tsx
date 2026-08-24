@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -30,8 +31,10 @@ type MemberSummary = {
   role: RoleSummary | null;
 };
 type ServerPermissions = { isOwner: boolean; canKick: boolean; canBan: boolean; canManageRoles: boolean; canManageChannels: boolean };
+type VoicePresentUser = { id: string; nickname: string | null; userTag: string | null; image: string | null; isMuted: boolean };
 
 const NAME_MAX = 40;
+const VOICE_PRESENCE_POLL_MS = 4000;
 
 export function ChannelSidebar({
   serverId,
@@ -59,6 +62,34 @@ export function ChannelSidebar({
   const callChannels = channels.filter((c) => c.type === "CALL");
   const canManageServer = permissions.isOwner || permissions.canKick || permissions.canBan || permissions.canManageRoles;
   const canManageChannels = permissions.isOwner || permissions.canManageChannels;
+
+  // Quem esta em cada sala de chamada agora, pra listar embaixo de cada
+  // uma (estilo Discord) — poll leve, cobre todas as salas do servidor de
+  // uma vez so, sem precisar entrar em nenhuma pra ver quem esta la.
+  const [voicePresence, setVoicePresence] = useState<Map<string, VoicePresentUser[]>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const res = await fetch(`/api/servers/${serverId}/voice-presence`, { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const entries: { channelId: string; present: VoicePresentUser[] }[] = data.channels ?? [];
+        setVoicePresence(new Map(entries.map((e) => [e.channelId, e.present])));
+      } catch {
+        // ignora falhas transitorias
+      }
+    }
+
+    poll();
+    const interval = setInterval(poll, VOICE_PRESENCE_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [serverId]);
 
   async function createChannel(type: "TEXT" | "CALL", name: string) {
     await fetch(`/api/servers/${serverId}/channels`, {
@@ -135,6 +166,7 @@ export function ChannelSidebar({
             canManage={canManageChannels}
             onRename={(name) => renameChannel(channel.id, name)}
             onDelete={() => deleteChannel(channel.id)}
+            voicePresent={voicePresence.get(channel.id) ?? []}
           />
         ))}
       </div>
@@ -151,6 +183,7 @@ function ChannelRow({
   canManage,
   onRename,
   onDelete,
+  voicePresent = [],
 }: {
   serverId: string;
   channel: ChannelSummary;
@@ -158,6 +191,7 @@ function ChannelRow({
   canManage: boolean;
   onRename: (name: string) => void;
   onDelete: () => void;
+  voicePresent?: VoicePresentUser[];
 }) {
   const isCall = channel.type === "CALL";
   const hasActivity = isCall && (channel.isLive || channel.presenceCount > 0);
@@ -205,7 +239,8 @@ function ChannelRow({
   }
 
   return (
-    <div className="group relative mb-0.5 flex items-center">
+    <div className="mb-0.5">
+      <div className="group relative flex items-center">
       <Link
         href={`/servers/${serverId}/channels/${channel.id}`}
         prefetch
@@ -249,6 +284,37 @@ function ChannelRow({
         )}
       </Link>
       {canManage && <ChannelActionsMenu onEdit={() => setRenaming(true)} onDelete={onDelete} />}
+      </div>
+      {isCall && voicePresent.length > 0 && (
+        <div className="ml-6 space-y-0.5 py-0.5">
+          {voicePresent.map((u) => (
+            <VoicePresenceRow key={u.id} user={u} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VoicePresenceRow({ user }: { user: VoicePresentUser }) {
+  const initials = (user.nickname ?? "?").slice(0, 1).toUpperCase();
+  return (
+    <div className="flex items-center gap-2 rounded-md px-2 py-1">
+      <div className="relative h-5 w-5 shrink-0 overflow-hidden rounded-full bg-primary">
+        {user.image ? (
+          <Image src={user.image} alt="" fill sizes="20px" className="object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center font-display text-[9px] font-bold">{initials}</div>
+        )}
+      </div>
+      <span className="min-w-0 flex-1 truncate text-xs text-muted">{user.nickname}</span>
+      {user.isMuted && (
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <path d="M1 1l22 22" />
+          <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+          <path d="M17 16.95A7 7 0 0 1 5 12v-2M19 10v2a7 7 0 0 1-.11 1.23" />
+        </svg>
+      )}
     </div>
   );
 }
