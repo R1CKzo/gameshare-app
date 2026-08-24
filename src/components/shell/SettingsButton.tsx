@@ -186,7 +186,11 @@ function ProfileTab() {
           className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-[#2d3344] bg-primary"
         >
           {image ? (
-            <Image src={image} alt="" fill sizes="80px" className="object-cover" />
+            // unoptimized: quando image vem da sessao (/api/me/avatar), o
+            // otimizador do Next buscaria essa URL sem os cookies do
+            // navegador e levaria 401 — ver o mesmo comentario em
+            // UserPill.tsx.
+            <Image src={image} alt="" fill sizes="80px" unoptimized className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center font-display text-2xl font-bold">
               {(nickname || "?").slice(0, 1).toUpperCase()}

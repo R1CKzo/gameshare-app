@@ -30,6 +30,12 @@ export function UserPill({
             alt=""
             width={36}
             height={36}
+            // O otimizador de imagem do Next busca a URL pelo proprio
+            // servidor, sem os cookies do navegador — /api/me/avatar exige
+            // sessao (ver src/lib/avatarUrl.ts), entao sem isso ele leva
+            // 401 e a foto quebra. unoptimized faz o navegador buscar
+            // direto, com a sessao de verdade.
+            unoptimized
             className="rounded-full ring-1 ring-white/[0.08]"
           />
         ) : (
