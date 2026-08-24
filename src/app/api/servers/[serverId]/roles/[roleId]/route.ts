@@ -24,7 +24,14 @@ export async function PATCH(request: Request, { params }: { params: { serverId: 
   }
 
   const body = await request.json().catch(() => ({}));
-  const data: { name?: string; color?: string | null; canKick?: boolean; canBan?: boolean; canManageRoles?: boolean } = {};
+  const data: {
+    name?: string;
+    color?: string | null;
+    canKick?: boolean;
+    canBan?: boolean;
+    canManageRoles?: boolean;
+    canManageChannels?: boolean;
+  } = {};
 
   if (body?.name !== undefined) {
     const name = String(body.name).trim();
@@ -37,12 +44,22 @@ export async function PATCH(request: Request, { params }: { params: { serverId: 
   if (body?.canKick !== undefined) data.canKick = Boolean(body.canKick);
   if (body?.canBan !== undefined) data.canBan = Boolean(body.canBan);
   if (body?.canManageRoles !== undefined) data.canManageRoles = Boolean(body.canManageRoles);
+  if (body?.canManageChannels !== undefined) data.canManageChannels = Boolean(body.canManageChannels);
 
   try {
     const updated = await prisma.role.update({
       where: { id: params.roleId },
       data,
-      select: { id: true, name: true, color: true, position: true, canKick: true, canBan: true, canManageRoles: true },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        position: true,
+        canKick: true,
+        canBan: true,
+        canManageRoles: true,
+        canManageChannels: true,
+      },
     });
     return NextResponse.json(updated);
   } catch {

@@ -250,9 +250,10 @@ model Role {
   serverId String
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
 
-  canKick        Boolean @default(false)
-  canBan         Boolean @default(false)
-  canManageRoles Boolean @default(false)
+  canKick           Boolean @default(false)
+  canBan            Boolean @default(false)
+  canManageRoles    Boolean @default(false)
+  canManageChannels Boolean @default(false)
 
   members ServerMember[]
 

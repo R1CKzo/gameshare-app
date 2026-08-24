@@ -5,6 +5,7 @@ export type ServerPermissions = {
   canKick: boolean;
   canBan: boolean;
   canManageRoles: boolean;
+  canManageChannels: boolean;
 };
 
 const NO_PERMISSIONS: ServerPermissions = {
@@ -12,6 +13,7 @@ const NO_PERMISSIONS: ServerPermissions = {
   canKick: false,
   canBan: false,
   canManageRoles: false,
+  canManageChannels: false,
 };
 
 // O dono do servidor sempre tem permissao plena, sem precisar de cargo —
@@ -25,12 +27,12 @@ export async function getServerPermissions(serverId: string, userId: string): Pr
   if (!server) return NO_PERMISSIONS;
 
   if (server.ownerId === userId) {
-    return { isOwner: true, canKick: true, canBan: true, canManageRoles: true };
+    return { isOwner: true, canKick: true, canBan: true, canManageRoles: true, canManageChannels: true };
   }
 
   const member = await prisma.serverMember.findUnique({
     where: { userId_serverId: { userId, serverId } },
-    select: { role: { select: { canKick: true, canBan: true, canManageRoles: true } } },
+    select: { role: { select: { canKick: true, canBan: true, canManageRoles: true, canManageChannels: true } } },
   });
   if (!member) return NO_PERMISSIONS;
 
@@ -39,5 +41,6 @@ export async function getServerPermissions(serverId: string, userId: string): Pr
     canKick: member.role?.canKick ?? false,
     canBan: member.role?.canBan ?? false,
     canManageRoles: member.role?.canManageRoles ?? false,
+    canManageChannels: member.role?.canManageChannels ?? false,
   };
 }

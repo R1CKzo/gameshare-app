@@ -30,7 +30,7 @@ type MemberSummary = {
   roleId: string | null;
   role: RoleSummary | null;
 };
-type ServerPermissions = { isOwner: boolean; canKick: boolean; canBan: boolean; canManageRoles: boolean };
+type ServerPermissions = { isOwner: boolean; canKick: boolean; canBan: boolean; canManageRoles: boolean; canManageChannels: boolean };
 
 export function AppShell({
   servers,

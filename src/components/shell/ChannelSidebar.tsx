@@ -26,7 +26,7 @@ type MemberSummary = {
   roleId: string | null;
   role: RoleSummary | null;
 };
-type ServerPermissions = { isOwner: boolean; canKick: boolean; canBan: boolean; canManageRoles: boolean };
+type ServerPermissions = { isOwner: boolean; canKick: boolean; canBan: boolean; canManageRoles: boolean; canManageChannels: boolean };
 
 export function ChannelSidebar({
   serverId,
@@ -51,7 +51,8 @@ export function ChannelSidebar({
 }) {
   const textChannels = channels.filter((c) => c.type === "TEXT");
   const callChannels = channels.filter((c) => c.type === "CALL");
-  const canManageServer = permissions.isOwner || permissions.canKick || permissions.canBan || permissions.canManageRoles;
+  const canManageServer =
+    permissions.isOwner || permissions.canKick || permissions.canBan || permissions.canManageRoles || permissions.canManageChannels;
 
   return (
     <div className="flex w-[252px] shrink-0 flex-col border-r border-white/[0.06] bg-sidebar">
@@ -59,7 +60,13 @@ export function ChannelSidebar({
         <span className="truncate font-bold">{serverName}</span>
         <div className="flex items-center gap-1">
           {canManageServer && (
-            <ServerSettingsButton serverId={serverId} ownerId={ownerId} members={members} permissions={permissions} />
+            <ServerSettingsButton
+              serverId={serverId}
+              ownerId={ownerId}
+              members={members}
+              permissions={permissions}
+              currentChannelId={currentChannelId}
+            />
           )}
           <InviteButton inviteCode={inviteCode} />
         </div>

@@ -27,7 +27,7 @@ export default async function ChannelPage({
       where: { userId_serverId: { userId: session.user.id, serverId: params.serverId } },
       select: {
         roleId: true,
-        role: { select: { canKick: true, canBan: true, canManageRoles: true } },
+        role: { select: { canKick: true, canBan: true, canManageRoles: true, canManageChannels: true } },
         server: {
           select: {
             id: true,
@@ -75,6 +75,7 @@ export default async function ChannelPage({
     canKick: isOwner || (membership.role?.canKick ?? false),
     canBan: isOwner || (membership.role?.canBan ?? false),
     canManageRoles: isOwner || (membership.role?.canManageRoles ?? false),
+    canManageChannels: isOwner || (membership.role?.canManageChannels ?? false),
   };
 
   const channel = membership.server.channels.find((c) => c.id === params.channelId);

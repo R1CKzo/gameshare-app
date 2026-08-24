@@ -21,7 +21,16 @@ export async function GET(_request: Request, { params }: { params: { serverId: s
   const roles = await prisma.role.findMany({
     where: { serverId: params.serverId },
     orderBy: { position: "asc" },
-    select: { id: true, name: true, color: true, position: true, canKick: true, canBan: true, canManageRoles: true },
+    select: {
+      id: true,
+      name: true,
+      color: true,
+      position: true,
+      canKick: true,
+      canBan: true,
+      canManageRoles: true,
+      canManageChannels: true,
+    },
   });
 
   return NextResponse.json({ roles });
@@ -47,11 +56,21 @@ export async function POST(request: Request, { params }: { params: { serverId: s
   const canKick = Boolean(body?.canKick);
   const canBan = Boolean(body?.canBan);
   const canManageRoles = Boolean(body?.canManageRoles);
+  const canManageChannels = Boolean(body?.canManageChannels);
 
   try {
     const role = await prisma.role.create({
-      data: { serverId: params.serverId, name, color, canKick, canBan, canManageRoles },
-      select: { id: true, name: true, color: true, position: true, canKick: true, canBan: true, canManageRoles: true },
+      data: { serverId: params.serverId, name, color, canKick, canBan, canManageRoles, canManageChannels },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        position: true,
+        canKick: true,
+        canBan: true,
+        canManageRoles: true,
+        canManageChannels: true,
+      },
     });
     return NextResponse.json(role);
   } catch {
