@@ -348,12 +348,24 @@ model ChannelRead {
 // agora. peerId identifica o peer de audio (microfone) dessa pessoa nessa
 // sala, pra quem mais estiver presente conseguir discar direto pra ela
 // (malha P2P de voz) — fica nulo ate o microfone conectar de verdade.
+// Auto-relatado por cada cliente (ver useVoiceMesh.getConnectionQuality),
+// medido com RTCPeerConnection.getStats() de verdade contra quem ele esta
+// conectado na malha — nunca um valor inventado pro servidor. GOOD e o
+// padrao ate a primeira medicao chegar, pra sempre ter alguma coisa pra
+// mostrar em vez de ficar em branco.
+enum ConnectionQuality {
+  GOOD
+  MEDIUM
+  BAD
+}
+
 model ChannelPresence {
   id        String   @id @default(uuid())
   updatedAt DateTime @updatedAt
 
-  peerId  String?  @unique
-  isMuted Boolean  @default(false)
+  peerId            String?           @unique
+  isMuted           Boolean           @default(false)
+  connectionQuality ConnectionQuality @default(GOOD)
 
   channelId String
   channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
@@ -470,8 +482,9 @@ model DMPresence {
   id        String   @id @default(uuid())
   updatedAt DateTime @updatedAt
 
-  peerId  String?  @unique
-  isMuted Boolean  @default(false)
+  peerId            String?           @unique
+  isMuted           Boolean           @default(false)
+  connectionQuality ConnectionQuality @default(GOOD)
 
   dmChannelId String
   dmChannel   DMChannel @relation(fields: [dmChannelId], references: [id], onDelete: Cascade)

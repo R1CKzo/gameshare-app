@@ -161,14 +161,23 @@ export function DMChatView({
               present={
                 present.length > 0
                   ? present
-                  : [{ id: currentUserId, nickname: null, userTag: null, image: null, peerId: null, isMuted: false }]
+                  : [
+                      {
+                        id: currentUserId,
+                        nickname: null,
+                        userTag: null,
+                        image: null,
+                        peerId: null,
+                        isMuted: false,
+                        connectionQuality: "good" as const,
+                      },
+                    ]
               }
               currentUserId={currentUserId}
               localStream={activeCall.localStream}
               remoteStreams={activeCall.remoteStreams}
               isMuted={activeCall.isMuted}
               sharingUserId={sharingUserId}
-              connectionQuality={activeCall.connectionQuality}
             />
           </div>
           <CallControlBar isMuted={activeCall.isMuted} onToggleMute={activeCall.toggleMute} onDisconnect={leaveCall} />

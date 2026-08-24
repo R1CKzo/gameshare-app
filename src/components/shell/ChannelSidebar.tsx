@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { SignalIcon } from "@/components/call/SignalIcon";
 import { useUnread } from "@/components/notifications/UnreadContext";
 import { InviteButton } from "@/components/shell/InviteButton";
 import { ServerSettingsButton } from "@/components/shell/ServerSettingsButton";
 import { UserPill } from "@/components/shell/UserPill";
+import type { ConnectionQuality } from "@/hooks/useVoiceMesh";
 
 type ChannelSummary = {
   id: string;
@@ -31,7 +33,14 @@ type MemberSummary = {
   role: RoleSummary | null;
 };
 type ServerPermissions = { isOwner: boolean; canKick: boolean; canBan: boolean; canManageRoles: boolean; canManageChannels: boolean };
-type VoicePresentUser = { id: string; nickname: string | null; userTag: string | null; image: string | null; isMuted: boolean };
+type VoicePresentUser = {
+  id: string;
+  nickname: string | null;
+  userTag: string | null;
+  image: string | null;
+  isMuted: boolean;
+  connectionQuality: ConnectionQuality;
+};
 
 const NAME_MAX = 40;
 const VOICE_PRESENCE_POLL_MS = 4000;
@@ -307,7 +316,10 @@ function VoicePresenceRow({ user }: { user: VoicePresentUser }) {
           <div className="flex h-full w-full items-center justify-center font-display text-[9px] font-bold">{initials}</div>
         )}
       </div>
-      <span className="min-w-0 flex-1 truncate text-xs text-muted">{user.nickname}</span>
+      <div className="min-w-0 flex-1">
+        <SignalIcon quality={user.connectionQuality} />
+        <span className="block truncate text-xs text-muted">{user.nickname}</span>
+      </div>
       {user.isMuted && (
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <path d="M1 1l22 22" />

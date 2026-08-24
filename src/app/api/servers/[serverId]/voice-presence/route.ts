@@ -36,6 +36,7 @@ export async function GET(_request: Request, { params }: { params: { serverId: s
         where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } },
         select: {
           isMuted: true,
+          connectionQuality: true,
           user: { select: { id: true, nickname: true, userTag: true, image: true } },
         },
       },
@@ -45,7 +46,11 @@ export async function GET(_request: Request, { params }: { params: { serverId: s
   return NextResponse.json({
     channels: channels.map((c) => ({
       channelId: c.id,
-      present: c.presences.map((p) => ({ ...p.user, isMuted: p.isMuted })),
+      present: c.presences.map((p) => ({
+        ...p.user,
+        isMuted: p.isMuted,
+        connectionQuality: p.connectionQuality.toLowerCase(),
+      })),
     })),
   });
 }

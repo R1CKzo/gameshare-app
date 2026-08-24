@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const VALID_QUALITY = ["GOOD", "MEDIUM", "BAD"] as const;
+
 async function requireParticipant(userId: string, dmChannelId: string) {
   const participant = await prisma.dMParticipant.findUnique({
     where: { dmChannelId_userId: { dmChannelId, userId } },
@@ -27,14 +29,22 @@ export async function POST(request: Request, { params }: { params: { dmChannelId
   const body = await request.json().catch(() => ({}));
   const peerId: string | undefined = typeof body?.peerId === "string" ? body.peerId : undefined;
   const isMuted: boolean | undefined = typeof body?.isMuted === "boolean" ? body.isMuted : undefined;
+  const connectionQuality = VALID_QUALITY.includes(body?.connectionQuality) ? body.connectionQuality : undefined;
 
   await prisma.dMPresence.upsert({
     where: { dmChannelId_userId: { dmChannelId: params.dmChannelId, userId: session.user.id } },
-    create: { dmChannelId: params.dmChannelId, userId: session.user.id, peerId, isMuted: isMuted ?? false },
+    create: {
+      dmChannelId: params.dmChannelId,
+      userId: session.user.id,
+      peerId,
+      isMuted: isMuted ?? false,
+      ...(connectionQuality ? { connectionQuality } : {}),
+    },
     update: {
       updatedAt: new Date(),
       ...(peerId !== undefined ? { peerId } : {}),
       ...(isMuted !== undefined ? { isMuted } : {}),
+      ...(connectionQuality ? { connectionQuality } : {}),
     },
   });
 

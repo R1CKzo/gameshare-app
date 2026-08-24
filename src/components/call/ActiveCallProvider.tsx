@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-import { type ConnectionQuality, type PresentUser, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { type PresentUser, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
 import { playJoinCallSound, playLeaveCallSound } from "@/lib/sound";
 
 export type ActiveCallTarget =
@@ -24,7 +24,6 @@ type ActiveCallContextValue = {
   remoteStreams: Map<string, MediaStream>;
   isMuted: boolean;
   isSharingScreen: boolean;
-  connectionQuality: Map<string, ConnectionQuality>;
   micError: string | null;
   callError: string | null;
   setCallError: (error: string | null) => void;
@@ -106,13 +105,17 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     // exatamente essa corrida quando alguem reentrava rapido.
     function beat() {
       const peerId = mesh.getPeerId();
-      // isMuted vai em toda batida (nao so quando muda) pra ficar
-      // consistente mesmo se o POST imediato do toggleMute falhar por
+      // isMuted e connectionQuality vao em toda batida (nao so quando
+      // mudam) pra ficar consistente mesmo se um POST imediato falhar por
       // qualquer motivo — mesma logica de resiliencia do peerId acima.
       fetch(`${apiBase}/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...(peerId ? { peerId } : {}), isMuted: mesh.getIsMuted() }),
+        body: JSON.stringify({
+          ...(peerId ? { peerId } : {}),
+          isMuted: mesh.getIsMuted(),
+          connectionQuality: mesh.getConnectionQuality().toUpperCase(),
+        }),
       }).catch(() => {});
     }
 
@@ -182,7 +185,6 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
         remoteStreams: mesh.remoteStreams,
         isMuted: mesh.isMuted,
         isSharingScreen: mesh.isSharingScreen,
-        connectionQuality: mesh.connectionQuality,
         micError: mesh.micError,
         callError,
         setCallError,

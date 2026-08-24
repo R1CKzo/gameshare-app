@@ -32,6 +32,7 @@ export async function GET(
         select: {
           peerId: true,
           isMuted: true,
+          connectionQuality: true,
           user: { select: { id: true, nickname: true, userTag: true, image: true } },
         },
       },
@@ -57,6 +58,11 @@ export async function GET(
     id: channel.id,
     isLive: channel.isLive,
     broadcaster: channel.broadcaster,
-    present: channel.presences.map((p) => ({ ...p.user, peerId: p.peerId, isMuted: p.isMuted })),
+    present: channel.presences.map((p) => ({
+      ...p.user,
+      peerId: p.peerId,
+      isMuted: p.isMuted,
+      connectionQuality: p.connectionQuality.toLowerCase(),
+    })),
   });
 }

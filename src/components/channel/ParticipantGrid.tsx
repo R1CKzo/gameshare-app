@@ -3,21 +3,9 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 
+import { SignalIcon } from "@/components/call/SignalIcon";
 import { useSpeakingDetector } from "@/hooks/useSpeakingDetector";
-import type { ConnectionQuality, PresentUser } from "@/hooks/useVoiceMesh";
-
-const QUALITY_RANK: Record<ConnectionQuality, number> = { good: 0, medium: 1, bad: 2 };
-
-// A "minha" bolinha nao tem uma RTCPeerConnection consigo mesma pra medir
-// — mostra a pior entre todas as conexoes que eu tenho com os outros,
-// como um proxy de "quao boa esta minha propria conexao agora".
-function worstQuality(quality: Map<string, ConnectionQuality>): ConnectionQuality | null {
-  let worst: ConnectionQuality | null = null;
-  for (const q of quality.values()) {
-    if (!worst || QUALITY_RANK[q] > QUALITY_RANK[worst]) worst = q;
-  }
-  return worst;
-}
+import type { PresentUser } from "@/hooks/useVoiceMesh";
 
 export function ParticipantGrid({
   present,
@@ -26,7 +14,6 @@ export function ParticipantGrid({
   remoteStreams,
   isMuted,
   sharingUserId,
-  connectionQuality,
 }: {
   present: PresentUser[];
   currentUserId: string;
@@ -34,7 +21,6 @@ export function ParticipantGrid({
   remoteStreams: Map<string, MediaStream>;
   isMuted: boolean;
   sharingUserId: string | null;
-  connectionQuality: Map<string, ConnectionQuality>;
 }) {
   const sharer = sharingUserId ? present.find((u) => u.id === sharingUserId) : null;
   const sharerStream = sharer
@@ -79,7 +65,6 @@ export function ParticipantGrid({
               stream={isSelf ? localStream : user.peerId ? remoteStreams.get(user.peerId) ?? null : null}
               muted={isSelf ? isMuted : user.isMuted}
               size={tileSize(present.length, !!sharer)}
-              quality={isSelf ? worstQuality(connectionQuality) : user.peerId ? connectionQuality.get(user.peerId) ?? null : null}
             />
           );
         })}
@@ -123,7 +108,6 @@ function ParticipantTile({
   stream,
   muted,
   size,
-  quality,
 }: {
   user: PresentUser;
   isSelf: boolean;
@@ -131,7 +115,6 @@ function ParticipantTile({
   stream: MediaStream | null;
   muted: boolean;
   size: TileSize;
-  quality: ConnectionQuality | null;
 }) {
   const speaking = useSpeakingDetector(stream, muted);
 
@@ -152,45 +135,11 @@ function ParticipantTile({
         </div>
         {isSharing && <ShareBadge />}
       </div>
-      {quality && <SignalIcon quality={quality} />}
+      <SignalIcon quality={user.connectionQuality} />
       <div className="flex max-w-full items-center gap-1 px-2 text-xs font-semibold text-[#d5d7dc]">
         {muted && <MutedIcon />}
         <span className="truncate">{isSelf ? "Você" : label}</span>
       </div>
-    </div>
-  );
-}
-
-const QUALITY_COLOR: Record<ConnectionQuality, string> = {
-  good: "#22c55e",
-  medium: "#eab308",
-  bad: "#ef4444",
-};
-const QUALITY_LABEL: Record<ConnectionQuality, string> = {
-  good: "Conexão boa",
-  medium: "Conexão instável",
-  bad: "Conexão ruim",
-};
-// Quantas barrinhas ficam "acesas" (cor cheia) pra cada nivel — as demais
-// ficam esmaecidas, mesmo desenho de indicador de sinal que apps de
-// chamada em geral usam.
-const QUALITY_BARS: Record<ConnectionQuality, number> = { good: 3, medium: 2, bad: 1 };
-
-// Sinal de conexao acima do nome — so aparece quando ja tem uma medicao de
-// verdade (RTT/perda de pacote real da conexao P2P, ver useVoiceMesh),
-// nunca um valor inventado.
-function SignalIcon({ quality }: { quality: ConnectionQuality }) {
-  const lit = QUALITY_BARS[quality];
-  const color = QUALITY_COLOR[quality];
-  return (
-    <div title={QUALITY_LABEL[quality]} className="flex items-end gap-[1.5px]">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          style={{ height: 3 + i * 2.5, backgroundColor: i < lit ? color : "#3a3f4d" }}
-          className="w-[3px] rounded-sm"
-        />
-      ))}
     </div>
   );
 }

@@ -29,6 +29,7 @@ export async function GET(_request: Request, { params }: { params: { dmChannelId
         select: {
           peerId: true,
           isMuted: true,
+          connectionQuality: true,
           user: { select: { id: true, nickname: true, userTag: true, image: true } },
         },
       },
@@ -43,6 +44,11 @@ export async function GET(_request: Request, { params }: { params: { dmChannelId
     id: dmChannel.id,
     isLive: dmChannel.isLive,
     broadcaster: dmChannel.broadcaster,
-    present: dmChannel.presences.map((p) => ({ ...p.user, peerId: p.peerId, isMuted: p.isMuted })),
+    present: dmChannel.presences.map((p) => ({
+      ...p.user,
+      peerId: p.peerId,
+      isMuted: p.isMuted,
+      connectionQuality: p.connectionQuality.toLowerCase(),
+    })),
   });
 }

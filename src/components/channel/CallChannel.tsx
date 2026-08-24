@@ -152,7 +152,6 @@ export function CallChannel({
             remoteStreams={activeCall.remoteStreams}
             isMuted={activeCall.isMuted}
             sharingUserId={sharingUserId}
-            connectionQuality={activeCall.connectionQuality}
           />
           <CallControlBar isMuted={activeCall.isMuted} onToggleMute={activeCall.toggleMute} onDisconnect={leaveRoom} />
         </>

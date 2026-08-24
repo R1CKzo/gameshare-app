@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const VALID_QUALITY = ["GOOD", "MEDIUM", "BAD"] as const;
+
 // Heartbeat: registra que o usuario esta com essa sala de chamada aberta
 // agora, mesmo sem estar compartilhando a tela. Chamado periodicamente
 // pelo client enquanto a pagina do canal estiver aberta. Se o microfone
@@ -43,22 +45,30 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const peerId: string | undefined = typeof body?.peerId === "string" ? body.peerId : undefined;
   const isMuted: boolean | undefined = typeof body?.isMuted === "boolean" ? body.isMuted : undefined;
+  const connectionQuality = VALID_QUALITY.includes(body?.connectionQuality) ? body.connectionQuality : undefined;
 
   // Um heartbeat sem peerId manda update:{peerId: undefined} — o Prisma
   // filtra chaves undefined do payload, e se sobrar um objeto vazio ele
   // pula a query de UPDATE (e o updatedAt do @updatedAt nunca bate). Por
   // isso o updatedAt vai explicito aqui: todo heartbeat tem que "contar"
   // mesmo quando so esta renovando a presenca, sem peerId novo. Mesma logica
-  // pro isMuted — o toggle manda ele na hora (ver useVoiceMesh.toggleMute),
-  // e todo heartbeat periodico normal tambem reenvia o valor atual, pra
-  // ficar consistente mesmo se aquele POST imediato falhar.
+  // pro isMuted e connectionQuality — o client manda na hora quando muda
+  // (ver useVoiceMesh), e todo heartbeat periodico normal tambem reenvia o
+  // valor atual, pra ficar consistente mesmo se aquele POST imediato falhar.
   await prisma.channelPresence.upsert({
     where: { channelId_userId: { channelId: params.channelId, userId: session.user.id } },
-    create: { channelId: params.channelId, userId: session.user.id, peerId, isMuted: isMuted ?? false },
+    create: {
+      channelId: params.channelId,
+      userId: session.user.id,
+      peerId,
+      isMuted: isMuted ?? false,
+      ...(connectionQuality ? { connectionQuality } : {}),
+    },
     update: {
       updatedAt: new Date(),
       ...(peerId !== undefined ? { peerId } : {}),
       ...(isMuted !== undefined ? { isMuted } : {}),
+      ...(connectionQuality ? { connectionQuality } : {}),
     },
   });
 

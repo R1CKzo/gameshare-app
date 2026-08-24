@@ -39,6 +39,8 @@ async function createNoiseGate(audioContext: AudioContext, micStream: MediaStrea
   return { track: destination.stream.getAudioTracks()[0], node: gateNode, source };
 }
 
+export type ConnectionQuality = "good" | "medium" | "bad";
+
 export type PresentUser = {
   id: string;
   nickname: string | null;
@@ -46,13 +48,11 @@ export type PresentUser = {
   image: string | null;
   peerId: string | null;
   isMuted: boolean;
+  // Auto-relatado pelo proprio dono da presenca (ver getConnectionQuality
+  // abaixo) — chega pronto do servidor pra todo mundo que ve essa pessoa,
+  // dentro da chamada ou so espiando a barra lateral sem ter entrado.
+  connectionQuality: ConnectionQuality;
 };
-
-// "good"/"medium"/"bad" a partir de RTT e perda de pacote reais (ver
-// pollConnectionQuality) — so da pra medir pra quem a gente tem conexao
-// P2P direta (a malha e full-mesh, entao isso cobre todo mundo que esta
-// na MESMA sala que a gente, nunca outras salas).
-export type ConnectionQuality = "good" | "medium" | "bad";
 
 const QUALITY_POLL_MS = 3000;
 
@@ -183,7 +183,6 @@ export function useVoiceMesh({
   const [isMuted, setIsMuted] = useState(false);
   const [isSharingScreen, setIsSharingScreen] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
-  const [connectionQuality, setConnectionQuality] = useState<Map<string, ConnectionQuality>>(new Map());
 
   const peerRef = useRef<Peer | null>(null);
   const micTrackRef = useRef<MediaStreamTrack | null>(null); // faixa de mic ja processada pelo gate de ruido
@@ -195,6 +194,7 @@ export function useVoiceMesh({
   const streamedPeerIdsRef = useRef<Set<string>>(new Set()); // quem ja mandou audio de verdade
   const peerIdRef = useRef<string | null>(null);
   const isMutedRef = useRef(false); // espelha isMuted pro heartbeat (mora em ActiveCallProvider) ler sem closure velha
+  const selfQualityRef = useRef<ConnectionQuality>("good"); // idem, pro getConnectionQuality
   const shareMixRef = useRef<{
     audioContext: AudioContext;
     displayStream: MediaStream;
@@ -344,6 +344,7 @@ export function useVoiceMesh({
       setLocalStream(null);
       setIsMuted(false);
       isMutedRef.current = false;
+      selfQualityRef.current = "good";
       setIsSharingScreen(false);
       setMicError(null);
     };
@@ -409,17 +410,28 @@ export function useVoiceMesh({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, present, currentUserId]);
 
-  // Qualidade de conexao por participante, medida de verdade via
-  // RTCPeerConnection.getStats() de cada conexao P2P ativa — RTT (do par
-  // de candidatos ICE em uso) e perda de pacote (do audio recebido).
-  // Nunca inventa numero: se uma conexao ainda nao tem estatistica valida
-  // (acabou de abrir), ela simplesmente nao aparece no mapa ainda.
+  // Mede a PROPRIA qualidade de conexao — RTT (do par de candidatos ICE em
+  // uso) e perda de pacote (do audio recebido) de cada conexao P2P ativa —
+  // e guarda o pior resultado entre todas, como proxy de "como esta minha
+  // conexao agora". Esse valor e o que vai no heartbeat (ver
+  // ActiveCallProvider) pro servidor guardar e devolver pra todo mundo que
+  // ve essa presenca, dentro da chamada ou so olhando a barra lateral —
+  // e por isso que e auto-relatado (cada um so mede a propria malha) em
+  // vez de cada pessoa tentar medir a conexao dos outros.
   useEffect(() => {
     if (!enabled) return;
 
     async function poll() {
-      const next = new Map<string, ConnectionQuality>();
-      for (const [peerId, call] of connectionsRef.current) {
+      // Sinalizacao caida e o sintoma mais grave que da pra detectar sem
+      // nenhuma conexao de midia ainda aberta — sozinho na sala, por
+      // exemplo — entao pesa mais que qualquer estatistica de RTT.
+      if (peerRef.current?.disconnected) {
+        selfQualityRef.current = "bad";
+        return;
+      }
+
+      let worst: ConnectionQuality = "good";
+      for (const call of connectionsRef.current.values()) {
         const pc = call.peerConnection;
         if (!pc) continue;
         try {
@@ -437,16 +449,14 @@ export function useVoiceMesh({
             }
           });
           const lossRatio = packetsReceived > 0 ? packetsLost / (packetsLost + packetsReceived) : 0;
-          let quality: ConnectionQuality = "good";
-          if ((rtt !== null && rtt > 0.3) || lossRatio > 0.08) quality = "bad";
-          else if ((rtt !== null && rtt > 0.15) || lossRatio > 0.03) quality = "medium";
-          next.set(peerId, quality);
+          if ((rtt !== null && rtt > 0.3) || lossRatio > 0.08) worst = "bad";
+          else if (worst !== "bad" && ((rtt !== null && rtt > 0.15) || lossRatio > 0.03)) worst = "medium";
         } catch {
-          // sem estatistica valida nesse ciclo — mantem o participante de
-          // fora do mapa em vez de arriscar um numero errado
+          // sem estatistica valida nesse ciclo — nao deixa essa conexao
+          // especifica piorar a leitura, so nao contribui com nada
         }
       }
-      setConnectionQuality(next);
+      selfQualityRef.current = worst;
     }
 
     poll();
@@ -576,6 +586,12 @@ export function useVoiceMesh({
     return isMutedRef.current;
   }
 
+  // Idem, pro heartbeat mandar a qualidade de conexao auto-medida em toda
+  // batida (ver o useEffect de poll acima).
+  function getConnectionQuality(): ConnectionQuality {
+    return selfQualityRef.current;
+  }
+
   return {
     localStream,
     remoteStreams,
@@ -587,6 +603,6 @@ export function useVoiceMesh({
     micError,
     getPeerId,
     getIsMuted,
-    connectionQuality,
+    getConnectionQuality,
   };
 }
