@@ -1,4 +1,17 @@
-const { app, BrowserWindow, shell, dialog, Notification, ipcMain, desktopCapturer, Tray, Menu, nativeImage } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  shell,
+  dialog,
+  Notification,
+  ipcMain,
+  desktopCapturer,
+  Tray,
+  Menu,
+  nativeImage,
+  protocol,
+  safeStorage,
+} = require("electron");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const crypto = require("crypto");
@@ -13,6 +26,22 @@ log.transports.file.level = "info";
 autoUpdater.logger = log;
 
 const APP_URL = "https://gameshare-app.vercel.app";
+
+// Janela de teste da interface embutida (ver plano de app nativo, Fase 2)
+// — so existe fora de um instalador de verdade e com essa flag explicita,
+// nunca em producao nem sem querer: a janela normal (createWindow, acima)
+// continua carregando a pagina ao vivo do jeito de sempre, sem nenhuma
+// mudanca. GAMESHARE_DEBUG_UI_ORIGIN e a mesma origem que precisa estar
+// liberada em DESKTOP_APP_ORIGIN no Vercel pro CORS deixar essas chamadas
+// passarem (ver src/lib/cors.ts).
+const DEBUG_UI = !app.isPackaged && process.env.GAMESHARE_DEBUG_UI === "1";
+const DEBUG_UI_SCHEME = "gameshare-app";
+const DEBUG_UI_ORIGIN = `${DEBUG_UI_SCHEME}://local`;
+const DEBUG_UI_DIR = path.join(__dirname, "..", "desktop-ui", "out");
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: DEBUG_UI_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
+]);
 
 // So uma instancia por vez — sem isso, abrir o app de novo enquanto ele ja
 // esta rodando minimizado na bandeja abriria um processo novo do zero em
@@ -374,6 +403,100 @@ function startDesktopLogin() {
   }, 2000);
 }
 
+// --- Fatia de teste da interface embutida (Fase 2 do plano de app nativo) ---
+// So roda quando DEBUG_UI e verdadeiro (ver definicao acima) — nada disso
+// afeta a janela principal nem o app publicado.
+
+const DEBUG_TOKEN_FILE = () => path.join(app.getPath("userData"), "desktop-ui-session.bin");
+
+function readStoredToken() {
+  try {
+    const encrypted = fs.readFileSync(DEBUG_TOKEN_FILE());
+    if (!safeStorage.isEncryptionAvailable()) return null;
+    return safeStorage.decryptString(encrypted);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredToken(token) {
+  if (!safeStorage.isEncryptionAvailable()) {
+    log.warn("safeStorage indisponivel — token da janela de teste nao pode ser salvo.");
+    return;
+  }
+  fs.writeFileSync(DEBUG_TOKEN_FILE(), safeStorage.encryptString(token));
+}
+
+function clearStoredToken() {
+  fs.rm(DEBUG_TOKEN_FILE(), { force: true }, () => {});
+}
+
+ipcMain.handle("auth:get-token", () => readStoredToken());
+
+ipcMain.handle("auth:clear-token", () => {
+  clearStoredToken();
+});
+
+// Mesmo fluxo do startDesktopLogin (abre o navegador padrao, espera a
+// pessoa logar, poll no codigo) so que pedindo o token em JSON
+// ("?as=token", ver finish/route.ts) em vez de deixar o Set-Cookie grudar
+// numa janela — e exatamente essa troca que faz sentido pra uma janela
+// que nao esta mais na mesma origem da API.
+function startDebugTokenLogin() {
+  return new Promise((resolve) => {
+    const code = crypto.randomBytes(16).toString("hex");
+    shell.openExternal(`${APP_URL}/desktop-login/${code}`);
+
+    const startedAt = Date.now();
+    const interval = setInterval(async () => {
+      if (Date.now() - startedAt > 10 * 60 * 1000) {
+        clearInterval(interval);
+        resolve(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${APP_URL}/api/desktop-login/${code}`);
+        const data = await res.json();
+        if (data.status === "ready") {
+          clearInterval(interval);
+          const finishRes = await fetch(`${APP_URL}/api/desktop-login/${code}/finish?as=token`);
+          const finishData = await finishRes.json();
+          if (finishData.token) {
+            writeStoredToken(finishData.token);
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        } else if (data.status === "expired") {
+          clearInterval(interval);
+          resolve(false);
+        }
+      } catch {
+        // rede instavel — tenta de novo no proximo ciclo
+      }
+    }, 2000);
+  });
+}
+
+ipcMain.handle("auth:start-login", () => startDebugTokenLogin());
+
+function createDebugDesktopUiWindow() {
+  const win = new BrowserWindow({
+    width: 1100,
+    height: 750,
+    title: "GameShare — teste (app nativo)",
+    backgroundColor: "#0b0d12",
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      preload: path.join(__dirname, "main-preload.js"),
+    },
+  });
+  win.loadURL(`${DEBUG_UI_ORIGIN}/friends.html`);
+  win.webContents.openDevTools({ mode: "detach" });
+}
+
 // Checa atualizacao toda vez que o app abre (e depois, a cada 4h se ficar
 // aberto). Se tiver uma versao nova publicada nos Releases do GitHub,
 // baixa sozinho em segundo plano e pergunta se pode reiniciar pra aplicar
@@ -440,6 +563,33 @@ app.whenReady().then(() => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+
+  if (DEBUG_UI) {
+    // Serve o export estatico do desktop-ui/ por um protocolo proprio, em
+    // vez de file:// cru — assim a pagina tem uma origem de verdade
+    // (gameshare-app://local) que da pra liberar explicitamente no CORS
+    // do backend, em vez do "null" generico que file:// manda.
+    const MIME_TYPES = {
+      ".html": "text/html",
+      ".js": "text/javascript",
+      ".css": "text/css",
+      ".json": "application/json",
+      ".svg": "image/svg+xml",
+      ".png": "image/png",
+      ".ico": "image/x-icon",
+      ".woff2": "font/woff2",
+    };
+    protocol.handle(DEBUG_UI_SCHEME, (request) => {
+      const url = new URL(request.url);
+      let filePath = path.join(DEBUG_UI_DIR, decodeURIComponent(url.pathname));
+      if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+        filePath = path.join(DEBUG_UI_DIR, "404.html");
+      }
+      const contentType = MIME_TYPES[path.extname(filePath)] ?? "application/octet-stream";
+      return new Response(fs.readFileSync(filePath), { headers: { "Content-Type": contentType } });
+    });
+    createDebugDesktopUiWindow();
+  }
 });
 
 app.on("window-all-closed", () => {

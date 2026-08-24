@@ -24,6 +24,14 @@ type GameshareDesktopBridge = {
   stopAppAudio: () => void;
   onSystemAudioChunk: (callback: (chunk: ArrayBuffer) => void) => () => void;
   setUnreadBadge: (hasUnread: boolean) => void;
+  // So existe na janela do app de desktop EMBUTIDO (ver desktop-ui/), que
+  // roda numa origem diferente da API e por isso usa token em vez de
+  // cookie -- indefinido tanto no navegador quanto no app de desktop atual
+  // (que ainda carrega a pagina ao vivo, com cookie normal). Ver
+  // desktop-ui/shims/next-auth-react.tsx.
+  getAuthToken?: () => Promise<string | null>;
+  startLogin?: () => Promise<void>;
+  clearAuthToken?: () => Promise<void>;
 };
 
 declare global {

@@ -1,9 +1,11 @@
 node_modules
 .next
+out
 .env
 .env.local
 *.log
 *.tsbuildinfo
+desktop-ui/next-env.d.ts
 desktop/release
 desktop/loopback_helper.exe
 desktop/native/loopback-helper/loopback_helper.exe

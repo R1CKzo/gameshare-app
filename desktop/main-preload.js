@@ -1,12 +1,14 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-// So expoe a ponte se a pagina carregada for mesmo o nosso site — mesmo
-// sendo raro (o main.js ja intercepta navegacao pra fora), evita que essa
-// API fique acessivel se por algum motivo essa janela acabar carregando
-// outra origem.
-const ALLOWED_ORIGIN = "https://gameshare-app.vercel.app";
+// So expoe a ponte se a pagina carregada for mesmo o nosso site (ou, na
+// janela de teste da Fase 2 do app nativo, a interface embutida servida
+// pelo protocolo gameshare-app:// — ver main.js) — mesmo sendo raro (o
+// main.js ja intercepta navegacao pra fora), evita que essa API fique
+// acessivel se por algum motivo essa janela acabar carregando outra
+// origem.
+const ALLOWED_ORIGINS = ["https://gameshare-app.vercel.app", "gameshare-app://local"];
 
-if (location.origin === ALLOWED_ORIGIN) {
+if (ALLOWED_ORIGINS.includes(location.origin)) {
   contextBridge.exposeInMainWorld("gameshareDesktop", {
     isDesktop: true,
     // Lista as telas e janelas/apps abertos (com miniatura de cada um) pro
@@ -42,5 +44,13 @@ if (location.origin === ALLOWED_ORIGIN) {
     // chamado pelo GlobalNotificationListener toda vez que o total de
     // notificacoes nao lidas do app muda.
     setUnreadBadge: (hasUnread) => ipcRenderer.send("badge:set", hasUnread),
+
+    // So usado pela janela de teste da interface embutida (Fase 2 do
+    // plano de app nativo) — le/inicia/apaga o token guardado com
+    // safeStorage no processo principal (ver main.js). Indefinido na
+    // janela principal de sempre, que ainda usa cookie.
+    getAuthToken: () => ipcRenderer.invoke("auth:get-token"),
+    startLogin: () => ipcRenderer.invoke("auth:start-login"),
+    clearAuthToken: () => ipcRenderer.invoke("auth:clear-token"),
   });
 }
