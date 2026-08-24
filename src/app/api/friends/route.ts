@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { corsPreflight, withCors } from "@/lib/cors";
+import { getRequestSession } from "@/lib/getRequestSession";
 import { prisma } from "@/lib/prisma";
 import { FRIEND_ACCEPTED_EVENT, FRIEND_REQUEST_EVENT, pusherServer, userPusherName } from "@/lib/pusher";
 
@@ -10,11 +12,14 @@ export const dynamic = "force-dynamic";
 const userSelect = { id: true, nickname: true, userTag: true, image: true, status: true, lastActiveAt: true } as const;
 
 // Lista amigos (aceitos) + pedidos pendentes recebidos e enviados. Tudo
-// numa chamada so pra tela de Amigos nao precisar de 3 requests.
-export async function GET() {
-  const session = await getServerSession(authOptions);
+// numa chamada so pra tela de Amigos nao precisar de 3 requests. Login por
+// token + CORS (ver src/lib/cors.ts) pro app de desktop embutido chamar
+// direto -- POST abaixo continua so por cookie, ninguem alem do site
+// manda pedido de amizade ainda.
+export async function GET(request: Request) {
+  const session = await getRequestSession(request);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    return withCors(request, NextResponse.json({ error: "Não autenticado." }, { status: 401 }));
   }
 
   const friendships = await prisma.friendship.findMany({
@@ -49,7 +54,11 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ friends, incoming, outgoing });
+  return withCors(request, NextResponse.json({ friends, incoming, outgoing }));
+}
+
+export async function OPTIONS(request: Request) {
+  return corsPreflight(request);
 }
 
 // Manda um pedido de amizade por Nick#Tag. Se a outra pessoa ja tinha

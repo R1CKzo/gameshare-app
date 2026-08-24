@@ -1,7 +1,7 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
-import { authOptions } from "@/lib/auth";
+import { corsPreflight, withCors } from "@/lib/cors";
+import { getRequestSession } from "@/lib/getRequestSession";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -11,11 +11,12 @@ export const dynamic = "force-dynamic";
 // carregamento do app: alimenta tanto os badges iniciais quanto a lista de
 // canais que o listener global do Pusher vai assinar (ver
 // GlobalNotificationListener.tsx) — sem isso nao tem como saber, de um
-// lugar so, em quais canais escutar mensagem nova.
-export async function GET() {
-  const session = await getServerSession(authOptions);
+// lugar so, em quais canais escutar mensagem nova. Login por token + CORS
+// (ver src/lib/cors.ts) pro app de desktop embutido chamar direto.
+export async function GET(request: Request) {
+  const session = await getRequestSession(request);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    return withCors(request, NextResponse.json({ error: "Não autenticado." }, { status: 401 }));
   }
   const userId = session.user.id;
 
@@ -44,23 +45,30 @@ export async function GET() {
 
   // Sem linha de leitura = tratado como lido (evita badge retroativo em
   // canal que a pessoa nunca visitou desde que esse recurso existe).
-  return NextResponse.json({
-    channels: channels.map((c) => {
-      const lastMessageAt = c.messages[0]?.createdAt ?? null;
-      const lastReadAt = channelReadMap.get(c.id) ?? null;
-      return {
-        channelId: c.id,
-        serverId: c.serverId,
-        unread: Boolean(lastReadAt && lastMessageAt && lastMessageAt > lastReadAt),
-      };
+  return withCors(
+    request,
+    NextResponse.json({
+      channels: channels.map((c) => {
+        const lastMessageAt = c.messages[0]?.createdAt ?? null;
+        const lastReadAt = channelReadMap.get(c.id) ?? null;
+        return {
+          channelId: c.id,
+          serverId: c.serverId,
+          unread: Boolean(lastReadAt && lastMessageAt && lastMessageAt > lastReadAt),
+        };
+      }),
+      dms: dmChannels.map((d) => {
+        const lastMessageAt = d.messages[0]?.createdAt ?? null;
+        const lastReadAt = dmReadMap.get(d.id) ?? null;
+        return {
+          dmChannelId: d.id,
+          unread: Boolean(lastReadAt && lastMessageAt && lastMessageAt > lastReadAt),
+        };
+      }),
     }),
-    dms: dmChannels.map((d) => {
-      const lastMessageAt = d.messages[0]?.createdAt ?? null;
-      const lastReadAt = dmReadMap.get(d.id) ?? null;
-      return {
-        dmChannelId: d.id,
-        unread: Boolean(lastReadAt && lastMessageAt && lastMessageAt > lastReadAt),
-      };
-    }),
-  });
+  );
+}
+
+export async function OPTIONS(request: Request) {
+  return corsPreflight(request);
 }
