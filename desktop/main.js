@@ -12,7 +12,39 @@ const { spawn } = require("child_process");
 log.transports.file.level = "info";
 autoUpdater.logger = log;
 
-const APP_URL = "https://gameshare-app.vercel.app";
+const STABLE_URL = "https://gameshare-app.vercel.app";
+const BETA_URL = "https://gameshare-beta.vercel.app";
+
+// Preferencia de trilha (estavel/beta) guardada em disco, fora da pasta de
+// instalacao — sobrevive a atualizacoes do instalador. So decide qual
+// ENDERECO o app abre (o site beta e um deploy Vercel separado, do branch
+// "beta") — nao tem nada a ver com a versao do PROPRIO instalador, que
+// continua a mesma pra todo mundo (ver a conversa que motivou isso: quase
+// tudo que muda no app e codigo de site, nao do instalador).
+const channelFilePath = path.join(app.getPath("userData"), "channel.json");
+
+function getChannel() {
+  try {
+    const data = JSON.parse(fs.readFileSync(channelFilePath, "utf-8"));
+    return data.channel === "beta" ? "beta" : "stable";
+  } catch {
+    return "stable";
+  }
+}
+
+function setChannel(channel) {
+  const next = channel === "beta" ? "beta" : "stable";
+  try {
+    fs.writeFileSync(channelFilePath, JSON.stringify({ channel: next }));
+  } catch (err) {
+    log.error("Erro ao salvar a trilha (beta/estavel):", err);
+  }
+  return next;
+}
+
+function getAppUrl() {
+  return getChannel() === "beta" ? BETA_URL : STABLE_URL;
+}
 
 // So uma instancia por vez — sem isso, abrir o app de novo enquanto ele ja
 // esta rodando minimizado na bandeja abriria um processo novo do zero em
@@ -199,7 +231,7 @@ function createWindow() {
   });
 
   mainWindow.webContents.setUserAgent(DESKTOP_CHROME_UA);
-  mainWindow.loadURL(APP_URL);
+  mainWindow.loadURL(getAppUrl());
 
   // O login do Google (e qualquer navegacao pro fluxo de sign-in do
   // NextAuth) e barrado dentro da janela do Electron — intercepta antes
@@ -282,6 +314,20 @@ ipcMain.on("badge:set", (_event, hasUnread) => {
   setUnreadBadge(Boolean(hasUnread));
 });
 
+// Trilha beta/estavel (ver getAppUrl acima) — o site em si expoe o toggle
+// nas Configuracoes, aqui so guarda a escolha e recarrega a janela pro
+// endereco novo. mainWindow.loadURL troca a origem por completo (cookies,
+// localStorage etc. ficam isolados por origem sozinhos, sem precisar de
+// nenhuma limpeza manual) — por isso trocar de trilha sempre pede login de
+// novo do outro lado.
+ipcMain.handle("channel:get", () => getChannel());
+
+ipcMain.handle("channel:set", (_event, channel) => {
+  const next = setChannel(channel);
+  mainWindow?.loadURL(getAppUrl());
+  return next;
+});
+
 function createTray() {
   if (tray) return;
 
@@ -338,29 +384,29 @@ function startDesktopLogin() {
   const code = crypto.randomBytes(16).toString("hex");
 
   mainWindow.loadFile(path.join(__dirname, "wait.html"));
-  shell.openExternal(`${APP_URL}/desktop-login/${code}`);
+  shell.openExternal(`${getAppUrl()}/desktop-login/${code}`);
 
   const startedAt = Date.now();
   loginPollInterval = setInterval(async () => {
     if (Date.now() - startedAt > 10 * 60 * 1000) {
       clearInterval(loginPollInterval);
       loginPollInterval = null;
-      mainWindow?.loadURL(APP_URL);
+      mainWindow?.loadURL(getAppUrl());
       return;
     }
 
     try {
-      const res = await fetch(`${APP_URL}/api/desktop-login/${code}`);
+      const res = await fetch(`${getAppUrl()}/api/desktop-login/${code}`);
       const data = await res.json();
 
       if (data.status === "ready") {
         clearInterval(loginPollInterval);
         loginPollInterval = null;
-        mainWindow?.loadURL(`${APP_URL}/api/desktop-login/${code}/finish`);
+        mainWindow?.loadURL(`${getAppUrl()}/api/desktop-login/${code}/finish`);
       } else if (data.status === "expired") {
         clearInterval(loginPollInterval);
         loginPollInterval = null;
-        mainWindow?.loadURL(APP_URL);
+        mainWindow?.loadURL(getAppUrl());
       }
     } catch {
       // rede instavel — tenta de novo no proximo ciclo
