@@ -58,9 +58,10 @@ export function ParticipantGrid({
             key={user.id}
             user={user}
             isSelf={user.id === currentUserId}
+            isSharing={user.id === sharingUserId}
             stream={user.id === currentUserId ? localStream : user.peerId ? remoteStreams.get(user.peerId) ?? null : null}
-            muted={user.id === currentUserId ? isMuted : false}
-            compact={!!sharer}
+            muted={user.id === currentUserId ? isMuted : user.isMuted}
+            size={tileSize(present.length, !!sharer)}
           />
         ))}
       </div>
@@ -80,18 +81,36 @@ function ScreenView({ stream }: { stream: MediaStream }) {
   return <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-contain" />;
 }
 
+type TileSize = { avatar: string; pad: string };
+
+// Faixas de tamanho por quantidade de gente na sala — 4 niveis, do maior
+// (poucas pessoas) ao menor (sala cheia). O modo compacto (quando tem
+// compartilhamento de tela rolando, disputando espaco com a miniatura
+// grande) funciona como um multiplicador em cima disso: desloca a
+// contagem efetiva pra frente, empurrando a mesma sala pra uma faixa menor
+// mais cedo, em vez de precisar de uma tabela em dobro.
+function tileSize(count: number, compact: boolean): TileSize {
+  const effective = compact ? count + 4 : count;
+  if (effective <= 4) return { avatar: "h-16 w-16", pad: "py-6" };
+  if (effective <= 8) return { avatar: "h-14 w-14", pad: "py-5" };
+  if (effective <= 12) return { avatar: "h-12 w-12", pad: "py-4" };
+  return { avatar: "h-10 w-10", pad: "py-3" };
+}
+
 function ParticipantTile({
   user,
   isSelf,
+  isSharing,
   stream,
   muted,
-  compact,
+  size,
 }: {
   user: PresentUser;
   isSelf: boolean;
+  isSharing: boolean;
   stream: MediaStream | null;
   muted: boolean;
-  compact: boolean;
+  size: TileSize;
 }) {
   const speaking = useSpeakingDetector(stream, muted);
 
@@ -99,28 +118,38 @@ function ParticipantTile({
   const label = `${user.nickname ?? "Alguém"}${user.userTag ? "#" + user.userTag : ""}`;
 
   return (
-    <div
-      className={`flex flex-col items-center justify-center gap-2 rounded-xl bg-elevated/70 py-4 transition ${
-        compact ? "py-3" : "py-6"
-      }`}
-    >
+    <div className={`flex flex-col items-center justify-center gap-2 rounded-xl bg-elevated/70 transition ${size.pad}`}>
       <div
-        className={`rounded-full border-[3px] p-0.5 transition-colors ${speaking ? "border-accent" : "border-transparent"}`}
+        className={`relative rounded-full border-[3px] p-0.5 transition-colors ${speaking ? "border-accent" : "border-transparent"}`}
       >
-        <div
-          className={`relative overflow-hidden rounded-full bg-primary ${compact ? "h-12 w-12" : "h-16 w-16"}`}
-        >
+        <div className={`relative overflow-hidden rounded-full bg-primary ${size.avatar}`}>
           {user.image ? (
             <Image src={user.image} alt="" fill sizes="64px" className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center font-display text-lg font-bold">{initials}</div>
           )}
         </div>
+        {isSharing && <ShareBadge />}
       </div>
       <div className="flex max-w-full items-center gap-1 px-2 text-xs font-semibold text-[#d5d7dc]">
-        {muted && isSelf && <MutedIcon />}
+        {muted && <MutedIcon />}
         <span className="truncate">{isSelf ? "Você" : label}</span>
       </div>
+    </div>
+  );
+}
+
+// Mesmo indicador de "compartilhando" que ja aparece na barra da miniatura
+// grande, só que como um selinho no canto do avatar pequeno — antes so
+// dava pra saber quem estava compartilhando olhando o video grande.
+function ShareBadge() {
+  return (
+    <div className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-elevated bg-accent text-[#08090d]">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8" />
+        <path d="M12 17v4" />
+      </svg>
     </div>
   );
 }

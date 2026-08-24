@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import { type PresentUser, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { playJoinCallSound, playLeaveCallSound } from "@/lib/sound";
 
 export type ActiveCallTarget =
   | { kind: "channel"; channelId: string; serverId: string; apiBase: string; name: string }
@@ -104,10 +105,13 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     // exatamente essa corrida quando alguem reentrava rapido.
     function beat() {
       const peerId = mesh.getPeerId();
+      // isMuted vai em toda batida (nao so quando muda) pra ficar
+      // consistente mesmo se o POST imediato do toggleMute falhar por
+      // qualquer motivo — mesma logica de resiliencia do peerId acima.
       fetch(`${apiBase}/presence`, {
         method: "POST",
-        headers: peerId ? { "Content-Type": "application/json" } : undefined,
-        body: peerId ? JSON.stringify({ peerId }) : undefined,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...(peerId ? { peerId } : {}), isMuted: mesh.getIsMuted() }),
       }).catch(() => {});
     }
 
@@ -125,6 +129,7 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     setLive({ isLive: false, broadcaster: null });
     setCurrentUserId(userId);
     setTarget(newTarget);
+    playJoinCallSound();
   }, []);
 
   const leave = useCallback(async () => {
@@ -143,6 +148,7 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     }
     setTarget(null);
     setCallError(null);
+    playLeaveCallSound();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesh.isSharingScreen, target]);
 

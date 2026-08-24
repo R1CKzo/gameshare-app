@@ -42,16 +42,24 @@ export async function POST(
 
   const body = await request.json().catch(() => ({}));
   const peerId: string | undefined = typeof body?.peerId === "string" ? body.peerId : undefined;
+  const isMuted: boolean | undefined = typeof body?.isMuted === "boolean" ? body.isMuted : undefined;
 
   // Um heartbeat sem peerId manda update:{peerId: undefined} — o Prisma
   // filtra chaves undefined do payload, e se sobrar um objeto vazio ele
   // pula a query de UPDATE (e o updatedAt do @updatedAt nunca bate). Por
   // isso o updatedAt vai explicito aqui: todo heartbeat tem que "contar"
-  // mesmo quando so esta renovando a presenca, sem peerId novo.
+  // mesmo quando so esta renovando a presenca, sem peerId novo. Mesma logica
+  // pro isMuted — o toggle manda ele na hora (ver useVoiceMesh.toggleMute),
+  // e todo heartbeat periodico normal tambem reenvia o valor atual, pra
+  // ficar consistente mesmo se aquele POST imediato falhar.
   await prisma.channelPresence.upsert({
     where: { channelId_userId: { channelId: params.channelId, userId: session.user.id } },
-    create: { channelId: params.channelId, userId: session.user.id, peerId },
-    update: { updatedAt: new Date(), ...(peerId !== undefined ? { peerId } : {}) },
+    create: { channelId: params.channelId, userId: session.user.id, peerId, isMuted: isMuted ?? false },
+    update: {
+      updatedAt: new Date(),
+      ...(peerId !== undefined ? { peerId } : {}),
+      ...(isMuted !== undefined ? { isMuted } : {}),
+    },
   });
 
   return NextResponse.json({ ok: true });

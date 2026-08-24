@@ -26,11 +26,16 @@ export async function POST(request: Request, { params }: { params: { dmChannelId
 
   const body = await request.json().catch(() => ({}));
   const peerId: string | undefined = typeof body?.peerId === "string" ? body.peerId : undefined;
+  const isMuted: boolean | undefined = typeof body?.isMuted === "boolean" ? body.isMuted : undefined;
 
   await prisma.dMPresence.upsert({
     where: { dmChannelId_userId: { dmChannelId: params.dmChannelId, userId: session.user.id } },
-    create: { dmChannelId: params.dmChannelId, userId: session.user.id, peerId },
-    update: { updatedAt: new Date(), ...(peerId !== undefined ? { peerId } : {}) },
+    create: { dmChannelId: params.dmChannelId, userId: session.user.id, peerId, isMuted: isMuted ?? false },
+    update: {
+      updatedAt: new Date(),
+      ...(peerId !== undefined ? { peerId } : {}),
+      ...(isMuted !== undefined ? { isMuted } : {}),
+    },
   });
 
   return NextResponse.json({ ok: true });

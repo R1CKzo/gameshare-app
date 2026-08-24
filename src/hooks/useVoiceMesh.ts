@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getMicConstraints, loadAudioSettings, sensitivityToGateThreshold } from "@/lib/audioSettings";
 import { onSystemAudioChunk, parseWindowHandle, startAppAudio, stopAppAudio } from "@/lib/desktop";
 import { createBlankVideoTrack, createPeer } from "@/lib/peer";
+import { playMuteSound } from "@/lib/sound";
 
 // Gate de ruido: deixa a faixa do microfone passar direto quando o volume
 // esta acima do limiar (a pessoa esta falando) e silencia quando esta
@@ -44,6 +45,7 @@ export type PresentUser = {
   userTag: string | null;
   image: string | null;
   peerId: string | null;
+  isMuted: boolean;
 };
 
 // Prazo pra uma chamada de saida (peer.call) produzir audio de verdade
@@ -183,6 +185,7 @@ export function useVoiceMesh({
   const connectionsRef = useRef<Map<string, MediaConnection>>(new Map()); // peerId -> conexao
   const streamedPeerIdsRef = useRef<Set<string>>(new Set()); // quem ja mandou audio de verdade
   const peerIdRef = useRef<string | null>(null);
+  const isMutedRef = useRef(false); // espelha isMuted pro heartbeat (mora em ActiveCallProvider) ler sem closure velha
   const shareMixRef = useRef<{
     audioContext: AudioContext;
     displayStream: MediaStream;
@@ -331,6 +334,7 @@ export function useVoiceMesh({
       }
       setLocalStream(null);
       setIsMuted(false);
+      isMutedRef.current = false;
       setIsSharingScreen(false);
       setMicError(null);
     };
@@ -396,13 +400,25 @@ export function useVoiceMesh({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, present, currentUserId]);
 
+  // Muda o estado local e avisa a malha na hora (nao espera o proximo
+  // heartbeat periodico de ActiveCallProvider, que pode demorar ate
+  // HEARTBEAT_MS) — assim quem esta ouvindo ve o icone de mudo
+  // aparecer/sumir quase instantaneamente.
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => {
       const next = !prev;
+      isMutedRef.current = next;
       if (micTrackRef.current) micTrackRef.current.enabled = !next;
+      playMuteSound(next);
+      const peerId = peerIdRef.current;
+      fetch(`${apiBase}/presence`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...(peerId ? { peerId } : {}), isMuted: next }),
+      }).catch(() => {});
       return next;
     });
-  }, []);
+  }, [apiBase]);
 
   function replaceOutgoingTracks(video: MediaStreamTrack, audio: MediaStreamTrack) {
     connectionsRef.current.forEach((call) => {
@@ -498,6 +514,14 @@ export function useVoiceMesh({
     return peerIdRef.current;
   }
 
+  // Mesmo motivo do getPeerId: o heartbeat periodico (em ActiveCallProvider)
+  // roda numa closure que so e recriada quando a apiBase muda, entao ler
+  // isMuted (estado do React) direto ali dentro pegaria sempre o valor de
+  // quando o efeito foi criado, nunca o atual. Ler pela ref contorna isso.
+  function getIsMuted(): boolean {
+    return isMutedRef.current;
+  }
+
   return {
     localStream,
     remoteStreams,
@@ -508,5 +532,6 @@ export function useVoiceMesh({
     stopScreenShare,
     micError,
     getPeerId,
+    getIsMuted,
   };
 }

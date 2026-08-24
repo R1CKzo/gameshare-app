@@ -352,7 +352,8 @@ model ChannelPresence {
   id        String   @id @default(uuid())
   updatedAt DateTime @updatedAt
 
-  peerId String? @unique
+  peerId  String?  @unique
+  isMuted Boolean  @default(false)
 
   channelId String
   channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
@@ -469,7 +470,8 @@ model DMPresence {
   id        String   @id @default(uuid())
   updatedAt DateTime @updatedAt
 
-  peerId String? @unique
+  peerId  String?  @unique
+  isMuted Boolean  @default(false)
 
   dmChannelId String
   dmChannel   DMChannel @relation(fields: [dmChannelId], references: [id], onDelete: Cascade)

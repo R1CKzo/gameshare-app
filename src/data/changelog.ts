@@ -34,6 +34,10 @@ export const changelog: ChangelogEntry[] = [
       "Clique no seu próprio avatar, embaixo na barra lateral, pra escolher o status manualmente (ou deixar no automático)",
       "No automático, o status vira \"ausente\" sozinho depois de 5 minutos sem mexer no mouse ou teclado, ou ao minimizar o app",
       "Botão \"+\" ao lado de \"Canais de texto\" e \"Salas de chamada\" pra criar um novo, e um menu (≡) em cada canal pra renomear ou excluir — sem contar com o dono, dá pra liberar isso pra um cargo customizado também",
+      "Na chamada, agora dá pra ver quem mais está mudo, não só você mesmo",
+      "Selinho no avatar de quem está compartilhando a tela, mesmo na miniatura pequena",
+      "As miniaturas da chamada encolhem conforme mais gente entra na sala",
+      "Som ao entrar/sair da chamada e ao mutar/desmutar o microfone",
     ],
     bugsFixed: [
       "Status fixado manualmente (ex: \"Ocupado\") podia ser sobrescrito por engano logo depois de recarregar a página, aparecendo errado pra outras pessoas",

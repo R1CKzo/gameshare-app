@@ -28,6 +28,7 @@ export async function GET(_request: Request, { params }: { params: { dmChannelId
         where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } },
         select: {
           peerId: true,
+          isMuted: true,
           user: { select: { id: true, nickname: true, userTag: true, image: true } },
         },
       },
@@ -42,6 +43,6 @@ export async function GET(_request: Request, { params }: { params: { dmChannelId
     id: dmChannel.id,
     isLive: dmChannel.isLive,
     broadcaster: dmChannel.broadcaster,
-    present: dmChannel.presences.map((p) => ({ ...p.user, peerId: p.peerId })),
+    present: dmChannel.presences.map((p) => ({ ...p.user, peerId: p.peerId, isMuted: p.isMuted })),
   });
 }

@@ -161,7 +161,7 @@ export function DMChatView({
               present={
                 present.length > 0
                   ? present
-                  : [{ id: currentUserId, nickname: null, userTag: null, image: null, peerId: null }]
+                  : [{ id: currentUserId, nickname: null, userTag: null, image: null, peerId: null, isMuted: false }]
               }
               currentUserId={currentUserId}
               localStream={activeCall.localStream}
