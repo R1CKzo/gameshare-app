@@ -116,15 +116,21 @@ export function setUnreadBadge(hasUnread: boolean): void {
 
 // Verifica se tem uma build beta publicada (ver desktop/main.js) — so faz
 // sentido no app de desktop; no navegador nunca ha build beta pra baixar.
+// Checa o METODO especifico (nao so window.gameshareDesktop) porque o site
+// atualiza sozinho e na hora, mas o preload.js do app instalado so muda
+// numa atualizacao nova do instalador — sem essa checagem, quem ainda esta
+// numa versao mais antiga (sem esses metodos no preload) chamava undefined
+// como funcao e quebrava o app inteiro (aconteceu em producao, ver
+// [[feedback-...]] se isso virar licao permanente).
 export function checkBetaBuild(): Promise<BetaCheckResult> {
-  if (typeof window === "undefined" || !window.gameshareDesktop) {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.checkBetaBuild) {
     return Promise.resolve({ available: false });
   }
   return window.gameshareDesktop.checkBetaBuild();
 }
 
 export function downloadAndInstallBeta(downloadUrl: string): Promise<BetaInstallResult> {
-  if (typeof window === "undefined" || !window.gameshareDesktop) {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.downloadAndInstallBeta) {
     return Promise.resolve({ ok: false, error: "not-desktop" });
   }
   return window.gameshareDesktop.downloadAndInstallBeta(downloadUrl);
@@ -134,6 +140,6 @@ export function downloadAndInstallBeta(downloadUrl: string): Promise<BetaInstall
 // UserPill.tsx). String vazia no navegador (nunca ha versao de instalador
 // nenhuma la).
 export function getAppVersion(): Promise<string> {
-  if (typeof window === "undefined" || !window.gameshareDesktop) return Promise.resolve("");
+  if (typeof window === "undefined" || !window.gameshareDesktop?.getAppVersion) return Promise.resolve("");
   return window.gameshareDesktop.getAppVersion();
 }
