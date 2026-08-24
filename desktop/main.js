@@ -633,9 +633,17 @@ app.whenReady().then(() => {
     };
     protocol.handle(DEBUG_UI_SCHEME, (request) => {
       const url = new URL(request.url);
-      let filePath = path.join(DEBUG_UI_DIR, decodeURIComponent(url.pathname));
+      const filePath = path.join(DEBUG_UI_DIR, decodeURIComponent(url.pathname));
       if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-        filePath = path.join(DEBUG_UI_DIR, "404.html");
+        // Status 404 de verdade (nao 200 com o conteudo da pagina de erro)
+        // -- servia 200 antes, entao qualquer chamada de API com o
+        // endereco errado (ex: NEXT_PUBLIC_API_BASE_URL nao configurado no
+        // build) parecia ter dado certo e so falhava mais tarde, ao tentar
+        // interpretar HTML como JSON, com um erro confuso.
+        return new Response(fs.readFileSync(path.join(DEBUG_UI_DIR, "404.html")), {
+          status: 404,
+          headers: { "Content-Type": "text/html" },
+        });
       }
       const contentType = MIME_TYPES[path.extname(filePath)] ?? "application/octet-stream";
       return new Response(fs.readFileSync(filePath), { headers: { "Content-Type": contentType } });
