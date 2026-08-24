@@ -30,7 +30,7 @@ type GameshareDesktopBridge = {
   // (que ainda carrega a pagina ao vivo, com cookie normal). Ver
   // desktop-ui/shims/next-auth-react.tsx.
   getAuthToken?: () => Promise<string | null>;
-  startLogin?: () => Promise<void>;
+  startLogin?: () => Promise<{ ok: boolean; error?: string }>;
   clearAuthToken?: () => Promise<void>;
 };
 

@@ -1,0 +1,28 @@
+{
+  "appId": "app.gameshare.desktop.testui",
+  "productName": "GameShare Teste",
+  "extraMetadata": { "name": "gameshare-desktop-testui" },
+  "files": [
+    "main.js",
+    "main-preload.js",
+    "wait.html",
+    "build/icon.ico",
+    "build/icon-badge.ico",
+    "build/dot-badge.png"
+  ],
+  "extraResources": [
+    { "from": "loopback_helper.exe", "to": "loopback_helper.exe" },
+    { "from": "../desktop-ui/out", "to": "desktop-ui-out" }
+  ],
+  "directories": { "output": "release-test" },
+  "win": { "target": "nsis", "icon": "build/icon.ico" },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "artifactName": "GameShare-Teste-Setup.exe",
+    "shortcutName": "GameShare Teste",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}

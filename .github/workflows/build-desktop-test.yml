@@ -28,6 +28,9 @@ jobs:
         working-directory: desktop/native/loopback-helper
         run: cl /nologo /EHsc /std:c++17 /O2 /W4 loopback_helper.cpp /link /OUT:..\..\loopback_helper.exe
 
+      - name: Install root dependencies (resolvidas ao subir a arvore de pastas a partir de ../src)
+        run: npm install
+
       - name: Install desktop-ui dependencies
         working-directory: desktop-ui
         run: npm install
@@ -35,6 +38,8 @@ jobs:
       - name: Build desktop-ui (export estatico)
         working-directory: desktop-ui
         run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://gameshare-app.vercel.app
 
       - name: Install desktop dependencies
         working-directory: desktop
