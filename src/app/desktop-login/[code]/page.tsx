@@ -48,7 +48,7 @@ export default async function DesktopLoginPage({ params }: { params: { code: str
   return (
     <Shell>
       <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-accent/10">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M20 6L9 17l-5-5" />
         </svg>
       </div>

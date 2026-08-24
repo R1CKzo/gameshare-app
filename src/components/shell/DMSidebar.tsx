@@ -70,8 +70,8 @@ export function DMSidebar({
   }, [conversations, dmActivity]);
 
   return (
-    <div className="flex w-[252px] shrink-0 flex-col border-r border-white/[0.06] bg-sidebar">
-      <div className="flex h-14 shrink-0 items-center border-b border-white/[0.06] px-4">
+    <div className="flex w-[252px] shrink-0 flex-col border-r border-overlay bg-sidebar">
+      <div className="flex h-14 shrink-0 items-center border-b border-overlay px-4">
         <span className="truncate font-bold">Mensagens diretas</span>
       </div>
 
@@ -79,7 +79,7 @@ export function DMSidebar({
         <Link
           href="/friends"
           prefetch
-          className="mb-2 flex items-center gap-2.5 rounded-md px-2 py-2 text-sm font-semibold text-[#d5d7dc] transition hover:bg-white/[0.03]"
+          className="mb-2 flex items-center gap-2.5 rounded-md px-2 py-2 text-sm font-semibold text-foreground-secondary transition hover:bg-overlay-weak"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -105,7 +105,7 @@ export function DMSidebar({
               href={`/dms/${c.id}`}
               prefetch
               className={`mb-0.5 flex items-center gap-2.5 rounded-md px-2 py-1.5 transition ${
-                c.id === currentDmId ? "bg-elevated" : "hover:bg-white/[0.03]"
+                c.id === currentDmId ? "bg-elevated" : "hover:bg-overlay-weak"
               }`}
             >
               <div className="relative h-8 w-8 shrink-0">
@@ -123,13 +123,13 @@ export function DMSidebar({
               <div className="min-w-0 flex-1">
                 <div
                   className={`truncate text-sm ${
-                    c.id === currentDmId || unread ? "font-semibold text-[#f5f5f7]" : "text-[#d5d7dc]"
+                    c.id === currentDmId || unread ? "font-semibold text-foreground" : "text-foreground-secondary"
                   }`}
                 >
                   {c.user.nickname}
                 </div>
                 {c.lastMessage && (
-                  <div className={`truncate text-xs ${unread ? "text-[#d5d7dc]" : "text-dim"}`}>{c.lastMessage.content}</div>
+                  <div className={`truncate text-xs ${unread ? "text-foreground-secondary" : "text-dim"}`}>{c.lastMessage.content}</div>
                 )}
               </div>
               {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />}

@@ -60,7 +60,7 @@ export function ScreenShareSourcePicker({
         className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-elevated shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="border-b border-white/[0.06] px-5 py-4">
+        <div className="border-b border-overlay px-5 py-4">
           <h2 className="font-display text-lg font-bold">Compartilhar tela</h2>
           <p className="mt-0.5 text-sm text-muted">Escolha o que compartilhar e a qualidade da transmissão.</p>
         </div>
@@ -78,7 +78,7 @@ export function ScreenShareSourcePicker({
           )}
         </div>
 
-        <div className="space-y-3 border-t border-white/[0.06] px-5 py-4">
+        <div className="space-y-3 border-t border-overlay px-5 py-4">
           <SettingRow label="Qualidade">
             <SegmentedControl
               options={RESOLUTIONS.map((r) => r.label)}
@@ -106,10 +106,10 @@ export function ScreenShareSourcePicker({
           ) : null}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-white/[0.06] px-5 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-overlay px-5 py-4">
           <button
             onClick={onCancel}
-            className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:text-[#f5f5f7]"
+            className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:text-foreground"
           >
             Cancelar
           </button>
@@ -151,7 +151,7 @@ function SegmentedControl({
           key={option}
           onClick={() => onChange(option)}
           className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-            option === value ? "bg-primary text-white" : "text-muted hover:text-[#f5f5f7]"
+            option === value ? "bg-primary text-white" : "text-muted hover:text-foreground"
           }`}
         >
           {option}
@@ -185,7 +185,7 @@ function SourceGroup({
               onClick={() => onSelect(source)}
               title={source.name}
               className={`flex flex-col overflow-hidden rounded-lg border-2 bg-background text-left transition ${
-                isSelected ? "border-primary" : "border-transparent hover:border-[#2d3344]"
+                isSelected ? "border-primary" : "border-transparent hover:border-border"
               }`}
             >
               <div className="flex h-20 items-center justify-center overflow-hidden bg-black/40">
@@ -201,7 +201,7 @@ function SourceGroup({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={source.appIcon} alt="" className="h-3.5 w-3.5 shrink-0" />
                 )}
-                <span className="truncate text-[11px] font-semibold text-[#d5d7dc]">{source.name}</span>
+                <span className="truncate text-[11px] font-semibold text-foreground-secondary">{source.name}</span>
               </div>
             </button>
           );

@@ -30,12 +30,12 @@ const STATUS_LABEL: Record<Status, string> = { OPEN: "Aberto", IN_PROGRESS: "Em 
 const STATUS_CLASS: Record<Status, string> = {
   OPEN: "bg-danger/15 text-danger",
   IN_PROGRESS: "bg-accent/15 text-accent",
-  RESOLVED: "bg-[#2d3344] text-muted",
+  RESOLVED: "bg-border text-muted",
 };
 
 const SEVERITY_LABEL: Record<Severity, string> = { LOW: "Baixa", MEDIUM: "Média", HIGH: "Alta" };
 const SEVERITY_CLASS: Record<Severity, string> = {
-  LOW: "border-[#2d3344] text-muted",
+  LOW: "border-border text-muted",
   MEDIUM: "border-accent/40 text-accent",
   HIGH: "border-danger/40 text-danger",
 };
@@ -79,7 +79,7 @@ export function BugsList({ reports: initialReports }: { reports: BugReport[] }) 
             key={f.value}
             onClick={() => setFilter(f.value)}
             className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-              filter === f.value ? "bg-primary text-white" : "bg-elevated text-muted hover:text-[#d5d7dc]"
+              filter === f.value ? "bg-primary text-white" : "bg-elevated text-muted hover:text-foreground-secondary"
             }`}
           >
             {f.label}
@@ -107,7 +107,7 @@ function BugCard({ report, onStatusChange }: { report: BugReport; onStatusChange
   const label = `${report.user.nickname ?? "Alguém"}${report.user.userTag ? "#" + report.user.userTag : ""}`;
 
   return (
-    <div className="rounded-xl border border-[#2d3344] bg-elevated/40 p-4 sm:p-5">
+    <div className="rounded-xl border border-border bg-elevated/40 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
@@ -118,14 +118,14 @@ function BugCard({ report, onStatusChange }: { report: BugReport; onStatusChange
               {SEVERITY_LABEL[report.severity]}
             </span>
           </div>
-          <h3 className="font-display text-[15px] font-bold text-[#f5f5f7]">{report.title}</h3>
+          <h3 className="font-display text-[15px] font-bold text-foreground">{report.title}</h3>
         </div>
         <StatusMenu current={report.status} onChange={onStatusChange} />
       </div>
 
-      <p className="mt-2.5 whitespace-pre-wrap text-sm leading-relaxed text-[#d5d7dc]">{report.description}</p>
+      <p className="mt-2.5 whitespace-pre-wrap text-sm leading-relaxed text-foreground-secondary">{report.description}</p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-white/[0.06] pt-3 text-xs text-dim">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-overlay pt-3 text-xs text-dim">
         <div className="flex items-center gap-1.5">
           <div className="relative h-4 w-4 overflow-hidden rounded-full bg-primary">
             {report.user.image && <Image src={report.user.image} alt="" fill sizes="16px" className="object-cover" />}
@@ -149,7 +149,7 @@ function StatusMenu({ current, onChange }: { current: Status; onChange: (status:
           <button
             key={s}
             onClick={() => onChange(s)}
-            className="rounded-full border border-[#2d3344] px-2.5 py-1 text-[11px] font-semibold text-muted transition hover:border-primary hover:text-[#f5f5f7]"
+            className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-muted transition hover:border-primary hover:text-foreground"
           >
             {STATUS_LABEL[s]}
           </button>

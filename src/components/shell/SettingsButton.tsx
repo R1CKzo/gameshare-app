@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useTheme } from "@/components/ThemeProvider";
 import {
   DEFAULT_AUDIO_SETTINGS,
   getMicConstraints,
@@ -52,7 +53,7 @@ export function SettingsButton() {
       <button
         onClick={() => setOpen(true)}
         title="Configurações"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-dim transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-dim transition hover:bg-elevated-hover hover:text-foreground"
       >
         <GearIcon />
       </button>
@@ -68,26 +69,26 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-overlay-strong bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-overlay px-5 py-4">
           <h2 className="font-display text-lg font-bold">Configurações</h2>
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground"
           >
             <CloseIcon />
           </button>
         </div>
 
-        <div className="flex shrink-0 gap-1 border-b border-white/[0.06] px-3 pt-3">
+        <div className="flex shrink-0 gap-1 border-b border-overlay px-3 pt-3">
           {(["perfil", "audio", "seguranca", "bug"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`rounded-t-lg px-4 py-2 text-sm font-bold capitalize transition ${
-                tab === t ? "bg-elevated text-[#f5f5f7]" : "text-muted hover:text-[#d5d7dc]"
+                tab === t ? "bg-elevated text-foreground" : "text-muted hover:text-foreground-secondary"
               }`}
             >
               {t === "perfil" ? "Perfil" : t === "audio" ? "Áudio" : t === "seguranca" ? "Segurança" : "Reportar bug"}
@@ -114,6 +115,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 
 function ProfileTab() {
   const { data: session, update } = useSession();
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [nickname, setNickname] = useState(session?.user?.nickname ?? "");
   const [image, setImage] = useState<string | null>(session?.user?.image ?? null);
@@ -180,10 +182,36 @@ function ProfileTab() {
 
   return (
     <div className="space-y-5">
+      <div>
+        <label className="mb-2 block text-xs font-bold tracking-wide text-muted">APARÊNCIA</label>
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => setTheme("dark")}
+            className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+              theme === "dark" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
+            }`}
+          >
+            <MoonIcon className="mx-auto mb-1" />
+            Escuro
+          </button>
+          <button
+            type="button"
+            onClick={() => setTheme("light")}
+            className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+              theme === "light" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
+            }`}
+          >
+            <SunIcon className="mx-auto mb-1" />
+            Claro
+          </button>
+        </div>
+      </div>
+
       <div className="flex items-center gap-4">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-[#2d3344] bg-primary"
+          className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-border bg-primary"
         >
           {image ? (
             // unoptimized: quando image vem da sessao (/api/me/avatar), o
@@ -215,7 +243,7 @@ function ProfileTab() {
             onChange={(e) => setNickname(e.target.value)}
             minLength={3}
             maxLength={16}
-            className="h-11 flex-1 rounded-xl border border-[#2d3344] bg-background px-4 text-[15px] font-semibold outline-none focus:border-primary"
+            className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-[15px] font-semibold outline-none focus:border-primary"
           />
           <span className="text-sm font-bold text-dim">#{userTag}</span>
         </div>
@@ -350,7 +378,7 @@ function AudioTab() {
           id="mic-device"
           value={settings.deviceId ?? ""}
           onChange={(e) => update({ deviceId: e.target.value || null })}
-          className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
+          className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
         >
           <option value="">Padrão do sistema</option>
           {devices.map((d) => (
@@ -439,7 +467,7 @@ function ToggleRow({
   return (
     <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl bg-elevated/60 p-3.5">
       <div>
-        <div className="text-sm font-bold text-[#f5f5f7]">{label}</div>
+        <div className="text-sm font-bold text-foreground">{label}</div>
         <div className="mt-0.5 text-xs text-dim">{description}</div>
       </div>
       <input
@@ -514,7 +542,7 @@ function SegurancaTab() {
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
           <CheckIcon />
         </div>
-        <p className="text-sm font-bold text-[#f5f5f7]">{hasPassword ? "Senha alterada!" : "Senha definida!"}</p>
+        <p className="text-sm font-bold text-foreground">{hasPassword ? "Senha alterada!" : "Senha definida!"}</p>
       </div>
     );
   }
@@ -528,7 +556,7 @@ function SegurancaTab() {
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           inputMode="numeric"
           placeholder="000000"
-          className="h-12 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-primary"
+          className="h-12 w-full rounded-xl border border-border bg-background px-4 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-primary"
         />
         {error && <p className="text-sm text-danger">{error}</p>}
         <button
@@ -557,7 +585,7 @@ function SegurancaTab() {
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-sm outline-none focus:border-primary"
+            className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
           />
         </div>
       )}
@@ -570,7 +598,7 @@ function SegurancaTab() {
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-sm outline-none focus:border-primary"
+          className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
         />
         <p className="mt-1.5 text-xs text-dim">Mínimo 8 caracteres.</p>
       </div>
@@ -642,7 +670,7 @@ function BugReportTab({ onClose }: { onClose: () => void }) {
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
           <CheckIcon />
         </div>
-        <p className="text-sm font-bold text-[#f5f5f7]">Reportado, valeu!</p>
+        <p className="text-sm font-bold text-foreground">Reportado, valeu!</p>
         <p className="text-xs text-dim">Assim que der uma olhada, resolvemos.</p>
       </div>
     );
@@ -662,7 +690,7 @@ TÍTULO
           onChange={(e) => setTitle(e.target.value)}
           maxLength={120}
           placeholder="Ex: áudio corta quando alguém compartilha tela"
-          className="h-11 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-sm font-semibold outline-none focus:border-primary"
+          className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm font-semibold outline-none focus:border-primary"
         />
       </div>
 
@@ -677,7 +705,7 @@ TÍTULO
           maxLength={4000}
           rows={5}
           placeholder="O que você esperava que acontecesse, o que aconteceu de verdade, e como reproduzir."
-          className="w-full resize-none rounded-xl border border-[#2d3344] bg-background px-4 py-3 text-sm outline-none focus:border-primary"
+          className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary"
         />
       </div>
 
@@ -692,8 +720,8 @@ TÍTULO
               title={s.hint}
               className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold transition ${
                 severity === s.value
-                  ? "border-primary bg-primary/10 text-[#f5f5f7]"
-                  : "border-[#2d3344] text-muted hover:text-[#d5d7dc]"
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-border text-muted hover:text-foreground-secondary"
               }`}
             >
               {s.label}
@@ -712,6 +740,23 @@ TÍTULO
         {sending ? "Enviando..." : "Enviar reporte"}
       </button>
     </form>
+  );
+}
+
+function MoonIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+function SunIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </svg>
   );
 }
 

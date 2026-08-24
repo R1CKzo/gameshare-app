@@ -40,6 +40,7 @@ export const changelog: ChangelogEntry[] = [
       "Som ao entrar/sair da chamada e ao mutar/desmutar o microfone",
       "Lista de quem está em cada sala de chamada aparece embaixo do nome dela na barra lateral, sem precisar entrar pra ver quem tá lá",
       "Sinal de conexão (barrinhas verde/amarelo/vermelho) acima do nome de cada pessoa, tanto na chamada quanto na lista da barra lateral",
+      "Modo claro pro app inteiro, com opção pra alternar entre escuro e claro nas configurações do seu perfil",
     ],
     bugsFixed: [
       "Status fixado manualmente (ex: \"Ocupado\") podia ser sobrescrito por engano logo depois de recarregar a página, aparecendo errado pra outras pessoas",
@@ -47,6 +48,7 @@ export const changelog: ChangelogEntry[] = [
       "Nova auditoria de segurança interna: atualizado um componente do site que tinha uma falha crítica conhecida, reforçada a proteção contra tentativa de adivinhar código de convite de servidor, e outras camadas de proteção adicionadas nos bastidores",
       "Dados como nickname, tag e configurações de segurança agora se atualizam sozinhos em qualquer tela, sem precisar sair e entrar de novo",
       "Contas com foto de perfil personalizada (enviada por upload, não a do Google) às vezes não conseguiam terminar o login — nem por email/senha, nem pelo Google — ficando presas na tela de login",
+      "Foto de perfil personalizada parava de aparecer (ícone de imagem quebrada) logo depois de entrar no app",
     ],
   },
   {

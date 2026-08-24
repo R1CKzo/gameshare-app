@@ -49,7 +49,7 @@ export default function SetupPage() {
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
       <div className="pointer-events-none absolute -top-56 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.20)_0%,rgba(34,211,238,0.08)_45%,transparent_70%)]" />
 
-      <div className="relative w-full max-w-md rounded-[20px] border border-white/[0.07] bg-surface p-10 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+      <div className="relative w-full max-w-md rounded-[20px] border border-overlay-strong bg-surface p-10 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
         <div className="mb-5 flex justify-center">
           <div className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -85,7 +85,7 @@ export default function SetupPage() {
               maxLength={16}
               pattern="[a-zA-Z0-9_]+"
               required
-              className="h-12 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-[15px] font-semibold outline-none focus:border-primary"
+              className="h-12 w-full rounded-xl border border-border bg-background px-4 text-[15px] font-semibold outline-none focus:border-primary"
             />
             <p className="mt-1.5 text-xs text-dim">3-16 caracteres: letras, números ou underline.</p>
           </div>

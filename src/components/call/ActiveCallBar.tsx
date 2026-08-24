@@ -25,7 +25,7 @@ export function ActiveCallBar() {
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
       </span>
-      <button onClick={() => router.push(ownPath)} className="max-w-[45vw] truncate text-sm font-semibold text-[#f5f5f7] hover:underline">
+      <button onClick={() => router.push(ownPath)} className="max-w-[45vw] truncate text-sm font-semibold text-foreground hover:underline">
         Em chamada — {target.name}
       </button>
       <button
@@ -33,7 +33,7 @@ export function ActiveCallBar() {
         aria-label={isMuted ? "Ativar microfone" : "Mutar microfone"}
         title={isMuted ? "Ativar microfone" : "Mutar microfone"}
         className={`ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
-          isMuted ? "border-transparent bg-danger/15 text-danger" : "border-[#2d3344] text-[#d5d7dc] hover:bg-elevated-hover"
+          isMuted ? "border-transparent bg-danger/15 text-danger" : "border-border text-foreground-secondary hover:bg-elevated-hover"
         }`}
       >
         {isMuted ? <MicOffIcon /> : <MicIcon />}

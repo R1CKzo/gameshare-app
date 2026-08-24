@@ -1,9 +1,9 @@
 import type { ConnectionQuality } from "@/hooks/useVoiceMesh";
 
 const QUALITY_COLOR: Record<ConnectionQuality, string> = {
-  good: "#22c55e",
-  medium: "#eab308",
-  bad: "#ef4444",
+  good: "var(--color-online)",
+  medium: "var(--color-away)",
+  bad: "var(--color-danger)",
 };
 const QUALITY_LABEL: Record<ConnectionQuality, string> = {
   good: "Conexão boa",
@@ -27,7 +27,7 @@ export function SignalIcon({ quality, className = "" }: { quality: ConnectionQua
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          style={{ height: 3 + i * 2.5, backgroundColor: i < lit ? color : "#3a3f4d" }}
+          style={{ height: 3 + i * 2.5, backgroundColor: i < lit ? color : "var(--color-border)" }}
           className="w-[3px] rounded-sm"
         />
       ))}

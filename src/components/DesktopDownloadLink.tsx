@@ -11,7 +11,7 @@ export function DesktopDownloadLink() {
     <>
       <a
         href="https://github.com/R1CKzo/gameshare-app/releases/latest/download/GameShare-Setup.exe"
-        className="mt-3 flex items-center gap-2 rounded-full border border-[#2d3344] px-6 py-3 text-sm font-bold text-[#d5d7dc] transition hover:border-primary hover:text-[#f5f5f7]"
+        className="mt-3 flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-bold text-foreground-secondary transition hover:border-primary hover:text-foreground"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />

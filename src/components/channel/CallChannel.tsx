@@ -97,15 +97,15 @@ export function CallChannel({
 
   return (
     <>
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.06] px-3 sm:gap-2.5 sm:px-5">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-overlay px-3 sm:gap-2.5 sm:px-5">
         <button
           onClick={toggleSidebar}
           aria-label="Abrir menu"
-          className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] md:hidden"
+          className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground md:hidden"
         >
           <HamburgerIcon />
         </button>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={joined ? "#22d3ee" : "#6b7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={joined ? "var(--color-accent)" : "var(--color-dim)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
           <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
         </svg>
@@ -132,7 +132,7 @@ export function CallChannel({
           <button
             onClick={toggleMembers}
             aria-label="Ver membros"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] lg:hidden"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground lg:hidden"
           >
             <MembersIcon />
           </button>
@@ -158,7 +158,7 @@ export function CallChannel({
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-5 px-4">
           <div className="flex h-[88px] w-[88px] items-center justify-center rounded-full bg-elevated">
-            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--color-dim)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
               <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
             </svg>

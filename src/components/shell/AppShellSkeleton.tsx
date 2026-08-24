@@ -21,8 +21,8 @@ export function AppShellSkeleton() {
           ))}
         </div>
 
-        <div className="flex w-[252px] shrink-0 flex-col border-r border-white/[0.06] bg-sidebar">
-          <div className="flex h-14 shrink-0 items-center border-b border-white/[0.06] px-4">
+        <div className="flex w-[252px] shrink-0 flex-col border-r border-overlay bg-sidebar">
+          <div className="flex h-14 shrink-0 items-center border-b border-overlay px-4">
             <div className="h-4 w-28 animate-pulse rounded bg-elevated" />
           </div>
           <div className="flex-1 space-y-2 p-3">
@@ -34,7 +34,7 @@ export function AppShellSkeleton() {
               />
             ))}
           </div>
-          <div className="flex h-16 shrink-0 items-center gap-2.5 border-t border-white/[0.06] bg-black/20 px-3">
+          <div className="flex h-16 shrink-0 items-center gap-2.5 border-t border-overlay bg-black/20 px-3">
             <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-elevated" />
             <div className="h-3 w-24 animate-pulse rounded bg-elevated" />
           </div>
@@ -42,7 +42,7 @@ export function AppShellSkeleton() {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-white/[0.06] px-5">
+        <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-overlay px-5">
           <div className="h-4 w-40 animate-pulse rounded bg-elevated" />
         </div>
         <div className="flex-1 space-y-3 p-5">

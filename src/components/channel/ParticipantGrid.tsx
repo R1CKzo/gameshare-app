@@ -37,7 +37,7 @@ export function ParticipantGrid({
         <div className="relative flex-1 overflow-hidden rounded-2xl border-2 border-accent bg-black">
           <ScreenView stream={sharerStream} />
           <div className="absolute left-2 top-2 flex max-w-[calc(100%-16px)] items-center gap-2 truncate rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold backdrop-blur sm:left-4 sm:top-4 sm:px-3.5 sm:py-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
               <rect x="2" y="3" width="20" height="14" rx="2" />
               <path d="M8 21h8" />
               <path d="M12 17v4" />
@@ -136,7 +136,7 @@ function ParticipantTile({
         {isSharing && <ShareBadge />}
       </div>
       <SignalIcon quality={user.connectionQuality} />
-      <div className="flex max-w-full items-center gap-1 px-2 text-xs font-semibold text-[#d5d7dc]">
+      <div className="flex max-w-full items-center gap-1 px-2 text-xs font-semibold text-foreground-secondary">
         {muted && <MutedIcon />}
         <span className="truncate">{isSelf ? "Você" : label}</span>
       </div>
@@ -149,7 +149,7 @@ function ParticipantTile({
 // dava pra saber quem estava compartilhando olhando o video grande.
 function ShareBadge() {
   return (
-    <div className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-elevated bg-accent text-[#08090d]">
+    <div className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-elevated bg-accent text-background">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" />
         <path d="M8 21h8" />
@@ -161,7 +161,7 @@ function ShareBadge() {
 
 function MutedIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <path d="M1 1l22 22" />
       <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
       <path d="M17 16.95A7 7 0 0 1 5 12v-2M19 10v2a7 7 0 0 1-.11 1.23" />

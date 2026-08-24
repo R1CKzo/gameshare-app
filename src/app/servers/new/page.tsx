@@ -74,7 +74,7 @@ export default function NewServerPage() {
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
         <div className="pointer-events-none absolute -top-56 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.16)_0%,rgba(34,211,238,0.06)_45%,transparent_70%)]" />
 
-        <div className="relative w-full max-w-md rounded-[20px] border border-white/[0.07] bg-surface p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+        <div className="relative w-full max-w-md rounded-[20px] border border-overlay-strong bg-surface p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
           <h1 className="font-display text-xl font-bold">Servidor criado</h1>
           <p className="mt-1.5 text-sm text-muted">
             Manda esse link pra galera. Quem abrir entra direto no servidor.
@@ -85,7 +85,7 @@ export default function NewServerPage() {
               readOnly
               value={created.inviteUrl}
               onFocus={(e) => e.currentTarget.select()}
-              className="h-12 min-w-0 flex-1 truncate rounded-xl border border-[#2d3344] bg-background px-4 text-sm text-[#d5d7dc] outline-none"
+              className="h-12 min-w-0 flex-1 truncate rounded-xl border border-border bg-background px-4 text-sm text-foreground-secondary outline-none"
             />
             <button
               onClick={copyLink}
@@ -97,7 +97,7 @@ export default function NewServerPage() {
 
           <button
             onClick={() => router.push(`/servers/${created.id}`)}
-            className="mt-4 h-12 w-full rounded-xl border border-[#2d3344] text-[15px] font-bold transition hover:border-accent hover:text-accent"
+            className="mt-4 h-12 w-full rounded-xl border border-border text-[15px] font-bold transition hover:border-accent hover:text-accent"
           >
             Ir para o servidor
           </button>
@@ -111,7 +111,7 @@ export default function NewServerPage() {
       <div className="pointer-events-none absolute -top-56 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.16)_0%,rgba(34,211,238,0.06)_45%,transparent_70%)]" />
 
       <div className="relative flex w-full max-w-md flex-col gap-5">
-        <div className="rounded-[20px] border border-white/[0.07] bg-surface p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+        <div className="rounded-[20px] border border-overlay-strong bg-surface p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
           <h1 className="font-display text-xl font-bold">Criar um servidor</h1>
           <p className="mt-1.5 text-sm text-muted">Dê um nome pro seu servidor e comece a jogar com a galera.</p>
 
@@ -123,7 +123,7 @@ export default function NewServerPage() {
               minLength={2}
               maxLength={40}
               required
-              className="h-12 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-[15px] outline-none focus:border-primary"
+              className="h-12 w-full rounded-xl border border-border bg-background px-4 text-[15px] outline-none focus:border-primary"
             />
             <button
               type="submit"
@@ -141,7 +141,7 @@ export default function NewServerPage() {
           <div className="h-px flex-1 bg-white/10" />
         </div>
 
-        <div className="rounded-[20px] border border-white/[0.07] bg-surface p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+        <div className="rounded-[20px] border border-overlay-strong bg-surface p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
           <h2 className="font-display text-lg font-bold">Entrar com um convite</h2>
           <p className="mt-1.5 text-sm text-muted">Cole o link ou código de convite de um servidor existente.</p>
 
@@ -151,12 +151,12 @@ export default function NewServerPage() {
               onChange={(e) => setInviteCode(e.target.value)}
               placeholder="ex: 8f3k2p9q"
               required
-              className="h-12 w-full rounded-xl border border-[#2d3344] bg-background px-4 text-[15px] outline-none focus:border-accent"
+              className="h-12 w-full rounded-xl border border-border bg-background px-4 text-[15px] outline-none focus:border-accent"
             />
             <button
               type="submit"
               disabled={loading === "join"}
-              className="h-12 w-full rounded-xl border border-[#2d3344] text-[15px] font-bold transition hover:border-accent hover:text-accent disabled:opacity-60"
+              className="h-12 w-full rounded-xl border border-border text-[15px] font-bold transition hover:border-accent hover:text-accent disabled:opacity-60"
             >
               {loading === "join" ? "Entrando..." : "Entrar no servidor"}
             </button>

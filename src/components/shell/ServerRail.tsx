@@ -97,7 +97,7 @@ export function ServerRail({
       </Link>
 
       <div className="relative">
-        {friendsActive && <div className="absolute -left-3 top-1 h-10 w-2 rounded-r-md bg-[#f5f5f7]" />}
+        {friendsActive && <div className="absolute -left-3 top-1 h-10 w-2 rounded-r-md bg-foreground" />}
         <Link
           href="/friends"
           prefetch
@@ -123,7 +123,7 @@ export function ServerRail({
         return (
           <div key={server.id} className="relative">
             {active && (
-              <div className="absolute -left-3 top-1 h-10 w-2 rounded-r-md bg-[#f5f5f7]" />
+              <div className="absolute -left-3 top-1 h-10 w-2 rounded-r-md bg-foreground" />
             )}
             <ServerIconLink server={server} active={active} />
           </div>
@@ -133,7 +133,7 @@ export function ServerRail({
       <Link
         href="/servers/new"
         title="Criar ou entrar em um servidor"
-        className="mt-1 flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-[#2d3344] text-accent transition hover:rounded-2xl"
+        className="mt-1 flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-border text-accent transition hover:rounded-2xl"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M12 5v14M5 12h14" />

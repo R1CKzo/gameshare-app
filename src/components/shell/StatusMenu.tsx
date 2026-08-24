@@ -76,7 +76,7 @@ export function StatusMenu({ status, children }: { status: PresenceStatus; child
         className="relative shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         {children}
-        <StatusDot status={status} className="-bottom-0.5 -right-0.5" borderClassName="border-[#0a0b11]" />
+        <StatusDot status={status} className="-bottom-0.5 -right-0.5" borderClassName="border-ring" />
       </button>
 
       {open &&
@@ -85,13 +85,13 @@ export function StatusMenu({ status, children }: { status: PresenceStatus; child
           <div
             ref={menuRef}
             style={{ top: position.top, left: position.left, width: MENU_WIDTH, transform: "translateY(-100%)" }}
-            className="fixed z-[100] overflow-hidden rounded-xl border border-white/[0.08] bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className="fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
             {OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => choose(opt.value)}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
               >
                 <StatusDot status={opt.dot} standalone className="shrink-0" />
                 {opt.label}
@@ -99,11 +99,11 @@ export function StatusMenu({ status, children }: { status: PresenceStatus; child
               </button>
             ))}
 
-            <div className="my-1.5 border-t border-white/[0.06]" />
+            <div className="my-1.5 border-t border-overlay" />
 
             <button
               onClick={() => choose(null)}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
             >
               <span className="h-3.5 w-3.5 shrink-0" />
               Automático

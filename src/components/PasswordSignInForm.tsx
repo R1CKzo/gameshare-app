@@ -89,7 +89,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           inputMode="numeric"
           placeholder="000000"
-          className="h-12 w-full rounded-xl border border-[#2d3344] bg-surface px-4 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-primary"
+          className="h-12 w-full rounded-xl border border-border bg-surface px-4 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-primary"
         />
         {error && <p className="text-sm text-danger">{error}</p>}
         <button
@@ -103,7 +103,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
           type="button"
           onClick={resendCode}
           disabled={resendCooldown}
-          className="w-full text-center text-xs font-semibold text-muted transition hover:text-[#d5d7dc] disabled:opacity-50"
+          className="w-full text-center text-xs font-semibold text-muted transition hover:text-foreground-secondary disabled:opacity-50"
         >
           Reenviar código
         </button>
@@ -118,14 +118,14 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email"
-        className="h-11 w-full rounded-xl border border-[#2d3344] bg-surface px-4 text-sm outline-none focus:border-primary"
+        className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm outline-none focus:border-primary"
       />
       <input
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Senha"
-        className="h-11 w-full rounded-xl border border-[#2d3344] bg-surface px-4 text-sm outline-none focus:border-primary"
+        className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm outline-none focus:border-primary"
       />
       {error && <p className="text-sm text-danger">{error}</p>}
       <button
@@ -141,7 +141,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
           setMode((m) => (m === "login" ? "signup" : "login"));
           setError("");
         }}
-        className="w-full text-center text-xs font-semibold text-muted transition hover:text-[#d5d7dc]"
+        className="w-full text-center text-xs font-semibold text-muted transition hover:text-foreground-secondary"
       >
         {mode === "login" ? "Não tem conta? Criar" : "Já tem conta? Entrar"}
       </button>

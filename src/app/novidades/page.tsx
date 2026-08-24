@@ -47,7 +47,7 @@ export default async function NovidadesPage() {
 
         <div className="space-y-6">
           {changelog.map((entry, i) => (
-            <div key={i} className="rounded-xl border border-[#2d3344] bg-elevated/40 p-5">
+            <div key={i} className="rounded-xl border border-border bg-elevated/40 p-5">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   {entry.version && (
@@ -55,7 +55,7 @@ export default async function NovidadesPage() {
                       v{entry.version}
                     </span>
                   )}
-                  <h2 className="font-display text-base font-bold text-[#f5f5f7]">{entry.title}</h2>
+                  <h2 className="font-display text-base font-bold text-foreground">{entry.title}</h2>
                 </div>
                 <span className="text-xs font-semibold text-dim">{formatDate(entry.date)}</span>
               </div>
@@ -63,7 +63,7 @@ export default async function NovidadesPage() {
               {entry.items.length > 0 && (
                 <ul className="space-y-1.5">
                   {entry.items.map((item, j) => (
-                    <li key={j} className="flex gap-2 text-sm text-[#d5d7dc]">
+                    <li key={j} className="flex gap-2 text-sm text-foreground-secondary">
                       <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
                       <span>{item}</span>
                     </li>
@@ -76,7 +76,7 @@ export default async function NovidadesPage() {
                   <div className="mb-1.5 text-[11px] font-bold tracking-wider text-muted">BUGS CORRIGIDOS</div>
                   <ul className="space-y-1.5">
                     {entry.bugsFixed.map((item, j) => (
-                      <li key={j} className="flex gap-2 text-sm text-[#d5d7dc]">
+                      <li key={j} className="flex gap-2 text-sm text-foreground-secondary">
                         <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-danger" />
                         <span>{item}</span>
                       </li>

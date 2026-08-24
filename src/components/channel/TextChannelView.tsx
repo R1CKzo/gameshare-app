@@ -53,11 +53,11 @@ export function TextChannelView({
 
   return (
     <>
-      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-white/[0.06] px-3 sm:px-5">
+      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-overlay px-3 sm:px-5">
         <button
           onClick={toggleSidebar}
           aria-label="Abrir menu"
-          className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] md:hidden"
+          className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground md:hidden"
         >
           <HamburgerIcon />
         </button>
@@ -66,7 +66,7 @@ export function TextChannelView({
         <button
           onClick={toggleMembers}
           aria-label="Ver membros"
-          className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] lg:hidden"
+          className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground lg:hidden"
         >
           <MembersIcon />
         </button>
@@ -87,7 +87,7 @@ export function TextChannelView({
                 <button
                   onClick={handleLoadOlder}
                   disabled={chat.loadingMore}
-                  className="rounded-full bg-elevated px-4 py-1.5 text-xs font-semibold text-muted transition hover:text-[#f5f5f7] disabled:opacity-50"
+                  className="rounded-full bg-elevated px-4 py-1.5 text-xs font-semibold text-muted transition hover:text-foreground disabled:opacity-50"
                 >
                   {chat.loadingMore ? "Carregando..." : "Carregar mensagens anteriores"}
                 </button>
@@ -107,7 +107,7 @@ export function TextChannelView({
             onKeyDown={handleKeyDown}
             placeholder={`Enviar mensagem em #${channelName}`}
             rows={1}
-            className="max-h-32 flex-1 resize-none bg-transparent text-sm text-[#f5f5f7] outline-none placeholder:text-muted"
+            className="max-h-32 flex-1 resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
           />
           <button
             type="submit"

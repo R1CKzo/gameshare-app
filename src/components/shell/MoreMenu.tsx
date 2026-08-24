@@ -89,7 +89,7 @@ export function MoreMenu({
         aria-label="Mais opcoes"
         title="Mais opcoes"
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition ${
-          open ? "bg-elevated-hover text-[#f5f5f7]" : "text-dim hover:bg-elevated-hover hover:text-[#f5f5f7]"
+          open ? "bg-elevated-hover text-foreground" : "text-dim hover:bg-elevated-hover hover:text-foreground"
         }`}
       >
         <MoreIcon />
@@ -101,12 +101,12 @@ export function MoreMenu({
           <div
             ref={menuRef}
             style={{ top: position.top, left: position.left, width: MENU_WIDTH, transform: "translateY(-100%)" }}
-            className="fixed z-[100] overflow-hidden rounded-xl border border-white/[0.08] bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className="fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
             <Link
               href="/novidades"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+              className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
             >
               <SparkleIcon />
               Novidades
@@ -118,7 +118,7 @@ export function MoreMenu({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+                className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
               >
                 <DownloadIcon />
                 Baixar para Windows
@@ -129,7 +129,7 @@ export function MoreMenu({
               <Link
                 href="/admin/bugs"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+                className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
               >
                 <BugIcon />
                 Bugs reportados
@@ -140,7 +140,7 @@ export function MoreMenu({
               <button
                 onClick={leaveServer}
                 disabled={leaving}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7] disabled:opacity-50"
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground disabled:opacity-50"
               >
                 <LeaveIcon />
                 {leaving ? "Saindo..." : "Sair do servidor"}
@@ -148,7 +148,7 @@ export function MoreMenu({
             )}
 
             {(!isDesktopApp() || isAdmin || (serverId && !isServerOwner)) && (
-              <div className="my-1.5 border-t border-white/[0.06]" />
+              <div className="my-1.5 border-t border-overlay" />
             )}
 
             <button

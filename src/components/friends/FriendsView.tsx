@@ -109,11 +109,11 @@ export function FriendsView() {
 
   return (
     <>
-      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-white/[0.06] px-3 sm:px-5">
+      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-overlay px-3 sm:px-5">
         <button
           onClick={toggleSidebar}
           aria-label="Abrir menu"
-          className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] md:hidden"
+          className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground md:hidden"
         >
           <HamburgerIcon />
         </button>
@@ -128,7 +128,7 @@ export function FriendsView() {
               value={tag}
               onChange={(e) => setTag(e.target.value)}
               placeholder="Nickname#123456"
-              className="h-11 flex-1 rounded-xl border border-[#2d3344] bg-background px-4 text-sm font-semibold outline-none focus:border-primary"
+              className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-sm font-semibold outline-none focus:border-primary"
             />
             <button
               type="submit"
@@ -160,7 +160,7 @@ export function FriendsView() {
                 </button>
                 <button
                   onClick={() => removeFriendship(f.friendshipId)}
-                  className="rounded-full border border-[#2d3344] px-4 py-1.5 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
+                  className="rounded-full border border-border px-4 py-1.5 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
                 >
                   Recusar
                 </button>
@@ -176,7 +176,7 @@ export function FriendsView() {
                 <span className="text-xs text-dim">Aguardando</span>
                 <button
                   onClick={() => removeFriendship(f.friendshipId)}
-                  className="rounded-full border border-[#2d3344] px-4 py-1.5 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
+                  className="rounded-full border border-border px-4 py-1.5 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
                 >
                   Cancelar
                 </button>
@@ -192,13 +192,13 @@ export function FriendsView() {
                 <button
                   onClick={() => startConversation(f.user.id)}
                   disabled={startingDm === f.user.id}
-                  className="rounded-full bg-elevated px-4 py-1.5 text-xs font-bold text-[#d5d7dc] transition hover:text-[#f5f5f7] disabled:opacity-50"
+                  className="rounded-full bg-elevated px-4 py-1.5 text-xs font-bold text-foreground-secondary transition hover:text-foreground disabled:opacity-50"
                 >
                   Mensagem
                 </button>
                 <button
                   onClick={() => removeFriendship(f.friendshipId)}
-                  className="rounded-full border border-[#2d3344] px-4 py-1.5 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
+                  className="rounded-full border border-border px-4 py-1.5 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
                 >
                   Remover
                 </button>
@@ -215,7 +215,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div className="mb-8 max-w-2xl">
       <div className="mb-2 text-[11px] font-bold tracking-wider text-muted">{title}</div>
-      <div className="divide-y divide-white/[0.06] rounded-xl bg-elevated/40">{children}</div>
+      <div className="divide-y divide-overlay rounded-xl bg-elevated/40">{children}</div>
     </div>
   );
 }
@@ -236,7 +236,7 @@ function FriendRowItem({ user, children }: { user: FriendUser; children: React.R
         <StatusDot status={status} className="-bottom-0.5 -right-0.5" borderClassName="border-elevated" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-[#f5f5f7]">{user.nickname}</div>
+        <div className="truncate text-sm font-semibold text-foreground">{user.nickname}</div>
         <div className="text-xs text-dim">#{user.userTag}</div>
       </div>
       <div className="flex shrink-0 items-center gap-2">{children}</div>

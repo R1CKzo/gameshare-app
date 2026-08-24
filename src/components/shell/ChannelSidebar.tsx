@@ -134,8 +134,8 @@ export function ChannelSidebar({
   }
 
   return (
-    <div className="flex w-[252px] shrink-0 flex-col border-r border-white/[0.06] bg-sidebar">
-      <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-white/[0.06] px-4">
+    <div className="flex w-[252px] shrink-0 flex-col border-r border-overlay bg-sidebar">
+      <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-overlay px-4">
         <span className="truncate font-bold">{serverName}</span>
         <div className="flex items-center gap-1">
           {canManageServer && (
@@ -241,7 +241,7 @@ function ChannelRow({
             }
           }}
           maxLength={NAME_MAX}
-          className="h-6 min-w-0 flex-1 rounded border border-primary bg-background px-1.5 text-sm font-semibold text-[#f5f5f7] outline-none"
+          className="h-6 min-w-0 flex-1 rounded border border-primary bg-background px-1.5 text-sm font-semibold text-foreground outline-none"
         />
       </div>
     );
@@ -258,7 +258,7 @@ function ChannelRow({
             ? "border-l-2 border-accent bg-accent/[0.08]"
             : active
               ? "bg-elevated"
-              : "hover:bg-white/[0.03]"
+              : "hover:bg-overlay-weak"
         }`}
       >
         {isCall ? (
@@ -268,7 +268,7 @@ function ChannelRow({
         )}
         <span
           className={`min-w-0 flex-1 truncate text-sm ${
-            active || hasActivity || unread ? "font-semibold text-[#f5f5f7]" : "text-[#9aa0ae]"
+            active || hasActivity || unread ? "font-semibold text-foreground" : "text-dim"
           }`}
         >
           {channel.name}
@@ -321,7 +321,7 @@ function VoicePresenceRow({ user }: { user: VoicePresentUser }) {
         <span className="block truncate text-xs text-muted">{user.nickname}</span>
       </div>
       {user.isMuted && (
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <path d="M1 1l22 22" />
           <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
           <path d="M17 16.95A7 7 0 0 1 5 12v-2M19 10v2a7 7 0 0 1-.11 1.23" />
@@ -338,7 +338,7 @@ function CallGlyph({ active, live }: { active: boolean; live: boolean }) {
       height="16"
       viewBox="0 0 24 24"
       fill="none"
-      stroke={live ? "#22d3ee" : active ? "#f5f5f7" : "#6b7280"}
+      stroke={live ? "var(--color-accent)" : active ? "var(--color-foreground)" : "var(--color-dim)"}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -415,7 +415,7 @@ function ChannelCreateButton({ onCreate }: { onCreate: (name: string) => Promise
         ref={buttonRef}
         onClick={toggleOpen}
         title="Criar canal"
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted transition hover:bg-elevated-hover hover:text-foreground"
       >
         <PlusIcon />
       </button>
@@ -426,7 +426,7 @@ function ChannelCreateButton({ onCreate }: { onCreate: (name: string) => Promise
             ref={popoverRef}
             onSubmit={submit}
             style={{ top: position.top, left: position.left, width: 232 }}
-            className="fixed z-[100] space-y-2 rounded-xl border border-white/[0.08] bg-elevated p-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className="fixed z-[100] space-y-2 rounded-xl border border-overlay-strong bg-elevated p-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
             <input
               ref={inputRef}
@@ -434,7 +434,7 @@ function ChannelCreateButton({ onCreate }: { onCreate: (name: string) => Promise
               onChange={(e) => setName(e.target.value)}
               maxLength={NAME_MAX}
               placeholder="Nome do canal"
-              className="h-9 w-full rounded-lg border border-[#2d3344] bg-background px-2.5 text-sm font-semibold outline-none focus:border-primary"
+              className="h-9 w-full rounded-lg border border-border bg-background px-2.5 text-sm font-semibold outline-none focus:border-primary"
             />
             <button
               type="submit"
@@ -498,7 +498,7 @@ function ChannelActionsMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete
         ref={buttonRef}
         onClick={toggleOpen}
         title="Editar canal"
-        className={`absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 shrink-0 items-center justify-center rounded bg-sidebar text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] ${
+        className={`absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 shrink-0 items-center justify-center rounded bg-sidebar text-muted transition hover:bg-elevated-hover hover:text-foreground ${
           open ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
       >
@@ -510,14 +510,14 @@ function ChannelActionsMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete
           <div
             ref={menuRef}
             style={{ top: position.top, left: position.left, width: 160 }}
-            className="fixed z-[100] overflow-hidden rounded-xl border border-white/[0.08] bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className="fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
             <button
               onClick={() => {
                 setOpen(false);
                 onEdit();
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
             >
               <EditIcon />
               Editar

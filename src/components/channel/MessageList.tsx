@@ -45,7 +45,7 @@ function MessageGroup({ group, isSelf }: { group: MessageGroupData; isSelf: bool
   const label = `${user.nickname ?? "Alguém"}${user.userTag ? "#" + user.userTag : ""}`;
 
   return (
-    <div className="flex gap-3 py-1.5 hover:bg-white/[0.015]">
+    <div className="flex gap-3 py-1.5 hover:bg-overlay-weak">
       <div className="relative mt-0.5 h-9 w-9 shrink-0 overflow-hidden rounded-full bg-primary">
         {user.image ? (
           <Image src={user.image} alt="" fill sizes="36px" className="object-cover" />
@@ -55,11 +55,11 @@ function MessageGroup({ group, isSelf }: { group: MessageGroupData; isSelf: bool
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <span className={`text-sm font-bold ${isSelf ? "text-accent" : "text-[#f5f5f7]"}`}>{label}</span>
+          <span className={`text-sm font-bold ${isSelf ? "text-accent" : "text-foreground"}`}>{label}</span>
           <span className="text-[11px] text-dim">{formatTime(messages[0].createdAt)}</span>
         </div>
         {messages.map((message) => (
-          <p key={message.id} className="whitespace-pre-wrap break-words text-sm leading-relaxed text-[#d5d7dc]">
+          <p key={message.id} className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground-secondary">
             {message.content}
           </p>
         ))}

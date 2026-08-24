@@ -62,7 +62,7 @@ export function InviteButton({ inviteCode }: { inviteCode: string }) {
         ref={buttonRef}
         onClick={toggleOpen}
         title="Convidar amigos"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -78,14 +78,14 @@ export function InviteButton({ inviteCode }: { inviteCode: string }) {
           <div
             ref={popoverRef}
             style={{ top: position.top, left: position.left, width: POPOVER_WIDTH }}
-            className="fixed z-[100] rounded-xl border border-white/[0.08] bg-elevated p-4 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className="fixed z-[100] rounded-xl border border-overlay-strong bg-elevated p-4 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="text-sm font-bold">Convidar amigos</div>
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Fechar"
-                className="-m-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+                className="-m-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6L6 18" />
@@ -101,7 +101,7 @@ export function InviteButton({ inviteCode }: { inviteCode: string }) {
                 readOnly
                 value={inviteUrl}
                 onFocus={(e) => e.currentTarget.select()}
-                className="h-9 min-w-0 flex-1 truncate rounded-lg border border-[#2d3344] bg-background px-2.5 text-xs text-[#d5d7dc] outline-none"
+                className="h-9 min-w-0 flex-1 truncate rounded-lg border border-border bg-background px-2.5 text-xs text-foreground-secondary outline-none"
               />
               <button
                 onClick={copyLink}

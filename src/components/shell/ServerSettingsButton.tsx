@@ -54,7 +54,7 @@ export function ServerSettingsButton({
       <button
         onClick={() => setOpen(true)}
         title="Gerenciar servidor"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-dim transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-dim transition hover:bg-elevated-hover hover:text-foreground"
       >
         <ShieldIcon />
       </button>
@@ -91,27 +91,27 @@ function ServerSettingsModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-overlay-strong bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-overlay px-5 py-4">
           <h2 className="font-display text-lg font-bold">Gerenciar servidor</h2>
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground"
           >
             <CloseIcon />
           </button>
         </div>
 
         {tabs.length > 1 && (
-          <div className="flex shrink-0 gap-1 border-b border-white/[0.06] px-3 pt-3">
+          <div className="flex shrink-0 gap-1 border-b border-overlay px-3 pt-3">
             {tabs.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 className={`rounded-t-lg px-4 py-2 text-sm font-bold capitalize transition ${
-                  tab === t ? "bg-elevated text-[#f5f5f7]" : "text-muted hover:text-[#d5d7dc]"
+                  tab === t ? "bg-elevated text-foreground" : "text-muted hover:text-foreground-secondary"
                 }`}
               >
                 {t === "membros" ? "Membros" : "Cargos"}
@@ -223,7 +223,7 @@ function MembrosTab({
         {members.map((member) => {
           const isOwnerRow = member.id === ownerId;
           return (
-            <div key={member.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-white/[0.03]">
+            <div key={member.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-overlay-weak">
               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-primary">
                 {member.image ? (
                   <Image src={member.image} alt="" fill sizes="32px" className="object-cover" />
@@ -234,7 +234,7 @@ function MembrosTab({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 truncate text-sm font-semibold text-[#f5f5f7]">
+                <div className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
                   {member.nickname}
                   {isOwnerRow && <CrownIcon />}
                 </div>
@@ -246,7 +246,7 @@ function MembrosTab({
                   value={member.roleId ?? ""}
                   disabled={busyId === member.id}
                   onChange={(e) => assignRole(member.id, e.target.value || null)}
-                  className="h-8 rounded-lg border border-[#2d3344] bg-background px-2 text-xs font-semibold text-[#d5d7dc] outline-none focus:border-primary"
+                  className="h-8 rounded-lg border border-border bg-background px-2 text-xs font-semibold text-foreground-secondary outline-none focus:border-primary"
                 >
                   <option value="">Sem cargo</option>
                   {roles.map((r) => (
@@ -262,7 +262,7 @@ function MembrosTab({
                   onClick={() => kick(member.id)}
                   disabled={busyId === member.id}
                   title="Expulsar"
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] disabled:opacity-50"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground disabled:opacity-50"
                 >
                   <KickIcon />
                 </button>
@@ -287,15 +287,15 @@ function MembrosTab({
           <div className="mb-2 text-[11px] font-bold tracking-wider text-muted">BANIDOS</div>
           <div className="space-y-1">
             {bans.map((b) => (
-              <div key={b.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-white/[0.03]">
-                <div className="min-w-0 flex-1 truncate text-sm text-[#d5d7dc]">
+              <div key={b.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-overlay-weak">
+                <div className="min-w-0 flex-1 truncate text-sm text-foreground-secondary">
                   {b.user.nickname}
                   <span className="text-muted">#{b.user.userTag}</span>
                 </div>
                 <button
                   onClick={() => unban(b.user.id)}
                   disabled={busyId === b.user.id}
-                  className="rounded-full border border-[#2d3344] px-2.5 py-1 text-[11px] font-semibold text-muted transition hover:border-primary hover:text-[#f5f5f7] disabled:opacity-50"
+                  className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-muted transition hover:border-primary hover:text-foreground disabled:opacity-50"
                 >
                   Desbanir
                 </button>
@@ -307,7 +307,7 @@ function MembrosTab({
 
       {permissions.isOwner && (
         <div className="rounded-xl border border-danger/30 bg-danger/[0.06] p-4">
-          <div className="text-sm font-bold text-[#f5f5f7]">Excluir servidor</div>
+          <div className="text-sm font-bold text-foreground">Excluir servidor</div>
           <p className="mt-1 text-xs text-dim">
             Apaga o servidor pra sempre, com todos os canais, mensagens e membros. Nao da pra desfazer.
           </p>
@@ -322,7 +322,7 @@ function MembrosTab({
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="h-9 rounded-lg border border-[#2d3344] px-4 text-xs font-bold text-muted transition hover:text-[#f5f5f7]"
+                className="h-9 rounded-lg border border-border px-4 text-xs font-bold text-muted transition hover:text-foreground"
               >
                 Cancelar
               </button>
@@ -409,10 +409,10 @@ function CargosTab({ serverId, permissions }: { serverId: string; permissions: S
       {!loading && roles.length > 0 && (
         <div className="space-y-2">
           {roles.map((role) => (
-            <div key={role.id} className="rounded-xl border border-[#2d3344] p-3">
+            <div key={role.id} className="rounded-xl border border-border p-3">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: role.color ?? "#838a99" }} />
-                <span className="flex-1 truncate text-sm font-bold text-[#f5f5f7]">{role.name}</span>
+                <span className="flex-1 truncate text-sm font-bold text-foreground">{role.name}</span>
                 <button
                   onClick={() => deleteRole(role.id)}
                   title="Excluir cargo"
@@ -440,14 +440,14 @@ function CargosTab({ serverId, permissions }: { serverId: string; permissions: S
         </div>
       )}
 
-      <form onSubmit={createRole} className="space-y-3 rounded-xl border border-[#2d3344] p-4">
+      <form onSubmit={createRole} className="space-y-3 rounded-xl border border-border p-4">
         <div className="text-xs font-bold tracking-wide text-muted">NOVO CARGO</div>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={40}
           placeholder="Nome do cargo"
-          className="h-10 w-full rounded-lg border border-[#2d3344] bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
+          className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
         />
         <div className="flex flex-wrap gap-1.5">
           {ROLE_COLORS.map((c) => (
@@ -455,7 +455,7 @@ function CargosTab({ serverId, permissions }: { serverId: string; permissions: S
               key={c}
               type="button"
               onClick={() => setColor(c)}
-              className={`h-6 w-6 rounded-full transition ${color === c ? "ring-2 ring-offset-2 ring-offset-surface ring-[#f5f5f7]" : ""}`}
+              className={`h-6 w-6 rounded-full transition ${color === c ? "ring-2 ring-offset-2 ring-offset-surface ring-foreground" : ""}`}
               style={{ backgroundColor: c }}
             />
           ))}
@@ -485,7 +485,7 @@ function PermToggle({ label, checked, onChange }: { label: string; checked: bool
       type="button"
       onClick={() => onChange(!checked)}
       className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
-        checked ? "border-primary bg-primary/10 text-[#f5f5f7]" : "border-[#2d3344] text-muted hover:text-[#d5d7dc]"
+        checked ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
       }`}
     >
       {label}

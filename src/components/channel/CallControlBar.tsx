@@ -41,7 +41,7 @@ export function CallControlBar({
 
   return (
     <>
-      <div className="flex shrink-0 items-center justify-center gap-3 border-t border-white/[0.06] bg-elevated/60 px-4 py-3 backdrop-blur">
+      <div className="flex shrink-0 items-center justify-center gap-3 border-t border-overlay bg-elevated/60 px-4 py-3 backdrop-blur">
         <ControlButton
           active={isMuted}
           activeClass="bg-danger/15 text-danger"
@@ -102,10 +102,10 @@ function ControlButton({
       title={label}
       className={`flex h-11 w-11 items-center justify-center rounded-full border transition ${
         disabled
-          ? "cursor-not-allowed border-[#2d3344] text-dim opacity-40"
+          ? "cursor-not-allowed border-border text-dim opacity-40"
           : active
             ? activeClass + " border-transparent"
-            : "border-[#2d3344] text-[#d5d7dc] hover:bg-elevated-hover"
+            : "border-border text-foreground-secondary hover:bg-elevated-hover"
       }`}
     >
       {children}
