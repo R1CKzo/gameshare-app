@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiUrl } from "@/lib/apiUrl";
+
 export default function NewServerPage() {
   const router = useRouter();
 
@@ -18,7 +20,7 @@ export default function NewServerPage() {
     setError(null);
     setLoading("create");
     try {
-      const res = await fetch("/api/servers", {
+      const res = await fetch(apiUrl("/api/servers"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -44,7 +46,7 @@ export default function NewServerPage() {
       const codeOrUrl = inviteCode.trim();
       const code = codeOrUrl.includes("/invite/") ? codeOrUrl.split("/invite/").pop() : codeOrUrl;
 
-      const res = await fetch("/api/servers/join", {
+      const res = await fetch(apiUrl("/api/servers/join"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inviteCode: code }),

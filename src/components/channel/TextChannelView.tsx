@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { MessageList } from "@/components/channel/MessageList";
 import { HamburgerIcon, MembersIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 import { useChatMessages } from "@/hooks/useChatMessages";
+import { apiUrl } from "@/lib/apiUrl";
 import { textChannelPusherName } from "@/lib/pusherShared";
 import { useStickyScroll } from "@/hooks/useStickyScroll";
 
@@ -18,7 +19,7 @@ export function TextChannelView({
   currentUserId: string;
 }) {
   const { toggleSidebar, toggleMembers } = useMobileUI();
-  const apiBase = `/api/channels/${channelId}`;
+  const apiBase = apiUrl(`/api/channels/${channelId}`);
   const chat = useChatMessages({ apiBase, pusherChannelName: textChannelPusherName(channelId) });
   const { scrollRef, handleScroll, stickToBottom } = useStickyScroll(chat.messages);
 

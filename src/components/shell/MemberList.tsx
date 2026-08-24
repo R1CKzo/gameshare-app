@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { useMobileUI } from "@/components/shell/MobileUIContext";
 import { StatusDot } from "@/components/shell/StatusDot";
+import { apiUrl } from "@/lib/apiUrl";
 import { deriveStatus, type RawStatus } from "@/lib/presence";
 
 type Member = {
@@ -34,7 +35,7 @@ export function MemberList({ serverId, members }: { serverId: string; members: M
 
     async function poll() {
       try {
-        const res = await fetch(`/api/servers/${serverId}/member-status`, { cache: "no-store" });
+        const res = await fetch(apiUrl(`/api/servers/${serverId}/member-status`), { cache: "no-store" });
         const data = await res.json();
         if (cancelled) return;
         const updates: StatusUpdate[] = data.members ?? [];

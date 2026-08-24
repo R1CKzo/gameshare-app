@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useUnread } from "@/components/notifications/UnreadContext";
 import { StatusDot } from "@/components/shell/StatusDot";
 import { UserPill } from "@/components/shell/UserPill";
+import { apiUrl } from "@/lib/apiUrl";
 import { deriveStatus, type RawStatus } from "@/lib/presence";
 
 type DMUser = {
@@ -35,7 +36,7 @@ export function DMSidebar({
 
     async function load() {
       try {
-        const res = await fetch("/api/dms", { cache: "no-store" });
+        const res = await fetch(apiUrl("/api/dms"), { cache: "no-store" });
         if (cancelled) return;
         const data = await res.json();
         setConversations(data.conversations ?? []);

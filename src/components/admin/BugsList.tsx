@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { apiUrl } from "@/lib/apiUrl";
+
 type Severity = "LOW" | "MEDIUM" | "HIGH";
 type Status = "OPEN" | "IN_PROGRESS" | "RESOLVED";
 
@@ -56,7 +58,7 @@ export function BugsList({ reports: initialReports }: { reports: BugReport[] }) 
   async function updateStatus(id: string, status: Status) {
     const previous = reports;
     setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-    const res = await fetch(`/api/bugs/${id}`, {
+    const res = await fetch(apiUrl(`/api/bugs/${id}`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),

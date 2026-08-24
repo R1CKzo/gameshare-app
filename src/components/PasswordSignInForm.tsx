@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { apiUrl } from "@/lib/apiUrl";
+
 type Step = "credentials" | "code";
 type Mode = "login" | "signup";
 
@@ -27,7 +29,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
     setError("");
     setSending(true);
     const endpoint = mode === "login" ? "/api/auth/password/login" : "/api/auth/password/signup";
-    const res = await fetch(endpoint, {
+    const res = await fetch(apiUrl(endpoint), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -46,7 +48,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
     e.preventDefault();
     setError("");
     setSending(true);
-    const res = await fetch("/api/auth/password/verify-code", {
+    const res = await fetch(apiUrl("/api/auth/password/verify-code"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ticketId, code }),
@@ -66,7 +68,7 @@ export function PasswordSignInForm({ callbackUrl }: { callbackUrl?: string }) {
     if (resendCooldown) return;
     setResendCooldown(true);
     setTimeout(() => setResendCooldown(false), 30_000);
-    const res = await fetch("/api/auth/password/resend-code", {
+    const res = await fetch(apiUrl("/api/auth/password/resend-code"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ticketId }),

@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
+import { apiUrl } from "@/lib/apiUrl";
 import { HEARTBEAT_INTERVAL_MS, IDLE_AFTER_MS, type PresenceStatus } from "@/lib/presence";
 
 type ManualStatus = "ONLINE" | "AWAY" | "BUSY";
@@ -65,7 +66,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
         status = computeAutoStatus(lastInteractionRef.current);
         setAutoStatus(status);
       }
-      fetch("/api/me/heartbeat", {
+      fetch(apiUrl("/api/me/heartbeat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -83,7 +84,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       }, IDLE_AFTER_MS);
     }
 
-    fetch("/api/me/status")
+    fetch(apiUrl("/api/me/status"))
       .then((r) => r.json())
       .then((data: { manual?: boolean; status?: ManualStatus | null }) => {
         if (cancelled) return;
@@ -123,7 +124,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     manualRef.current = status;
     lastInteractionRef.current = Date.now();
     try {
-      await fetch("/api/me/status", {
+      await fetch(apiUrl("/api/me/status"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(status ? { mode: "MANUAL", status } : { mode: "AUTO" }),
@@ -138,7 +139,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       effective = computeAutoStatus(lastInteractionRef.current);
       setAutoStatus(effective);
     }
-    fetch("/api/me/heartbeat", {
+    fetch(apiUrl("/api/me/heartbeat"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: effective }),

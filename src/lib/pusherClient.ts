@@ -1,4 +1,5 @@
 import PusherClient from "pusher-js";
+import { apiUrl } from "@/lib/apiUrl";
 
 let client: PusherClient | null = null;
 
@@ -9,7 +10,7 @@ export function getPusherClient(): PusherClient {
     client = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY ?? "", {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? "",
       channelAuthorization: {
-        endpoint: "/api/pusher/auth",
+        endpoint: apiUrl("/api/pusher/auth"),
         transport: "ajax",
       },
     });

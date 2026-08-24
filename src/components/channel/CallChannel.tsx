@@ -8,6 +8,7 @@ import { CallControlBar } from "@/components/channel/CallControlBar";
 import { ParticipantGrid } from "@/components/channel/ParticipantGrid";
 import { HamburgerIcon, MembersIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 import { type PresentUser } from "@/hooks/useVoiceMesh";
+import { apiUrl } from "@/lib/apiUrl";
 import { MAX_CALL_ROOM_SIZE } from "@/lib/callLimits";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, textChannelPusherName } from "@/lib/pusherShared";
@@ -57,7 +58,7 @@ export function CallChannel({
     if (clearedOrphanRef.current || isActive) return;
     if (initialLive.isLive && initialLive.broadcaster?.id === currentUserId) {
       clearedOrphanRef.current = true;
-      fetch(`/api/channels/${channelId}/stop`, { method: "POST" }).catch(() => {});
+      fetch(apiUrl(`/api/channels/${channelId}/stop`), { method: "POST" }).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
@@ -68,7 +69,7 @@ export function CallChannel({
 
     async function poll() {
       try {
-        const res = await fetch(`/api/channels/${channelId}`, { cache: "no-store" });
+        const res = await fetch(apiUrl(`/api/channels/${channelId}`), { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const data = await res.json();
         setLocalLive({ isLive: data.isLive, broadcaster: data.broadcaster });
@@ -106,7 +107,7 @@ export function CallChannel({
     }
     setPreJoinError(null);
     activeCall.setCallError(null);
-    activeCall.join({ kind: "channel", channelId, serverId, apiBase: `/api/channels/${channelId}`, name: channelName }, currentUserId);
+    activeCall.join({ kind: "channel", channelId, serverId, apiBase: apiUrl(`/api/channels/${channelId}`), name: channelName }, currentUserId);
   }
 
   function leaveRoom() {

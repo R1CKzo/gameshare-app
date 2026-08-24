@@ -12,7 +12,9 @@
 // app resolve de volta pra imagem de verdade na hora de exibir (ver essa
 // rota). Fora do token — no banco, e na resposta de /api/user/profile logo
 // apos o upload — a imagem continua sendo guardada/devolvida inteira.
+import { apiUrl } from "@/lib/apiUrl";
+
 export function sessionSafeImage(image: string | null): string | null {
   if (!image) return null;
-  return image.startsWith("data:") ? "/api/me/avatar" : image;
+  return image.startsWith("data:") ? apiUrl("/api/me/avatar") : image;
 }

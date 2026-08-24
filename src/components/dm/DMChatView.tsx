@@ -11,6 +11,7 @@ import { HamburgerIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 import { useChatMessages } from "@/hooks/useChatMessages";
 import { useStickyScroll } from "@/hooks/useStickyScroll";
 import { type PresentUser } from "@/hooks/useVoiceMesh";
+import { apiUrl } from "@/lib/apiUrl";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, dmChannelPusherName } from "@/lib/pusherShared";
 
@@ -32,7 +33,7 @@ export function DMChatView({
   initialLive: LiveState;
 }) {
   const { toggleSidebar } = useMobileUI();
-  const apiBase = `/api/dms/${dmChannelId}`;
+  const apiBase = apiUrl(`/api/dms/${dmChannelId}`);
 
   const activeCall = useActiveCall();
   const isActive = activeCall.target?.kind === "dm" && activeCall.target.dmChannelId === dmChannelId;

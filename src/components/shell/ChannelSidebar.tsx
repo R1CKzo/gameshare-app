@@ -12,6 +12,7 @@ import { InviteButton } from "@/components/shell/InviteButton";
 import { ServerSettingsButton } from "@/components/shell/ServerSettingsButton";
 import { UserPill } from "@/components/shell/UserPill";
 import type { ConnectionQuality } from "@/hooks/useVoiceMesh";
+import { apiUrl } from "@/lib/apiUrl";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, serverVoicePusherName } from "@/lib/pusherShared";
 
@@ -86,7 +87,7 @@ export function ChannelSidebar({
 
     async function poll() {
       try {
-        const res = await fetch(`/api/servers/${serverId}/voice-presence`, { cache: "no-store" });
+        const res = await fetch(apiUrl(`/api/servers/${serverId}/voice-presence`), { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const data = await res.json();
         const entries: { channelId: string; present: VoicePresentUser[] }[] = data.channels ?? [];
@@ -113,7 +114,7 @@ export function ChannelSidebar({
   }, [serverId]);
 
   async function createChannel(type: "TEXT" | "CALL", name: string) {
-    await fetch(`/api/servers/${serverId}/channels`, {
+    await fetch(apiUrl(`/api/servers/${serverId}/channels`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, type }),
@@ -122,7 +123,7 @@ export function ChannelSidebar({
   }
 
   async function renameChannel(channelId: string, name: string) {
-    await fetch(`/api/servers/${serverId}/channels/${channelId}`, {
+    await fetch(apiUrl(`/api/servers/${serverId}/channels/${channelId}`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
@@ -135,7 +136,7 @@ export function ChannelSidebar({
   // nao existe mais.
   async function deleteChannel(channelId: string) {
     if (!window.confirm("Excluir esse canal? O histórico dele se perde pra sempre.")) return;
-    const res = await fetch(`/api/servers/${serverId}/channels/${channelId}`, { method: "DELETE" });
+    const res = await fetch(apiUrl(`/api/servers/${serverId}/channels/${channelId}`), { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       window.alert(data.error ?? "Não foi possível excluir o canal.");

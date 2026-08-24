@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { apiUrl } from "@/lib/apiUrl";
 import { isDesktopApp } from "@/lib/desktop";
 
 const MENU_WIDTH = 220;
@@ -69,7 +70,7 @@ export function MoreMenu({
   async function leaveServer() {
     if (!serverId || leaving) return;
     setLeaving(true);
-    const res = await fetch(`/api/servers/${serverId}/leave`, { method: "DELETE" });
+    const res = await fetch(apiUrl(`/api/servers/${serverId}/leave`), { method: "DELETE" });
     if (res.ok) {
       setOpen(false);
       router.push("/");

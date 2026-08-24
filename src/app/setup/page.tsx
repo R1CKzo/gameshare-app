@@ -4,6 +4,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiUrl } from "@/lib/apiUrl";
+
 export default function SetupPage() {
   const router = useRouter();
   const { update } = useSession();
@@ -17,7 +19,7 @@ export default function SetupPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/user/setup", {
+      const res = await fetch(apiUrl("/api/user/setup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nickname }),

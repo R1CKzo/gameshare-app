@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useUnread } from "@/components/notifications/UnreadContext";
 import { HamburgerIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 import { StatusDot } from "@/components/shell/StatusDot";
+import { apiUrl } from "@/lib/apiUrl";
 import { deriveStatus, type RawStatus } from "@/lib/presence";
 
 type FriendUser = {
@@ -36,7 +37,7 @@ export function FriendsView() {
 
   async function load() {
     try {
-      const res = await fetch("/api/friends", { cache: "no-store" });
+      const res = await fetch(apiUrl("/api/friends"), { cache: "no-store" });
       const data = await res.json();
       setFriends(data.friends ?? []);
       setIncoming(data.incoming ?? []);
@@ -62,7 +63,7 @@ export function FriendsView() {
     setError(null);
     setNotice(null);
     try {
-      const res = await fetch("/api/friends", {
+      const res = await fetch(apiUrl("/api/friends"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag: tag.trim() }),
@@ -83,19 +84,19 @@ export function FriendsView() {
   }
 
   async function acceptRequest(friendshipId: string) {
-    await fetch(`/api/friends/${friendshipId}`, { method: "PATCH" }).catch(() => {});
+    await fetch(apiUrl(`/api/friends/${friendshipId}`), { method: "PATCH" }).catch(() => {});
     load();
   }
 
   async function removeFriendship(friendshipId: string) {
-    await fetch(`/api/friends/${friendshipId}`, { method: "DELETE" }).catch(() => {});
+    await fetch(apiUrl(`/api/friends/${friendshipId}`), { method: "DELETE" }).catch(() => {});
     load();
   }
 
   async function startConversation(friendId: string) {
     setStartingDm(friendId);
     try {
-      const res = await fetch("/api/dms", {
+      const res = await fetch(apiUrl("/api/dms"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ friendId }),

@@ -15,6 +15,7 @@ import {
   sensitivityToGateThreshold,
   type AudioSettings,
 } from "@/lib/audioSettings";
+import { apiUrl } from "@/lib/apiUrl";
 import { isDesktopApp } from "@/lib/desktop";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
@@ -155,7 +156,7 @@ function ProfileTab() {
 
       if (Object.keys(body).length === 0) return;
 
-      const res = await fetch("/api/user/profile", {
+      const res = await fetch(apiUrl("/api/user/profile"), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -502,7 +503,7 @@ function SegurancaTab() {
     e.preventDefault();
     setError("");
     setSending(true);
-    const res = await fetch("/api/auth/password/change-request", {
+    const res = await fetch(apiUrl("/api/auth/password/change-request"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ currentPassword: hasPassword ? currentPassword : undefined, newPassword }),
@@ -521,7 +522,7 @@ function SegurancaTab() {
     e.preventDefault();
     setError("");
     setSending(true);
-    const res = await fetch("/api/auth/password/change-confirm", {
+    const res = await fetch(apiUrl("/api/auth/password/change-confirm"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ticketId, code }),
@@ -639,7 +640,7 @@ function BugReportTab({ onClose }: { onClose: () => void }) {
     setSending(true);
     setError(null);
     try {
-      const res = await fetch("/api/bugs", {
+      const res = await fetch(apiUrl("/api/bugs"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

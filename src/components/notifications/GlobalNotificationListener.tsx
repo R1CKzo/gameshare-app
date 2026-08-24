@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { type DmActivity, UnreadContext } from "@/components/notifications/UnreadContext";
+import { apiUrl } from "@/lib/apiUrl";
 import { setUnreadBadge } from "@/lib/desktop";
 import { getPusherClient } from "@/lib/pusherClient";
 import {
@@ -44,7 +45,7 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    fetch("/api/me/channels")
+    fetch(apiUrl("/api/me/channels"))
       .then((r) => r.json())
       .then((data: { channels?: (ChannelMeta & { unread: boolean })[]; dms?: { dmChannelId: string; unread: boolean }[] }) => {
         if (cancelled) return;
@@ -69,7 +70,7 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    fetch("/api/friends", { cache: "no-store" })
+    fetch(apiUrl("/api/friends"), { cache: "no-store" })
       .then((r) => r.json())
       .then((data: { incoming?: unknown[] }) => {
         if (!cancelled) setIncomingFriendRequestCount((data.incoming ?? []).length);
@@ -89,7 +90,7 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
     if (!userId) return;
     if (pathname === "/novidades") return;
     let cancelled = false;
-    fetch("/api/me/changelog-status")
+    fetch(apiUrl("/api/me/changelog-status"))
       .then((r) => r.json())
       .then((data: { shouldRedirect?: boolean }) => {
         if (!cancelled && data.shouldRedirect) router.replace("/novidades");

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { apiUrl } from "@/lib/apiUrl";
+
 type RoleSummary = {
   id: string;
   name: string;
@@ -153,13 +155,13 @@ function MembrosTab({
 
   useEffect(() => {
     if (permissions.canManageRoles) {
-      fetch(`/api/servers/${serverId}/roles`)
+      fetch(apiUrl(`/api/servers/${serverId}/roles`))
         .then((r) => r.json())
         .then((data) => setRoles(data.roles ?? []))
         .catch(() => {});
     }
     if (permissions.canBan) {
-      fetch(`/api/servers/${serverId}/bans`)
+      fetch(apiUrl(`/api/servers/${serverId}/bans`))
         .then((r) => r.json())
         .then((data) => setBans(data.bans ?? []))
         .catch(() => {});
@@ -168,7 +170,7 @@ function MembrosTab({
 
   async function assignRole(userId: string, roleId: string | null) {
     setBusyId(userId);
-    await fetch(`/api/servers/${serverId}/members/${userId}/role`, {
+    await fetch(apiUrl(`/api/servers/${serverId}/members/${userId}/role`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ roleId }),
@@ -180,7 +182,7 @@ function MembrosTab({
   async function kick(userId: string) {
     if (!window.confirm("Expulsar esse membro? Ele pode reentrar com o convite.")) return;
     setBusyId(userId);
-    await fetch(`/api/servers/${serverId}/members/${userId}`, { method: "DELETE" });
+    await fetch(apiUrl(`/api/servers/${serverId}/members/${userId}`), { method: "DELETE" });
     setBusyId(null);
     router.refresh();
   }
@@ -188,7 +190,7 @@ function MembrosTab({
   async function ban(userId: string) {
     if (!window.confirm("Banir esse membro? Ele não vai conseguir reentrar pelo convite.")) return;
     setBusyId(userId);
-    await fetch(`/api/servers/${serverId}/bans`, {
+    await fetch(apiUrl(`/api/servers/${serverId}/bans`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId }),
@@ -200,14 +202,14 @@ function MembrosTab({
 
   async function unban(userId: string) {
     setBusyId(userId);
-    await fetch(`/api/servers/${serverId}/bans/${userId}`, { method: "DELETE" });
+    await fetch(apiUrl(`/api/servers/${serverId}/bans/${userId}`), { method: "DELETE" });
     setBans((prev) => (prev ? prev.filter((b) => b.user.id !== userId) : prev));
     setBusyId(null);
   }
 
   async function deleteServer() {
     setDeleting(true);
-    const res = await fetch(`/api/servers/${serverId}`, { method: "DELETE" });
+    const res = await fetch(apiUrl(`/api/servers/${serverId}`), { method: "DELETE" });
     if (res.ok) {
       router.push("/");
       router.refresh();
@@ -355,7 +357,7 @@ function CargosTab({ serverId, permissions }: { serverId: string; permissions: S
   const [error, setError] = useState("");
 
   function loadRoles() {
-    fetch(`/api/servers/${serverId}/roles`)
+    fetch(apiUrl(`/api/servers/${serverId}/roles`))
       .then((r) => r.json())
       .then((data) => setRoles(data.roles ?? []))
       .finally(() => setLoading(false));
@@ -368,7 +370,7 @@ function CargosTab({ serverId, permissions }: { serverId: string; permissions: S
     if (!name.trim()) return;
     setCreating(true);
     setError("");
-    const res = await fetch(`/api/servers/${serverId}/roles`, {
+    const res = await fetch(apiUrl(`/api/servers/${serverId}/roles`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim(), color, canKick, canBan, canManageRoles, canManageChannels }),
@@ -389,7 +391,7 @@ function CargosTab({ serverId, permissions }: { serverId: string; permissions: S
 
   async function updateRoleFlag(role: RoleSummary, patch: Partial<RoleSummary>) {
     setRoles((prev) => prev.map((r) => (r.id === role.id ? { ...r, ...patch } : r)));
-    await fetch(`/api/servers/${serverId}/roles/${role.id}`, {
+    await fetch(apiUrl(`/api/servers/${serverId}/roles/${role.id}`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
@@ -399,7 +401,7 @@ function CargosTab({ serverId, permissions }: { serverId: string; permissions: S
 
   async function deleteRole(roleId: string) {
     if (!window.confirm("Excluir esse cargo? Quem tinha ele fica sem cargo.")) return;
-    await fetch(`/api/servers/${serverId}/roles/${roleId}`, { method: "DELETE" });
+    await fetch(apiUrl(`/api/servers/${serverId}/roles/${roleId}`), { method: "DELETE" });
     setRoles((prev) => prev.filter((r) => r.id !== roleId));
     router.refresh();
   }
