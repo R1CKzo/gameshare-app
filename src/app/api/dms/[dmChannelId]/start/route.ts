@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CALL_UPDATE_EVENT, dmChannelPusherName, pusherServer } from "@/lib/pusher";
 
 // Mesma logica de src/app/api/channels/[channelId]/start/route.ts, pra
 // uma DM: quem ja esta presente na chamada pode comecar a compartilhar a
@@ -45,6 +46,8 @@ export async function POST(_request: Request, { params }: { params: { dmChannelI
     where: { id: dmChannel.id },
     data: { isLive: true, broadcasterId: session.user.id, broadcastStartedAt: new Date() },
   });
+
+  pusherServer.trigger(dmChannelPusherName(dmChannel.id), CALL_UPDATE_EVENT, {}).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

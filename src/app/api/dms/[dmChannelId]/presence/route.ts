@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CALL_UPDATE_EVENT, dmChannelPusherName, pusherServer } from "@/lib/pusher";
 
 const VALID_QUALITY = ["GOOD", "MEDIUM", "BAD"] as const;
 
@@ -48,6 +49,8 @@ export async function POST(request: Request, { params }: { params: { dmChannelId
     },
   });
 
+  pusherServer.trigger(dmChannelPusherName(params.dmChannelId), CALL_UPDATE_EVENT, {}).catch(() => {});
+
   return NextResponse.json({ ok: true });
 }
 
@@ -62,6 +65,8 @@ export async function DELETE(_request: Request, { params }: { params: { dmChanne
       where: { dmChannelId_userId: { dmChannelId: params.dmChannelId, userId: session.user.id } },
     })
     .catch(() => {});
+
+  pusherServer.trigger(dmChannelPusherName(params.dmChannelId), CALL_UPDATE_EVENT, {}).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

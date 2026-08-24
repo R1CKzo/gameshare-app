@@ -11,7 +11,8 @@ import { HamburgerIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 import { useChatMessages } from "@/hooks/useChatMessages";
 import { useStickyScroll } from "@/hooks/useStickyScroll";
 import { type PresentUser } from "@/hooks/useVoiceMesh";
-import { dmChannelPusherName } from "@/lib/pusherShared";
+import { getPusherClient } from "@/lib/pusherClient";
+import { CALL_UPDATE_EVENT, dmChannelPusherName } from "@/lib/pusherShared";
 
 type DMUser = { id: string; nickname: string | null; userTag: string | null; image: string | null };
 
@@ -76,12 +77,22 @@ export function DMChatView({
       }
     }
     poll();
-    const interval = setInterval(poll, 4000);
+    // 10s so como reforço — entrar/sair/mutar/compartilhar avisa na hora
+    // pelo Pusher (ver a inscricao logo abaixo).
+    const interval = setInterval(poll, 10000);
+
+    const pusher = getPusherClient();
+    const pusherChannelName = dmChannelPusherName(dmChannelId);
+    const channel = pusher.subscribe(pusherChannelName);
+    channel.bind(CALL_UPDATE_EVENT, poll);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      channel.unbind(CALL_UPDATE_EVENT, poll);
+      pusher.unsubscribe(pusherChannelName);
     };
-  }, [apiBase, isActive]);
+  }, [apiBase, isActive, dmChannelId]);
 
   function joinCall() {
     activeCall.setCallError(null);

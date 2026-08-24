@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import { type PresentUser, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { getPusherClient } from "@/lib/pusherClient";
+import { CALL_UPDATE_EVENT, dmChannelPusherName, textChannelPusherName } from "@/lib/pusherShared";
 import { playJoinCallSound, playLeaveCallSound } from "@/lib/sound";
 
 export type ActiveCallTarget =
@@ -13,7 +15,11 @@ export type BroadcasterInfo = { id: string; nickname: string | null; userTag: st
 export type LiveState = { isLive: boolean; broadcaster: BroadcasterInfo };
 
 const HEARTBEAT_MS = 15000;
-const POLL_MS = 4000;
+// So um reforço agora — quem entra/sai/muta/compartilha avisa na hora
+// pelo Pusher (ver o useEffect de inscricao abaixo); esse poll so existe
+// pra cobrir o caso do WebSocket cair em silencio, entao pode ser bem
+// mais espaçado do que quando era o unico jeito de descobrir uma mudanca.
+const POLL_MS = 12000;
 
 type ActiveCallContextValue = {
   target: ActiveCallTarget | null;
@@ -85,10 +91,22 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
 
     poll();
     const interval = setInterval(poll, POLL_MS);
+
+    // Entrar/sair/mutar/compartilhar de qualquer outro participante dispara
+    // esse evento (ver os endpoints presence/start/stop) — refaz a consulta
+    // na hora, em vez de esperar o proximo tick do poll acima.
+    const pusher = getPusherClient();
+    const pusherChannelName = target.kind === "channel" ? textChannelPusherName(target.channelId) : dmChannelPusherName(target.dmChannelId);
+    const channel = pusher.subscribe(pusherChannelName);
+    channel.bind(CALL_UPDATE_EVENT, poll);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      channel.unbind(CALL_UPDATE_EVENT, poll);
+      pusher.unsubscribe(pusherChannelName);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.apiBase]);
 
   useEffect(() => {

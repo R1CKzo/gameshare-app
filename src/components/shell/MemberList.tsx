@@ -19,7 +19,7 @@ type Member = {
 
 type StatusUpdate = { id: string; status: RawStatus; lastActiveAt: string | null };
 
-const POLL_INTERVAL_MS = 15_000;
+const POLL_INTERVAL_MS = 8_000;
 
 export function MemberList({ serverId, members }: { serverId: string; members: Member[] }) {
   const { toggleMembers } = useMobileUI();

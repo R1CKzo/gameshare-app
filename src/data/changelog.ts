@@ -41,6 +41,7 @@ export const changelog: ChangelogEntry[] = [
       "Lista de quem está em cada sala de chamada aparece embaixo do nome dela na barra lateral, sem precisar entrar pra ver quem tá lá",
       "Sinal de conexão (barrinhas verde/amarelo/vermelho) acima do nome de cada pessoa, tanto na chamada quanto na lista da barra lateral",
       "Modo claro pro app inteiro, com opção pra alternar entre escuro e claro nas configurações do seu perfil",
+      "Mutar/desmutar, entrar/sair da chamada e começar/parar de compartilhar a tela agora aparecem quase na hora pra quem mais está na sala e na barra lateral, em vez de demorar alguns segundos",
     ],
     bugsFixed: [
       "Status fixado manualmente (ex: \"Ocupado\") podia ser sobrescrito por engano logo depois de recarregar a página, aparecendo errado pra outras pessoas",

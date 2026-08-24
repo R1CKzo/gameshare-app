@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CALL_UPDATE_EVENT, pusherServer, serverVoicePusherName, textChannelPusherName } from "@/lib/pusher";
 
 // Qualquer membro presente na sala (ja conectado na malha de voz) pode
 // comecar a compartilhar a tela, desde que ninguem mais esteja
@@ -55,6 +56,9 @@ export async function POST(
       broadcastStartedAt: new Date(),
     },
   });
+
+  pusherServer.trigger(textChannelPusherName(channel.id), CALL_UPDATE_EVENT, {}).catch(() => {});
+  pusherServer.trigger(serverVoicePusherName(channel.serverId), CALL_UPDATE_EVENT, {}).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

@@ -8,6 +8,8 @@ import { CallControlBar } from "@/components/channel/CallControlBar";
 import { ParticipantGrid } from "@/components/channel/ParticipantGrid";
 import { HamburgerIcon, MembersIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 import { type PresentUser } from "@/hooks/useVoiceMesh";
+import { getPusherClient } from "@/lib/pusherClient";
+import { CALL_UPDATE_EVENT, textChannelPusherName } from "@/lib/pusherShared";
 
 export function CallChannel({
   channelId,
@@ -71,10 +73,20 @@ export function CallChannel({
     }
 
     poll();
-    const interval = setInterval(poll, 4000);
+    // 10s so como reforço — entrar/sair/mutar/compartilhar avisa na hora
+    // pelo Pusher (ver a inscricao logo abaixo).
+    const interval = setInterval(poll, 10000);
+
+    const pusher = getPusherClient();
+    const pusherChannelName = textChannelPusherName(channelId);
+    const channel = pusher.subscribe(pusherChannelName);
+    channel.bind(CALL_UPDATE_EVENT, poll);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      channel.unbind(CALL_UPDATE_EVENT, poll);
+      pusher.unsubscribe(pusherChannelName);
     };
   }, [channelId, isActive]);
 

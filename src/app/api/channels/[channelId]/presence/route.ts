@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CALL_UPDATE_EVENT, pusherServer, serverVoicePusherName, textChannelPusherName } from "@/lib/pusher";
 
 const VALID_QUALITY = ["GOOD", "MEDIUM", "BAD"] as const;
 
@@ -11,18 +12,28 @@ const VALID_QUALITY = ["GOOD", "MEDIUM", "BAD"] as const;
 // pelo client enquanto a pagina do canal estiver aberta. Se o microfone
 // (peer de voz) ja estiver conectado, o client manda o peerId junto pra
 // quem mais estiver na sala conseguir discar direto.
-async function requireMembership(userId: string, channelId: string) {
+// Devolve o serverId quando a pessoa e membro (null quando nao e, ou o
+// canal nao existe) — o proprio POST/DELETE usa esse serverId pra avisar
+// tanto a sala especifica (private-channel-{id}) quanto o agregado do
+// servidor inteiro (private-server-voice-{id}, que alimenta a lista da
+// barra lateral) de que a presenca mudou.
+async function requireMembership(userId: string, channelId: string): Promise<string | null> {
   const channel = await prisma.channel.findUnique({
     where: { id: channelId },
     select: { serverId: true },
   });
-  if (!channel) return false;
+  if (!channel) return null;
 
   const membership = await prisma.serverMember.findUnique({
     where: { userId_serverId: { userId, serverId: channel.serverId } },
     select: { id: true },
   });
-  return Boolean(membership);
+  return membership ? channel.serverId : null;
+}
+
+function notifyVoiceChange(channelId: string, serverId: string) {
+  pusherServer.trigger(textChannelPusherName(channelId), CALL_UPDATE_EVENT, {}).catch(() => {});
+  pusherServer.trigger(serverVoicePusherName(serverId), CALL_UPDATE_EVENT, {}).catch(() => {});
 }
 
 export async function POST(
@@ -38,7 +49,8 @@ export async function POST(
   // conseguia se anunciar como "presente" numa sala e mandar as outras
   // pessoas discarem pra ela na malha de voz — inclusive de servidores
   // que ela nunca entrou.
-  if (!(await requireMembership(session.user.id, params.channelId))) {
+  const serverId = await requireMembership(session.user.id, params.channelId);
+  if (!serverId) {
     return NextResponse.json({ error: "Você não é membro desse servidor." }, { status: 403 });
   }
 
@@ -72,6 +84,8 @@ export async function POST(
     },
   });
 
+  notifyVoiceChange(params.channelId, serverId);
+
   return NextResponse.json({ ok: true });
 }
 
@@ -86,11 +100,15 @@ export async function DELETE(
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
+  const channel = await prisma.channel.findUnique({ where: { id: params.channelId }, select: { serverId: true } });
+
   await prisma.channelPresence
     .delete({
       where: { channelId_userId: { channelId: params.channelId, userId: session.user.id } },
     })
     .catch(() => {});
+
+  if (channel) notifyVoiceChange(params.channelId, channel.serverId);
 
   return NextResponse.json({ ok: true });
 }

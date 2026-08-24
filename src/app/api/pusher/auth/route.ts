@@ -25,11 +25,13 @@ export async function POST(request: Request) {
 
   const authorized = channelName.startsWith("private-dm-")
     ? await canAccessDM(session.user.id, channelName.replace(/^private-dm-/, ""))
-    : channelName.startsWith("private-channel-")
-      ? await canAccessServerChannel(session.user.id, channelName.replace(/^private-channel-/, ""))
-      : channelName.startsWith("private-user-")
-        ? channelName.replace(/^private-user-/, "") === session.user.id
-        : false;
+    : channelName.startsWith("private-server-voice-")
+      ? await canAccessServer(session.user.id, channelName.replace(/^private-server-voice-/, ""))
+      : channelName.startsWith("private-channel-")
+        ? await canAccessServerChannel(session.user.id, channelName.replace(/^private-channel-/, ""))
+        : channelName.startsWith("private-user-")
+          ? channelName.replace(/^private-user-/, "") === session.user.id
+          : false;
 
   if (!authorized) {
     return NextResponse.json({ error: "Sem acesso a esse canal." }, { status: 403 });
@@ -48,6 +50,14 @@ async function canAccessServerChannel(userId: string, channelId: string) {
 
   const membership = await prisma.serverMember.findUnique({
     where: { userId_serverId: { userId, serverId: channel.serverId } },
+    select: { id: true },
+  });
+  return Boolean(membership);
+}
+
+async function canAccessServer(userId: string, serverId: string) {
+  const membership = await prisma.serverMember.findUnique({
+    where: { userId_serverId: { userId, serverId } },
     select: { id: true },
   });
   return Boolean(membership);

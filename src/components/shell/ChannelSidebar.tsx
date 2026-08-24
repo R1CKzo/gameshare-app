@@ -12,6 +12,8 @@ import { InviteButton } from "@/components/shell/InviteButton";
 import { ServerSettingsButton } from "@/components/shell/ServerSettingsButton";
 import { UserPill } from "@/components/shell/UserPill";
 import type { ConnectionQuality } from "@/hooks/useVoiceMesh";
+import { getPusherClient } from "@/lib/pusherClient";
+import { CALL_UPDATE_EVENT, serverVoicePusherName } from "@/lib/pusherShared";
 
 type ChannelSummary = {
   id: string;
@@ -43,7 +45,9 @@ type VoicePresentUser = {
 };
 
 const NAME_MAX = 40;
-const VOICE_PRESENCE_POLL_MS = 4000;
+// So um reforço agora — entrar/sair/mutar/compartilhar em qualquer sala do
+// servidor avisa na hora pelo Pusher (ver a inscricao no useEffect abaixo).
+const VOICE_PRESENCE_POLL_MS = 10000;
 
 export function ChannelSidebar({
   serverId,
@@ -94,9 +98,17 @@ export function ChannelSidebar({
 
     poll();
     const interval = setInterval(poll, VOICE_PRESENCE_POLL_MS);
+
+    const pusher = getPusherClient();
+    const pusherChannelName = serverVoicePusherName(serverId);
+    const channel = pusher.subscribe(pusherChannelName);
+    channel.bind(CALL_UPDATE_EVENT, poll);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      channel.unbind(CALL_UPDATE_EVENT, poll);
+      pusher.unsubscribe(pusherChannelName);
     };
   }, [serverId]);
 

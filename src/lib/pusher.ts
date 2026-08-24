@@ -5,9 +5,11 @@ export {
   FRIEND_REQUEST_EVENT,
   FRIEND_ACCEPTED_EVENT,
   ROLE_GRANTED_EVENT,
+  CALL_UPDATE_EVENT,
   textChannelPusherName,
   dmChannelPusherName,
   userPusherName,
+  serverVoicePusherName,
 } from "@/lib/pusherShared";
 
 // Cliente de servidor do Pusher, usado pra: (1) disparar o evento de
