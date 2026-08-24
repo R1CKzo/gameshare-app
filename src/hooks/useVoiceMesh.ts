@@ -221,6 +221,11 @@ export function useVoiceMesh({
   // estourar o limite de 3-8% logo nos primeiros segundos, com poucos
   // pacotes recebidos ainda no total).
   const lastStatsRef = useRef<Map<string, { packetsLost: number; packetsReceived: number }>>(new Map());
+  // Cancela o POST do peerId (ao abrir a conexao) e o do mudo (ao clicar)
+  // se ainda estiverem em voo quando abortPendingWrites() for chamado (ver
+  // ActiveCallProvider.leave()) — evita que uma dessas escritas chegue no
+  // servidor DEPOIS do DELETE de "sair" e recrie a linha de presenca.
+  const writeAbortRef = useRef<AbortController | null>(null);
 
   function registerConnection(peerId: string, call: MediaConnection) {
     connectionsRef.current.set(peerId, call);
@@ -262,6 +267,8 @@ export function useVoiceMesh({
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
+    const writeAbort = new AbortController();
+    writeAbortRef.current = writeAbort;
 
     async function setup() {
       try {
@@ -306,6 +313,7 @@ export function useVoiceMesh({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ peerId }),
+            signal: writeAbort.signal,
           })
             .then(async (res) => {
               // So acontece na corrida rara de duas pessoas entrando no
@@ -546,10 +554,17 @@ export function useVoiceMesh({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...(peerId ? { peerId } : {}), isMuted: next }),
+        signal: writeAbortRef.current?.signal,
       }).catch(() => {});
       return next;
     });
   }, [apiBase]);
+
+  // Chamado por ActiveCallProvider.leave() logo antes de mandar o DELETE —
+  // ver o comentario em writeAbortRef acima.
+  function abortPendingWrites() {
+    writeAbortRef.current?.abort();
+  }
 
   function replaceOutgoingTracks(video: MediaStreamTrack, audio: MediaStreamTrack) {
     connectionsRef.current.forEach((call) => {
@@ -671,5 +686,6 @@ export function useVoiceMesh({
     getPeerId,
     getIsMuted,
     getConnectionQuality,
+    abortPendingWrites,
   };
 }

@@ -52,6 +52,7 @@ export const changelog: ChangelogEntry[] = [
       "Contas com foto de perfil personalizada (enviada por upload, não a do Google) às vezes não conseguiam terminar o login — nem por email/senha, nem pelo Google — ficando presas na tela de login",
       "Foto de perfil personalizada parava de aparecer (ícone de imagem quebrada) logo depois de entrar no app",
       "Sinal de conexão (barrinhas verde/amarelo/vermelho) acendia amarelo ou vermelho por engano logo ao entrar numa chamada, mesmo com internet boa dos dois lados",
+      "Em raras ocasiões, sair de uma sala de chamada podia deixar a pessoa aparecendo como presente pros outros mesmo depois de ter saído de verdade",
     ],
   },
   {

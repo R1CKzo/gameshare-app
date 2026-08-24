@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { type PresentUser, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
 import { getPusherClient } from "@/lib/pusherClient";
@@ -109,9 +109,19 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.apiBase]);
 
+  // Batida em voo quando "sair" e clicado — abortada no comeco de leave()
+  // ANTES do DELETE ser mandado (ver leave() abaixo). Sem isso, a rede nao
+  // garante que o DELETE chega no banco antes de uma batida que ja estava a
+  // caminho: se essa batida chegasse DEPOIS do DELETE, o upsert dela
+  // recriava a linha de presenca sozinha, deixando a pessoa "fantasma" na
+  // sala pros outros mesmo tendo saido de verdade.
+  const heartbeatAbortRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     if (!target) return;
     const apiBase = target.apiBase;
+    const controller = new AbortController();
+    heartbeatAbortRef.current = controller;
 
     // Reenvia o peerId atual em toda batida (nao so quando o peer abre pela
     // primeira vez) — se a linha de presenca ficar sem peerId por qualquer
@@ -134,6 +144,7 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
           isMuted: mesh.getIsMuted(),
           connectionQuality: mesh.getConnectionQuality().toUpperCase(),
         }),
+        signal: controller.signal,
       }).catch(() => {});
     }
 
@@ -156,6 +167,13 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
 
   const leave = useCallback(async () => {
     if (mesh.isSharingScreen) mesh.stopScreenShare();
+    // Cancela qualquer heartbeat ou mudanca de mudo que ja estava a
+    // caminho ANTES de mandar o DELETE — a rede nao garante ordem entre
+    // duas requisicoes distintas, entao sem isso uma dessas escritas podia
+    // chegar DEPOIS do DELETE e recriar a linha de presenca sozinha (ver o
+    // comentario em heartbeatAbortRef acima).
+    heartbeatAbortRef.current?.abort();
+    mesh.abortPendingWrites();
     // Espera o DELETE terminar antes de liberar o botao de entrar de novo
     // (setTarget(null) e o que faz "joined" virar false) — sem isso, uma
     // reentrada rapida podia mandar o POST do peerId novo ANTES desse
@@ -172,7 +190,7 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     setCallError(null);
     playLeaveCallSound();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mesh.isSharingScreen, target]);
+  }, [mesh.isSharingScreen, mesh.abortPendingWrites, target]);
 
   const startScreenShare = useCallback(
     async (options: ScreenShareOptions) => {
