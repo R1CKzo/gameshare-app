@@ -34,8 +34,11 @@ export function UserPill({
             // servidor, sem os cookies do navegador — /api/me/avatar exige
             // sessao (ver src/lib/avatarUrl.ts), entao sem isso ele leva
             // 401 e a foto quebra. unoptimized faz o navegador buscar
-            // direto, com a sessao de verdade.
+            // direto, com a sessao de verdade. priority evita o lazy-load
+            // padrao (fica sempre visivel na tela, nao precisa esperar
+            // entrar em cena pra carregar).
             unoptimized
+            priority
             className="rounded-full ring-1 ring-white/[0.08]"
           />
         ) : (
