@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useUnread } from "@/components/notifications/UnreadContext";
 import { InviteButton } from "@/components/shell/InviteButton";
@@ -28,6 +31,8 @@ type MemberSummary = {
 };
 type ServerPermissions = { isOwner: boolean; canKick: boolean; canBan: boolean; canManageRoles: boolean; canManageChannels: boolean };
 
+const NAME_MAX = 40;
+
 export function ChannelSidebar({
   serverId,
   serverName,
@@ -49,10 +54,44 @@ export function ChannelSidebar({
   permissions: ServerPermissions;
   user: { nickname: string | null; userTag: string | null; image: string | null };
 }) {
+  const router = useRouter();
   const textChannels = channels.filter((c) => c.type === "TEXT");
   const callChannels = channels.filter((c) => c.type === "CALL");
-  const canManageServer =
-    permissions.isOwner || permissions.canKick || permissions.canBan || permissions.canManageRoles || permissions.canManageChannels;
+  const canManageServer = permissions.isOwner || permissions.canKick || permissions.canBan || permissions.canManageRoles;
+  const canManageChannels = permissions.isOwner || permissions.canManageChannels;
+
+  async function createChannel(type: "TEXT" | "CALL", name: string) {
+    await fetch(`/api/servers/${serverId}/channels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, type }),
+    });
+    router.refresh();
+  }
+
+  async function renameChannel(channelId: string, name: string) {
+    await fetch(`/api/servers/${serverId}/channels/${channelId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    router.refresh();
+  }
+
+  // Se o canal excluido era o que a pessoa estava vendo, manda ela pra
+  // raiz do servidor — senao a tela por baixo ficaria presa num canal que
+  // nao existe mais.
+  async function deleteChannel(channelId: string) {
+    if (!window.confirm("Excluir esse canal? O histórico dele se perde pra sempre.")) return;
+    const res = await fetch(`/api/servers/${serverId}/channels/${channelId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      window.alert(data.error ?? "Não foi possível excluir o canal.");
+      return;
+    }
+    if (channelId === currentChannelId) router.push(`/servers/${serverId}`);
+    router.refresh();
+  }
 
   return (
     <div className="flex w-[252px] shrink-0 flex-col border-r border-white/[0.06] bg-sidebar">
@@ -60,31 +99,43 @@ export function ChannelSidebar({
         <span className="truncate font-bold">{serverName}</span>
         <div className="flex items-center gap-1">
           {canManageServer && (
-            <ServerSettingsButton
-              serverId={serverId}
-              ownerId={ownerId}
-              members={members}
-              permissions={permissions}
-              currentChannelId={currentChannelId}
-            />
+            <ServerSettingsButton serverId={serverId} ownerId={ownerId} members={members} permissions={permissions} />
           )}
           <InviteButton inviteCode={inviteCode} />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
-        <div className="px-2 pb-1 pt-2 text-[11px] font-bold tracking-wider text-muted">
-          CANAIS DE TEXTO
+        <div className="flex items-center justify-between px-2 pb-1 pt-2">
+          <span className="text-[11px] font-bold tracking-wider text-muted">CANAIS DE TEXTO</span>
+          {canManageChannels && <ChannelCreateButton onCreate={(name) => createChannel("TEXT", name)} />}
         </div>
         {textChannels.map((channel) => (
-          <ChannelRow key={channel.id} serverId={serverId} channel={channel} active={channel.id === currentChannelId} />
+          <ChannelRow
+            key={channel.id}
+            serverId={serverId}
+            channel={channel}
+            active={channel.id === currentChannelId}
+            canManage={canManageChannels}
+            onRename={(name) => renameChannel(channel.id, name)}
+            onDelete={() => deleteChannel(channel.id)}
+          />
         ))}
 
-        <div className="px-2 pb-1 pt-4 text-[11px] font-bold tracking-wider text-muted">
-          SALAS DE CHAMADA
+        <div className="flex items-center justify-between px-2 pb-1 pt-4">
+          <span className="text-[11px] font-bold tracking-wider text-muted">SALAS DE CHAMADA</span>
+          {canManageChannels && <ChannelCreateButton onCreate={(name) => createChannel("CALL", name)} />}
         </div>
         {callChannels.map((channel) => (
-          <ChannelRow key={channel.id} serverId={serverId} channel={channel} active={channel.id === currentChannelId} />
+          <ChannelRow
+            key={channel.id}
+            serverId={serverId}
+            channel={channel}
+            active={channel.id === currentChannelId}
+            canManage={canManageChannels}
+            onRename={(name) => renameChannel(channel.id, name)}
+            onDelete={() => deleteChannel(channel.id)}
+          />
         ))}
       </div>
 
@@ -97,70 +148,348 @@ function ChannelRow({
   serverId,
   channel,
   active,
+  canManage,
+  onRename,
+  onDelete,
 }: {
   serverId: string;
   channel: ChannelSummary;
   active: boolean;
+  canManage: boolean;
+  onRename: (name: string) => void;
+  onDelete: () => void;
 }) {
   const isCall = channel.type === "CALL";
   const hasActivity = isCall && (channel.isLive || channel.presenceCount > 0);
   const { isChannelUnread } = useUnread();
   const unread = !isCall && isChannelUnread(channel.id);
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(channel.name);
+
+  useEffect(() => setName(channel.name), [channel.name]);
+
+  function commitRename() {
+    setRenaming(false);
+    const trimmed = name.trim();
+    if (trimmed && trimmed !== channel.name) {
+      onRename(trimmed);
+    } else {
+      setName(channel.name);
+    }
+  }
+
+  if (renaming) {
+    return (
+      <div className="mb-0.5 flex items-center gap-2 rounded-md px-2 py-1.5">
+        {isCall ? <CallGlyph active={false} live={false} /> : <span className="w-4 text-center text-base font-semibold text-muted">#</span>}
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onFocus={(e) => e.target.select()}
+          onBlur={commitRename}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitRename();
+            } else if (e.key === "Escape") {
+              setName(channel.name);
+              setRenaming(false);
+            }
+          }}
+          maxLength={NAME_MAX}
+          className="h-6 min-w-0 flex-1 rounded border border-primary bg-background px-1.5 text-sm font-semibold text-[#f5f5f7] outline-none"
+        />
+      </div>
+    );
+  }
 
   return (
-    <Link
-      href={`/servers/${serverId}/channels/${channel.id}`}
-      prefetch
-      className={`mb-0.5 flex items-center gap-2 rounded-md px-2 py-1.5 transition ${
-        hasActivity
-          ? "border-l-2 border-accent bg-accent/[0.08]"
-          : active
-            ? "bg-elevated"
-            : "hover:bg-white/[0.03]"
-      }`}
-    >
-      {isCall ? (
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={hasActivity ? "#22d3ee" : active ? "#f5f5f7" : "#6b7280"}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-        </svg>
-      ) : (
-        <span className="w-4 text-center text-base font-semibold text-muted">#</span>
-      )}
-      <span
-        className={`flex-1 truncate text-sm ${
-          active || hasActivity || unread ? "font-semibold text-[#f5f5f7]" : "text-[#9aa0ae]"
+    <div className="group relative mb-0.5 flex items-center">
+      <Link
+        href={`/servers/${serverId}/channels/${channel.id}`}
+        prefetch
+        className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 transition ${
+          hasActivity
+            ? "border-l-2 border-accent bg-accent/[0.08]"
+            : active
+              ? "bg-elevated"
+              : "hover:bg-white/[0.03]"
         }`}
       >
-        {channel.name}
-      </span>
-      {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />}
-      {isCall && channel.isLive && channel.broadcaster && (
-        <div
-          className="flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-sidebar bg-primary text-[8px] font-bold"
-          title={channel.broadcaster.nickname ?? undefined}
+        {isCall ? (
+          <CallGlyph active={active} live={hasActivity} />
+        ) : (
+          <span className="w-4 text-center text-base font-semibold text-muted">#</span>
+        )}
+        <span
+          className={`min-w-0 flex-1 truncate text-sm ${
+            active || hasActivity || unread ? "font-semibold text-[#f5f5f7]" : "text-[#9aa0ae]"
+          }`}
         >
-          {channel.broadcaster.nickname?.slice(0, 1).toUpperCase()}
-        </div>
-      )}
-      {isCall && !channel.isLive && channel.presenceCount > 0 && (
-        <div className="flex items-center gap-1 text-[11px] font-semibold text-accent">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-          </svg>
-          {channel.presenceCount}
-        </div>
-      )}
-    </Link>
+          {channel.name}
+        </span>
+        {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />}
+        {isCall && channel.isLive && channel.broadcaster && (
+          <div
+            className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 border-sidebar bg-primary text-[8px] font-bold"
+            title={channel.broadcaster.nickname ?? undefined}
+          >
+            {channel.broadcaster.nickname?.slice(0, 1).toUpperCase()}
+          </div>
+        )}
+        {isCall && !channel.isLive && channel.presenceCount > 0 && (
+          <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-accent">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
+            {channel.presenceCount}
+          </div>
+        )}
+      </Link>
+      {canManage && <ChannelActionsMenu onEdit={() => setRenaming(true)} onDelete={onDelete} />}
+    </div>
+  );
+}
+
+function CallGlyph({ active, live }: { active: boolean; live: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={live ? "#22d3ee" : active ? "#f5f5f7" : "#6b7280"}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+    >
+      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+    </svg>
+  );
+}
+
+// Botao "+" ao lado do titulo de cada secao — abre um popover flutuante so
+// com o nome do canal, ja que o tipo (texto/chamada) e decidido por qual
+// secao foi clicada.
+function ChannelCreateButton({ onCreate }: { onCreate: (name: string) => Promise<void> | void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function toggleOpen() {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({ top: rect.bottom + 6, left: Math.min(rect.left, window.innerWidth - 232 - 12) });
+    }
+    setOpen((v) => !v);
+  }
+
+  useEffect(() => {
+    if (open) requestAnimationFrame(() => inputRef.current?.focus());
+  }, [open]);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
+        setOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    if (open) {
+      document.addEventListener("mousedown", onClickOutside);
+      document.addEventListener("keydown", onKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || creating) return;
+    setCreating(true);
+    await onCreate(name.trim());
+    setCreating(false);
+    setName("");
+    setOpen(false);
+  }
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        onClick={toggleOpen}
+        title="Criar canal"
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+      >
+        <PlusIcon />
+      </button>
+      {open &&
+        position &&
+        createPortal(
+          <form
+            ref={popoverRef}
+            onSubmit={submit}
+            style={{ top: position.top, left: position.left, width: 232 }}
+            className="fixed z-[100] space-y-2 rounded-xl border border-white/[0.08] bg-elevated p-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+          >
+            <input
+              ref={inputRef}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={NAME_MAX}
+              placeholder="Nome do canal"
+              className="h-9 w-full rounded-lg border border-[#2d3344] bg-background px-2.5 text-sm font-semibold outline-none focus:border-primary"
+            />
+            <button
+              type="submit"
+              disabled={!name.trim() || creating}
+              className="h-8 w-full rounded-lg bg-primary text-xs font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+            >
+              {creating ? "Criando..." : "Criar canal"}
+            </button>
+          </form>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+// Botao hamburguer que so aparece no hover da linha (ou sempre, se quem
+// esta vendo pode gerenciar canais) — abre um menu pra editar (renomear
+// inline) ou excluir aquele canal especifico.
+function ChannelActionsMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  function toggleOpen() {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({ top: rect.bottom + 4, left: Math.min(rect.left, window.innerWidth - 160 - 12) });
+    }
+    setOpen((v) => !v);
+  }
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
+        setOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    if (open) {
+      document.addEventListener("mousedown", onClickOutside);
+      document.addEventListener("keydown", onKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        onClick={toggleOpen}
+        title="Editar canal"
+        className={`absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 shrink-0 items-center justify-center rounded bg-sidebar text-muted transition hover:bg-elevated-hover hover:text-[#f5f5f7] ${
+          open ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        }`}
+      >
+        <HamburgerIcon />
+      </button>
+      {open &&
+        position &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{ top: position.top, left: position.left, width: 160 }}
+            className="fixed z-[100] overflow-hidden rounded-xl border border-white/[0.08] bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+          >
+            <button
+              onClick={() => {
+                setOpen(false);
+                onEdit();
+              }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-[#d5d7dc] transition hover:bg-elevated-hover hover:text-[#f5f5f7]"
+            >
+              <EditIcon />
+              Editar
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onDelete();
+              }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-danger transition hover:bg-danger/10"
+            >
+              <TrashIcon />
+              Excluir
+            </button>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function HamburgerIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0l-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" />
+    </svg>
   );
 }

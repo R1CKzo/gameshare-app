@@ -33,7 +33,7 @@ export const changelog: ChangelogEntry[] = [
       "Bolinha de status no avatar de cada pessoa: verde (online), amarela (ausente), vermelha (ocupado) ou cinza (offline)",
       "Clique no seu próprio avatar, embaixo na barra lateral, pra escolher o status manualmente (ou deixar no automático)",
       "No automático, o status vira \"ausente\" sozinho depois de 5 minutos sem mexer no mouse ou teclado, ou ao minimizar o app",
-      "Criar e excluir canais de texto e de chamada direto pela tela de gerenciar servidor (nova aba \"Canais\") — sem contar com o dono, dá pra liberar isso pra um cargo customizado também",
+      "Botão \"+\" ao lado de \"Canais de texto\" e \"Salas de chamada\" pra criar um novo, e um menu (≡) em cada canal pra renomear ou excluir — sem contar com o dono, dá pra liberar isso pra um cargo customizado também",
     ],
     bugsFixed: [
       "Status fixado manualmente (ex: \"Ocupado\") podia ser sobrescrito por engano logo depois de recarregar a página, aparecendo errado pra outras pessoas",

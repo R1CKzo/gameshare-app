@@ -27,7 +27,6 @@ type BanSummary = {
   reason: string | null;
   user: { id: string; nickname: string | null; userTag: string | null; image: string | null };
 };
-type ChannelSummary = { id: string; name: string; type: "TEXT" | "CALL"; position: number };
 type ServerPermissions = {
   isOwner: boolean;
   canKick: boolean;
@@ -43,13 +42,11 @@ export function ServerSettingsButton({
   ownerId,
   members,
   permissions,
-  currentChannelId,
 }: {
   serverId: string;
   ownerId: string;
   members: MemberSummary[];
   permissions: ServerPermissions;
-  currentChannelId?: string;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -67,7 +64,6 @@ export function ServerSettingsButton({
           ownerId={ownerId}
           members={members}
           permissions={permissions}
-          currentChannelId={currentChannelId}
           onClose={() => setOpen(false)}
         />
       )}
@@ -80,22 +76,16 @@ function ServerSettingsModal({
   ownerId,
   members,
   permissions,
-  currentChannelId,
   onClose,
 }: {
   serverId: string;
   ownerId: string;
   members: MemberSummary[];
   permissions: ServerPermissions;
-  currentChannelId?: string;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"membros" | "cargos" | "canais">("membros");
-  const tabs = [
-    "membros" as const,
-    ...(permissions.canManageRoles ? (["cargos"] as const) : []),
-    ...(permissions.isOwner || permissions.canManageChannels ? (["canais"] as const) : []),
-  ];
+  const [tab, setTab] = useState<"membros" | "cargos">("membros");
+  const tabs = permissions.canManageRoles ? (["membros", "cargos"] as const) : (["membros"] as const);
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
@@ -124,7 +114,7 @@ function ServerSettingsModal({
                   tab === t ? "bg-elevated text-[#f5f5f7]" : "text-muted hover:text-[#d5d7dc]"
                 }`}
               >
-                {t === "membros" ? "Membros" : t === "cargos" ? "Cargos" : "Canais"}
+                {t === "membros" ? "Membros" : "Cargos"}
               </button>
             ))}
           </div>
@@ -133,10 +123,8 @@ function ServerSettingsModal({
         <div className="overflow-y-auto p-5">
           {tab === "membros" ? (
             <MembrosTab serverId={serverId} ownerId={ownerId} members={members} permissions={permissions} />
-          ) : tab === "cargos" ? (
-            <CargosTab serverId={serverId} permissions={permissions} />
           ) : (
-            <CanaisTab serverId={serverId} currentChannelId={currentChannelId} onClose={onClose} />
+            <CargosTab serverId={serverId} permissions={permissions} />
           )}
         </div>
       </div>
@@ -487,187 +475,6 @@ function CargosTab({ serverId, permissions }: { serverId: string; permissions: S
           {creating ? "Criando..." : "Criar cargo"}
         </button>
       </form>
-    </div>
-  );
-}
-
-function CanaisTab({
-  serverId,
-  currentChannelId,
-  onClose,
-}: {
-  serverId: string;
-  currentChannelId?: string;
-  onClose: () => void;
-}) {
-  const router = useRouter();
-  const [channels, setChannels] = useState<ChannelSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [name, setName] = useState("");
-  const [type, setType] = useState<"TEXT" | "CALL">("TEXT");
-  const [error, setError] = useState("");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  function loadChannels() {
-    fetch(`/api/servers/${serverId}/channels`)
-      .then((r) => r.json())
-      .then((data) => setChannels(data.channels ?? []))
-      .finally(() => setLoading(false));
-  }
-
-  useEffect(loadChannels, [serverId]);
-
-  async function createChannel(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setCreating(true);
-    setError("");
-    const res = await fetch(`/api/servers/${serverId}/channels`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), type }),
-    });
-    setCreating(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Não foi possível criar o canal.");
-      return;
-    }
-    setName("");
-    loadChannels();
-    router.refresh();
-  }
-
-  // Se o canal excluido era o que a pessoa estava vendo, fecha o modal e
-  // manda ela pra raiz do servidor — senao a tela por baixo ficaria presa
-  // num canal que nao existe mais.
-  async function deleteChannel(channelId: string) {
-    if (!window.confirm("Excluir esse canal? O histórico dele se perde pra sempre.")) return;
-    setDeletingId(channelId);
-    const res = await fetch(`/api/servers/${serverId}/channels/${channelId}`, { method: "DELETE" });
-    setDeletingId(null);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      window.alert(data.error ?? "Não foi possível excluir o canal.");
-      return;
-    }
-    setChannels((prev) => prev.filter((c) => c.id !== channelId));
-    if (channelId === currentChannelId) {
-      onClose();
-      router.push(`/servers/${serverId}`);
-    }
-    router.refresh();
-  }
-
-  const textChannels = channels.filter((c) => c.type === "TEXT");
-  const callChannels = channels.filter((c) => c.type === "CALL");
-
-  return (
-    <div className="space-y-5">
-      {!loading && (
-        <div className="space-y-4">
-          <div>
-            <div className="mb-1.5 text-[11px] font-bold tracking-wider text-muted">CANAIS DE TEXTO</div>
-            <div className="space-y-1">
-              {textChannels.map((c) => (
-                <ChannelListRow key={c.id} channel={c} onDelete={() => deleteChannel(c.id)} deleting={deletingId === c.id} />
-              ))}
-              {textChannels.length === 0 && <p className="px-1 text-xs text-dim">Nenhum canal de texto.</p>}
-            </div>
-          </div>
-          <div>
-            <div className="mb-1.5 text-[11px] font-bold tracking-wider text-muted">SALAS DE CHAMADA</div>
-            <div className="space-y-1">
-              {callChannels.map((c) => (
-                <ChannelListRow key={c.id} channel={c} onDelete={() => deleteChannel(c.id)} deleting={deletingId === c.id} />
-              ))}
-              {callChannels.length === 0 && <p className="px-1 text-xs text-dim">Nenhuma sala de chamada.</p>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={createChannel} className="space-y-3 rounded-xl border border-[#2d3344] p-4">
-        <div className="text-xs font-bold tracking-wide text-muted">NOVO CANAL</div>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={40}
-          placeholder="Nome do canal"
-          className="h-10 w-full rounded-lg border border-[#2d3344] bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
-        />
-        <div className="flex gap-1.5">
-          <button
-            type="button"
-            onClick={() => setType("TEXT")}
-            className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold transition ${
-              type === "TEXT" ? "border-primary bg-primary/10 text-[#f5f5f7]" : "border-[#2d3344] text-muted hover:text-[#d5d7dc]"
-            }`}
-          >
-            Texto
-          </button>
-          <button
-            type="button"
-            onClick={() => setType("CALL")}
-            className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold transition ${
-              type === "CALL" ? "border-primary bg-primary/10 text-[#f5f5f7]" : "border-[#2d3344] text-muted hover:text-[#d5d7dc]"
-            }`}
-          >
-            Chamada
-          </button>
-        </div>
-        {error && <p className="text-xs text-danger">{error}</p>}
-        <button
-          type="submit"
-          disabled={creating || !name.trim()}
-          className="h-10 w-full rounded-lg bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
-        >
-          {creating ? "Criando..." : "Criar canal"}
-        </button>
-      </form>
-    </div>
-  );
-}
-
-function ChannelListRow({
-  channel,
-  onDelete,
-  deleting,
-}: {
-  channel: ChannelSummary;
-  onDelete: () => void;
-  deleting: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-white/[0.03]">
-      {channel.type === "CALL" ? (
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 text-muted"
-        >
-          <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-        </svg>
-      ) : (
-        <span className="w-[15px] shrink-0 text-center text-sm font-semibold text-muted">#</span>
-      )}
-      <span className="flex-1 truncate text-sm font-semibold text-[#d5d7dc]">{channel.name}</span>
-      <button
-        onClick={onDelete}
-        disabled={deleting}
-        title="Excluir canal"
-        className="flex h-7 w-7 items-center justify-center rounded-md text-muted transition hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-      >
-        <TrashIcon />
-      </button>
     </div>
   );
 }
