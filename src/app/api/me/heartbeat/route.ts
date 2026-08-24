@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const status = body?.status === "AWAY" ? "AWAY" : "ONLINE";
+  const status = ["ONLINE", "AWAY", "BUSY"].includes(body?.status) ? body.status : "ONLINE";
 
   await prisma.user.update({
     where: { id: session.user.id },

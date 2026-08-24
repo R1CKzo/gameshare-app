@@ -3,8 +3,10 @@
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 
+import { usePresence } from "@/components/notifications/PresenceProvider";
 import { MoreMenu } from "@/components/shell/MoreMenu";
 import { SettingsButton } from "@/components/shell/SettingsButton";
+import { StatusMenu } from "@/components/shell/StatusMenu";
 
 export function UserPill({
   user,
@@ -16,11 +18,12 @@ export function UserPill({
   isServerOwner?: boolean;
 }) {
   const { data: session } = useSession();
+  const { effectiveStatus } = usePresence();
   const label = user.nickname ?? "Alguem";
 
   return (
     <div className="flex h-16 shrink-0 items-center gap-2.5 border-t border-white/[0.06] bg-black/20 px-3">
-      <div className="relative shrink-0">
+      <StatusMenu status={effectiveStatus}>
         {user.image ? (
           <Image
             src={user.image}
@@ -34,8 +37,7 @@ export function UserPill({
             {label.slice(0, 2).toUpperCase()}
           </div>
         )}
-        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[2.5px] border-[#0a0b11] bg-accent" />
-      </div>
+      </StatusMenu>
 
       <div className="min-w-0 flex-1">
         <div title={label} className="truncate text-[13.5px] font-bold leading-tight text-[#f5f5f7]">

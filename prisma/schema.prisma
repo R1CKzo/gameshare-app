@@ -20,6 +20,7 @@ datasource db {
 enum UserStatus {
   ONLINE
   AWAY
+  BUSY
 }
 
 // ---------- Autenticacao (NextAuth / Auth.js + Google OAuth) ----------
@@ -114,11 +115,17 @@ model User {
   // /novidades sozinho ao abrir o app. Nulo = nunca viu nenhuma.
   lastSeenChangelogKey String?
 
-  // Status de presenca (ver PresenceHeartbeat.tsx / src/lib/presence.ts).
+  // Status de presenca (ver PresenceProvider.tsx / src/lib/presence.ts).
   // Nulo = nunca mandou heartbeat nenhum, tratado como offline igual a um
   // heartbeat velho demais.
   status       UserStatus?
   lastActiveAt DateTime?
+
+  // Verdadeiro quando a pessoa fixou o status manualmente no menu do
+  // proprio avatar (Online/Ausente/Ocupado) — enquanto estiver assim, o
+  // heartbeat automatico (foco da aba, tempo parado) para de sobrescrever
+  // o status sozinho, ate ela escolher "Automatico" de novo.
+  statusManual Boolean @default(false)
 
   // Identificador unico: nickname + "#" + userTag (6 digitos)
   nickname  String?

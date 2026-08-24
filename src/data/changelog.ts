@@ -23,14 +23,6 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
-    date: "2026-08-23",
-    title: "Status online, ausente e offline",
-    items: [
-      "Bolinha de status no avatar de cada pessoa: verde quando está com o app em foco, amarela quando está com o app aberto mas em segundo plano, e cinza quando não está conectada",
-      "Aparece na lista de membros do servidor, nas conversas diretas e na tela de Amigos",
-    ],
-  },
-  {
     version: "1.0.8",
     date: "2026-08-23",
     title: "Notificações completas",
@@ -38,6 +30,9 @@ export const changelog: ChangelogEntry[] = [
       "Mensagem nova numa conversa direta também acende o aviso no ícone de Amigos, não só pedido de amizade",
       "O ícone do app na bandeja do sistema ganha um ponto vermelho quando tem qualquer notificação não lida (mensagem, DM ou pedido de amizade)",
       "Ao abrir o app depois de uma atualização, você já é levado direto pra essa página de Novidades, sem precisar procurar",
+      "Bolinha de status no avatar de cada pessoa: verde (online), amarela (ausente), vermelha (ocupado) ou cinza (offline)",
+      "Clique no seu próprio avatar, embaixo na barra lateral, pra escolher o status manualmente (ou deixar no automático)",
+      "No automático, o status vira \"ausente\" sozinho depois de 5 minutos sem mexer no mouse ou teclado, ou ao minimizar o app",
     ],
   },
   {

@@ -7,18 +7,19 @@ import { ActiveCallAudioSink } from "@/components/call/ActiveCallAudioSink";
 import { ActiveCallBar } from "@/components/call/ActiveCallBar";
 import { ActiveCallProvider } from "@/components/call/ActiveCallProvider";
 import { GlobalNotificationListener } from "@/components/notifications/GlobalNotificationListener";
-import { PresenceHeartbeat } from "@/components/notifications/PresenceHeartbeat";
+import { PresenceProvider } from "@/components/notifications/PresenceProvider";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
       <GlobalNotificationListener>
-        <ActiveCallProvider>
-          {children}
-          <ActiveCallBar />
-          <ActiveCallAudioSink />
-          <PresenceHeartbeat />
-        </ActiveCallProvider>
+        <PresenceProvider>
+          <ActiveCallProvider>
+            {children}
+            <ActiveCallBar />
+            <ActiveCallAudioSink />
+          </ActiveCallProvider>
+        </PresenceProvider>
       </GlobalNotificationListener>
     </SessionProvider>
   );
