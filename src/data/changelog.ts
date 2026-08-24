@@ -46,6 +46,7 @@ export const changelog: ChangelogEntry[] = [
       "Bolinha de status aparecia cortada no avatar dos membros do servidor, das conversas diretas e da tela de Amigos",
       "Nova auditoria de segurança interna: atualizado um componente do site que tinha uma falha crítica conhecida, reforçada a proteção contra tentativa de adivinhar código de convite de servidor, e outras camadas de proteção adicionadas nos bastidores",
       "Dados como nickname, tag e configurações de segurança agora se atualizam sozinhos em qualquer tela, sem precisar sair e entrar de novo",
+      "Contas com foto de perfil personalizada (enviada por upload, não a do Google) às vezes não conseguiam terminar o login — nem por email/senha, nem pelo Google — ficando presas na tela de login",
     ],
   },
   {
