@@ -529,7 +529,7 @@ function BetaTab() {
     <div className="space-y-4">
       <ToggleRow
         label="Permitir versões beta"
-        description="Mostra aqui quando tiver uma versão de teste (beta) disponível pra baixar — nunca aparece no site nem é instalada sozinha."
+        description="Mostra aqui quando tiver uma versão de teste disponível pra baixar."
         checked={allowed}
         onChange={handleToggle}
       />

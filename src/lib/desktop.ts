@@ -131,7 +131,7 @@ export function checkBetaBuild(): Promise<BetaCheckResult> {
 
 export function downloadAndInstallBeta(downloadUrl: string): Promise<BetaInstallResult> {
   if (typeof window === "undefined" || !window.gameshareDesktop?.downloadAndInstallBeta) {
-    return Promise.resolve({ ok: false, error: "not-desktop" });
+    return Promise.resolve({ ok: false, error: "Não foi possível baixar a versão beta agora." });
   }
   return window.gameshareDesktop.downloadAndInstallBeta(downloadUrl);
 }

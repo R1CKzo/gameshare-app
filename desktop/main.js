@@ -645,7 +645,10 @@ ipcMain.handle("app:get-version", () => app.getVersion());
 async function downloadAndInstallBeta(downloadUrl) {
   try {
     const res = await fetch(downloadUrl);
-    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    if (!res.ok) {
+      log.error("[beta] falha ao baixar build beta, HTTP", res.status);
+      return { ok: false, error: "Não foi possível baixar a versão beta. Tente de novo mais tarde." };
+    }
 
     const buffer = Buffer.from(await res.arrayBuffer());
     const dest = path.join(app.getPath("temp"), "GameShare-Beta-Setup.exe");
@@ -661,7 +664,7 @@ async function downloadAndInstallBeta(downloadUrl) {
     return { ok: true };
   } catch (err) {
     log.error("[beta] erro ao baixar/instalar build beta", err);
-    return { ok: false, error: err.message ?? String(err) };
+    return { ok: false, error: "Não foi possível baixar a versão beta. Tente de novo mais tarde." };
   }
 }
 
