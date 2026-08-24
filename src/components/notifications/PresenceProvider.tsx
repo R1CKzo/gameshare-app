@@ -87,7 +87,16 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       .then((r) => r.json())
       .then((data: { manual?: boolean; status?: ManualStatus | null }) => {
         if (cancelled) return;
-        if (data.manual && data.status) setManualStatusState(data.status);
+        // Atualiza a ref na hora (nao so o state) — sendHeartbeat() roda
+        // logo em seguida, antes do proximo render sincronizar a ref pelo
+        // efeito abaixo, e sem isso o primeiro heartbeat de cada carregamento
+        // ignorava o status manual salvo e mandava "online" por engano,
+        // sobrescrevendo o que a pessoa tinha fixado (ex: "Ocupado") ate o
+        // heartbeat seguinte corrigir sozinho um minuto depois.
+        if (data.manual && data.status) {
+          manualRef.current = data.status;
+          setManualStatusState(data.status);
+        }
       })
       .catch(() => {})
       .finally(() => {

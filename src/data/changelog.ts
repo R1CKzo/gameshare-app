@@ -34,6 +34,9 @@ export const changelog: ChangelogEntry[] = [
       "Clique no seu próprio avatar, embaixo na barra lateral, pra escolher o status manualmente (ou deixar no automático)",
       "No automático, o status vira \"ausente\" sozinho depois de 5 minutos sem mexer no mouse ou teclado, ou ao minimizar o app",
     ],
+    bugsFixed: [
+      "Status fixado manualmente (ex: \"Ocupado\") podia ser sobrescrito por engano logo depois de recarregar a página, aparecendo errado pra outras pessoas",
+    ],
   },
   {
     version: "1.0.7",
