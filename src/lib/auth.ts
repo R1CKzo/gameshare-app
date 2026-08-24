@@ -2,6 +2,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
+import { sessionSafeImage } from "@/lib/avatarUrl";
 import { prisma } from "@/lib/prisma";
 
 export const authOptions: NextAuthOptions = {
@@ -30,12 +31,18 @@ export const authOptions: NextAuthOptions = {
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { nickname: true, userTag: true, isAdmin: true, passwordHash: true },
+          select: { nickname: true, userTag: true, isAdmin: true, passwordHash: true, image: true },
         });
         token.nickname = dbUser?.nickname ?? null;
         token.userTag = dbUser?.userTag ?? null;
         token.isAdmin = dbUser?.isAdmin ?? false;
         token.hasPassword = dbUser?.passwordHash != null;
+        // Reescreve toda vez (nao so na primeira vez) — sem isso, uma foto
+        // enviada por upload DEPOIS do login inicial (quando o NextAuth
+        // ainda copia a URL antiga/curta do Google pro token sozinho)
+        // acabava entrando crua aqui no proximo refresh da sessao, e o
+        // mesmo bug de cookie gigante voltava. Ver src/lib/avatarUrl.ts.
+        token.picture = sessionSafeImage(dbUser?.image ?? null);
       }
 
       return token;

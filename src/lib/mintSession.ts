@@ -1,6 +1,8 @@
 import { encode } from "next-auth/jwt";
 import type { NextResponse } from "next/server";
 
+import { sessionSafeImage } from "@/lib/avatarUrl";
+
 const MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // igual ao padrao do NextAuth (30 dias)
 
 type SessionUser = {
@@ -31,7 +33,13 @@ export async function buildSessionCookie(
       id: user.id,
       name: user.name,
       email: user.email,
-      picture: user.image,
+      // Nunca a data URL crua aqui — ver src/lib/avatarUrl.ts. Uma foto
+      // enviada por upload pode ter varios KB, e isso sozinho ja estoura o
+      // limite de tamanho de cookie do navegador (~4KB), fazendo o
+      // Set-Cookie ser descartado em silencio e a pessoa nunca ficar
+      // logada de verdade — foi exatamente esse bug que aconteceu no login
+      // do app de desktop.
+      picture: sessionSafeImage(user.image),
       nickname: user.nickname,
       userTag: user.userTag,
       isAdmin: user.isAdmin,
