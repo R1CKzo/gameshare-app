@@ -10,7 +10,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 
 import { apiUrl } from "@/lib/apiUrl";
 
-type SessionUser = {
+export type SessionUser = {
   id: string;
   name: string | null;
   email: string | null;

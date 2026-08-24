@@ -9,6 +9,14 @@ import { FriendsView } from "@/components/friends/FriendsView";
 import { DMSidebar } from "@/components/shell/DMSidebar";
 import { FriendsShell } from "@/components/shell/FriendsShell";
 import { apiUrl } from "@/lib/apiUrl";
+// Tipo explicito em vez de confiar na extensao de tipos do next-auth (que
+// so existe em ../src/types/next-auth.d.ts) chegar ate aqui sozinha --
+// funcionou local por acaso (cache do TypeScript), mas falhou limpo no
+// CI porque o verificador de tipos do Next so inclui o que e alcancavel
+// pelo grafo de imports de verdade, e esse .d.ts nunca e importado por
+// ninguem (so declara global). Import explicito garante o mesmo formato
+// sempre, sem depender de include/glob.
+import type { SessionUser } from "../../shims/next-auth-react";
 
 type ServerSummary = { id: string; name: string };
 
@@ -42,7 +50,9 @@ function FriendsPageInner() {
     return <div className="flex h-screen items-center justify-center text-foreground">Carregando…</div>;
   }
 
-  if (status !== "authenticated" || !session?.user) {
+  const user = session?.user as SessionUser | undefined;
+
+  if (status !== "authenticated" || !user) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 text-foreground">
         <p>Não conectado (janela de teste do app nativo).</p>
@@ -60,11 +70,7 @@ function FriendsPageInner() {
   return (
     <FriendsShell
       servers={servers}
-      sidebar={
-        <DMSidebar
-          user={{ nickname: session.user.nickname, userTag: session.user.userTag, image: session.user.image ?? null }}
-        />
-      }
+      sidebar={<DMSidebar user={{ nickname: user.nickname, userTag: user.userTag, image: user.image }} />}
     >
       <FriendsView />
     </FriendsShell>
