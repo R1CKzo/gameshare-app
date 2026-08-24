@@ -23,6 +23,15 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.0.11",
+    date: "2026-08-24",
+    title: "Programa beta",
+    items: [
+      "Nova aba \"Beta\" nas Configurações: ative pra baixar versões de teste assim que saírem, direto pelo app, sem esperar a atualização normal",
+    ],
+    bugsFixed: [],
+  },
+  {
     version: "1.0.10",
     date: "2026-08-24",
     title: "Correção na bandeja do sistema",
