@@ -3,12 +3,17 @@
 import "../../shims/bootstrap";
 
 import { useEffect, useState } from "react";
-import { signIn, SessionProvider, useSession } from "next-auth/react";
 
 import { FriendsView } from "@/components/friends/FriendsView";
 import { DMSidebar } from "@/components/shell/DMSidebar";
 import { FriendsShell } from "@/components/shell/FriendsShell";
 import { apiUrl } from "@/lib/apiUrl";
+// Importado direto do arquivo (nao "next-auth/react") -- essa pagina e
+// especifica do desktop-ui, entao nao precisa fingir ser o pacote real
+// como os componentes compartilhados fazem (ver o alias em
+// next.config.js); assim o TypeScript enxerga o tipo certo, incluindo
+// useSessionError, que so existe aqui.
+import { signIn, SessionProvider, useSession, useSessionError } from "../../shims/next-auth-react";
 
 type ServerSummary = { id: string; name: string };
 
@@ -20,12 +25,20 @@ type ServerSummary = { id: string; name: string };
 // desde a Fase 0) diferem.
 function FriendsPageInner() {
   const { data: session, status, update } = useSession();
+  const lastError = useSessionError();
   const [servers, setServers] = useState<ServerSummary[]>([]);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   async function handleLogin() {
     setLoggingIn(true);
-    await signIn();
+    setLoginError(null);
+    const result = await signIn();
+    if (!result.ok) {
+      setLoginError(result.error ?? "Falha desconhecida no login.");
+      setLoggingIn(false);
+      return;
+    }
     await update();
     setLoggingIn(false);
   }
@@ -45,6 +58,7 @@ function FriendsPageInner() {
   const user = session?.user;
 
   if (status !== "authenticated" || !user) {
+    const errorToShow = loginError ?? lastError;
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 text-foreground">
         <p>Não conectado (janela de teste do app nativo).</p>
@@ -55,6 +69,7 @@ function FriendsPageInner() {
         >
           {loggingIn ? "Abrindo o navegador…" : "Entrar"}
         </button>
+        {errorToShow && <p className="max-w-md text-center text-sm text-danger">{errorToShow}</p>}
       </div>
     );
   }

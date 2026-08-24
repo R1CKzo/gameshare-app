@@ -435,9 +435,9 @@ function readStoredToken() {
 
 function writeStoredToken(token) {
   if (!safeStorage.isEncryptionAvailable()) {
-    log.warn("safeStorage indisponivel — token da janela de teste nao pode ser salvo.");
-    return;
+    throw new Error("safeStorage indisponivel nesse computador — nao da pra guardar o token com seguranca.");
   }
+  fs.mkdirSync(path.dirname(DEBUG_TOKEN_FILE()), { recursive: true });
   fs.writeFileSync(DEBUG_TOKEN_FILE(), safeStorage.encryptString(token));
 }
 
@@ -465,28 +465,47 @@ function startDebugTokenLogin() {
     const interval = setInterval(async () => {
       if (Date.now() - startedAt > 10 * 60 * 1000) {
         clearInterval(interval);
-        resolve(false);
+        resolve({ ok: false, error: "Tempo esgotado (10 minutos) esperando o login." });
         return;
       }
+
+      // So essa parte (checar o status) tolera falha transitoria de rede e
+      // tenta de novo no proximo ciclo -- uma vez que "ready" e detectado,
+      // qualquer erro daqui em diante e definitivo (sem retry escondido),
+      // pra sempre terminar em resolve() com um motivo claro.
+      let data;
       try {
         const res = await fetch(`${APP_URL}/api/desktop-login/${code}`);
-        const data = await res.json();
-        if (data.status === "ready") {
-          clearInterval(interval);
-          const finishRes = await fetch(`${APP_URL}/api/desktop-login/${code}/finish?as=token`);
-          const finishData = await finishRes.json();
-          if (finishData.token) {
-            writeStoredToken(finishData.token);
-            resolve(true);
-          } else {
-            resolve(false);
-          }
-        } else if (data.status === "expired") {
-          clearInterval(interval);
-          resolve(false);
-        }
+        if (!res.ok) return;
+        data = await res.json();
       } catch {
-        // rede instavel — tenta de novo no proximo ciclo
+        return;
+      }
+
+      if (data.status === "expired") {
+        clearInterval(interval);
+        resolve({ ok: false, error: "O codigo de login expirou." });
+        return;
+      }
+      if (data.status !== "ready") return;
+
+      clearInterval(interval);
+      try {
+        const finishRes = await fetch(`${APP_URL}/api/desktop-login/${code}/finish?as=token`);
+        if (!finishRes.ok) {
+          resolve({ ok: false, error: `O servidor recusou o token (HTTP ${finishRes.status}).` });
+          return;
+        }
+        const finishData = await finishRes.json();
+        if (!finishData.token) {
+          resolve({ ok: false, error: "O servidor nao devolveu um token." });
+          return;
+        }
+        writeStoredToken(finishData.token);
+        resolve({ ok: true });
+      } catch (err) {
+        log.error("[debug-ui] erro ao finalizar login", err);
+        resolve({ ok: false, error: `Erro ao finalizar login: ${err.message ?? err}` });
       }
     }, 2000);
   });
