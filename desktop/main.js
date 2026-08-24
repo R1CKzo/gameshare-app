@@ -28,20 +28,34 @@ autoUpdater.logger = log;
 const APP_URL = "https://gameshare-app.vercel.app";
 
 // Janela de teste da interface embutida (ver plano de app nativo, Fase 2)
-// — so existe fora de um instalador de verdade e com essa flag explicita,
-// nunca em producao nem sem querer: a janela normal (createWindow, acima)
-// continua carregando a pagina ao vivo do jeito de sempre, sem nenhuma
-// mudanca. GAMESHARE_DEBUG_UI_ORIGIN e a mesma origem que precisa estar
-// liberada em DESKTOP_APP_ORIGIN no Vercel pro CORS deixar essas chamadas
-// passarem (ver src/lib/cors.ts).
-const DEBUG_UI = !app.isPackaged && process.env.GAMESHARE_DEBUG_UI === "1";
+// — nunca liga sozinha: so em dev com a flag GAMESHARE_DEBUG_UI=1, ou num
+// instalador de teste separado (nome interno "gameshare-desktop-testui",
+// ver builder-test-config.json) que nunca e o instalador publicado de
+// verdade. A janela normal (createWindow, acima) continua carregando a
+// pagina ao vivo do jeito de sempre, sem nenhuma mudanca.
+// DEBUG_UI_ORIGIN e a mesma origem que precisa estar liberada em
+// DESKTOP_APP_ORIGIN no Vercel pro CORS deixar essas chamadas passarem
+// (ver src/lib/cors.ts).
+const DEBUG_UI = process.env.GAMESHARE_DEBUG_UI === "1" || app.getName() === "gameshare-desktop-testui";
 const DEBUG_UI_SCHEME = "gameshare-app";
 const DEBUG_UI_ORIGIN = `${DEBUG_UI_SCHEME}://local`;
-const DEBUG_UI_DIR = path.join(__dirname, "..", "desktop-ui", "out");
+const DEBUG_UI_DIR = app.isPackaged
+  ? path.join(process.resourcesPath, "desktop-ui-out")
+  : path.join(__dirname, "..", "desktop-ui", "out");
 
 protocol.registerSchemesAsPrivileged([
   { scheme: DEBUG_UI_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
 ]);
+
+// Pasta de dados propria pra essa janela de teste — sem isso ela usaria a
+// MESMA pasta (e o mesmo trava-instancia-unica logo abaixo) do app de
+// verdade instalado, e rodar os dois ao mesmo tempo faria esse processo
+// de teste simplesmente fechar sozinho sem abrir nada (perdendo o
+// trava-instancia pro app real ja aberto) — nunca deve competir com uma
+// sessao real em uso.
+if (DEBUG_UI) {
+  app.setPath("userData", path.join(app.getPath("temp"), "gameshare-debug-ui"));
+}
 
 // So uma instancia por vez — sem isso, abrir o app de novo enquanto ele ja
 // esta rodando minimizado na bandeja abriria um processo novo do zero em
@@ -486,6 +500,7 @@ function createDebugDesktopUiWindow() {
     height: 750,
     title: "GameShare — teste (app nativo)",
     backgroundColor: "#0b0d12",
+    show: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -493,8 +508,19 @@ function createDebugDesktopUiWindow() {
       preload: path.join(__dirname, "main-preload.js"),
     },
   });
+  win.once("ready-to-show", () => {
+    win.show();
+    win.focus();
+    console.log("[debug-ui] janela mostrada");
+  });
+  win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    console.error("[debug-ui] falha ao carregar", validatedURL, errorCode, errorDescription);
+  });
+  win.webContents.on("console-message", (_event, level, message) => {
+    console.log("[debug-ui:renderer]", level, message);
+  });
+  console.log("[debug-ui] carregando", `${DEBUG_UI_ORIGIN}/friends.html`);
   win.loadURL(`${DEBUG_UI_ORIGIN}/friends.html`);
-  win.webContents.openDevTools({ mode: "detach" });
 }
 
 // Checa atualizacao toda vez que o app abre (e depois, a cada 4h se ficar
@@ -556,13 +582,20 @@ function notify(title, body) {
 }
 
 app.whenReady().then(() => {
-  createWindow();
-  createTray();
-  setupAutoUpdate();
+  // A janela de teste, com pasta de dados propria (ver acima), nao
+  // precisa da janela/bandeja/auto-update normais junto — mante-la fora
+  // deixa esse teste isolado, sem abrir uma segunda janela "de verdade"
+  // (deslogada, numa pasta separada) do lado da sessao real que ja esta
+  // em uso.
+  if (!DEBUG_UI) {
+    createWindow();
+    createTray();
+    setupAutoUpdate();
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  }
 
   if (DEBUG_UI) {
     // Serve o export estatico do desktop-ui/ por um protocolo proprio, em
