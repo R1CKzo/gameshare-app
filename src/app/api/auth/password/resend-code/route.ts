@@ -45,7 +45,8 @@ export async function POST(request: Request) {
 
   try {
     await sendSecurityCodeEmail({ to: user.email, code, purpose: existing.purpose });
-  } catch {
+  } catch (err) {
+    console.error("Falha ao reenviar codigo por email:", err);
     return NextResponse.json({ error: "Não foi possível enviar o código por email." }, { status: 500 });
   }
 

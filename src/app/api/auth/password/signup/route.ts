@@ -35,7 +35,8 @@ export async function POST(request: Request) {
   const { ticketId, code, expiresAt } = await createSecurityCode(user.id, "LOGIN");
   try {
     await sendSecurityCodeEmail({ to: email, code, purpose: "LOGIN" });
-  } catch {
+  } catch (err) {
+    console.error("Falha ao enviar codigo de cadastro por email:", err);
     return NextResponse.json(
       { error: "Conta criada, mas não foi possível enviar o código por email. Tente fazer login." },
       { status: 500 },

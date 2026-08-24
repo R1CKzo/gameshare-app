@@ -47,7 +47,8 @@ export async function POST(request: Request) {
   const { ticketId, code, expiresAt } = await createSecurityCode(user.id, "LOGIN");
   try {
     await sendSecurityCodeEmail({ to: email, code, purpose: "LOGIN" });
-  } catch {
+  } catch (err) {
+    console.error("Falha ao enviar codigo de login por email:", err);
     return NextResponse.json({ error: "Não foi possível enviar o código por email. Tente novamente." }, { status: 500 });
   }
 

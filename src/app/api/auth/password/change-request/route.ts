@@ -51,7 +51,8 @@ export async function POST(request: Request) {
   const { ticketId, code, expiresAt } = await createSecurityCode(user.id, "PASSWORD_CHANGE", newHash);
   try {
     await sendSecurityCodeEmail({ to: user.email, code, purpose: "PASSWORD_CHANGE" });
-  } catch {
+  } catch (err) {
+    console.error("Falha ao enviar codigo de troca de senha por email:", err);
     return NextResponse.json({ error: "Não foi possível enviar o código por email." }, { status: 500 });
   }
 
