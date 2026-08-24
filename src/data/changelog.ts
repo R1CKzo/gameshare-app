@@ -23,6 +23,15 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.0.10",
+    date: "2026-08-24",
+    title: "Correção na bandeja do sistema",
+    items: [],
+    bugsFixed: [
+      "Reabrir o app com ele já rodando minimizado na bandeja podia fazer uma janela nova piscar por um instante antes de trazer a janela certa pra frente",
+    ],
+  },
+  {
     version: "1.0.8",
     date: "2026-08-23",
     title: "Notificações completas",
