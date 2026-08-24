@@ -401,8 +401,8 @@ function AudioTab() {
           ))}
         </select>
         <p className="mt-1.5 text-xs text-dim">
-          Se o áudio ficar "voltando"/com eco infinito, confira se não selecionou sem querer um dispositivo de loopback
-          (ex: "Stereo Mix") em vez do microfone de verdade.
+          Se o áudio ficar voltando ou com eco, você deve ter selecionado o dispositivo errado — escolha seu
+          microfone de verdade na lista, não a saída de som do computador.
         </p>
       </div>
 
@@ -435,11 +435,11 @@ function AudioTab() {
             <div
               className="absolute inset-y-0 w-0.5 bg-white/70"
               style={{ left: `${thresholdPct}%` }}
-              title="Limiar do gate: o volume precisa passar dessa marca pra sua voz ser transmitida"
+              title="Sua voz só é transmitida quando o volume passa dessa marca"
             />
           </div>
           <p className="mt-1.5 text-xs text-dim">
-            {monitorError ?? "Fale perto do microfone pra ver o nível captado. A linha branca é o limiar atual."}
+            {monitorError ?? "Fale perto do microfone pra ver o nível captado. A linha branca mostra o volume mínimo pra sua voz passar."}
           </p>
         </div>
       </div>

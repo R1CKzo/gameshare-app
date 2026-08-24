@@ -336,7 +336,7 @@ export function useVoiceMesh({
         });
 
         peer.on("error", (err) => {
-          if (err.type !== "peer-unavailable") setMicError("Erro de conexão WebRTC: " + err.type);
+          if (err.type !== "peer-unavailable") setMicError("Não foi possível manter a conexão da chamada. Tente entrar de novo.");
         });
 
         // A conexao de SINALIZACAO com o broker do PeerJS (WebSocket, separada
