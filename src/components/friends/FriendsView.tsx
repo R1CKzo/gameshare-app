@@ -225,12 +225,14 @@ function FriendRowItem({ user, children }: { user: FriendUser; children: React.R
   const status = deriveStatus(user.status, user.lastActiveAt);
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-primary">
-        {user.image ? (
-          <Image src={user.image} alt="" fill sizes="36px" className="object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">{initials}</div>
-        )}
+      <div className="relative h-9 w-9 shrink-0">
+        <div className="relative h-full w-full overflow-hidden rounded-full bg-primary">
+          {user.image ? (
+            <Image src={user.image} alt="" fill sizes="36px" className="object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">{initials}</div>
+          )}
+        </div>
         <StatusDot status={status} className="-bottom-0.5 -right-0.5" borderClassName="border-elevated" />
       </div>
       <div className="min-w-0 flex-1">

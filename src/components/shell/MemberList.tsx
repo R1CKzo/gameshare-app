@@ -77,14 +77,16 @@ export function MemberList({ serverId, members }: { serverId: string; members: M
           );
           return (
           <div key={member.id} className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-white/[0.03]">
-            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-primary">
-              {member.image ? (
-                <Image src={member.image} alt="" fill sizes="32px" className="object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">
-                  {(member.nickname ?? "?").slice(0, 1).toUpperCase()}
-                </div>
-              )}
+            <div className="relative h-8 w-8 shrink-0">
+              <div className="relative h-full w-full overflow-hidden rounded-full bg-primary">
+                {member.image ? (
+                  <Image src={member.image} alt="" fill sizes="32px" className="object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">
+                    {(member.nickname ?? "?").slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+              </div>
               <StatusDot status={status} className="-bottom-0.5 -right-0.5" />
             </div>
             <div className="min-w-0">

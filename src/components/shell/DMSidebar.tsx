@@ -108,14 +108,16 @@ export function DMSidebar({
                 c.id === currentDmId ? "bg-elevated" : "hover:bg-white/[0.03]"
               }`}
             >
-              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-primary">
-                {c.user.image ? (
-                  <Image src={c.user.image} alt="" fill sizes="32px" className="object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">
-                    {(c.user.nickname ?? "?").slice(0, 1).toUpperCase()}
-                  </div>
-                )}
+              <div className="relative h-8 w-8 shrink-0">
+                <div className="relative h-full w-full overflow-hidden rounded-full bg-primary">
+                  {c.user.image ? (
+                    <Image src={c.user.image} alt="" fill sizes="32px" className="object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">
+                      {(c.user.nickname ?? "?").slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                </div>
                 <StatusDot status={deriveStatus(c.user.status, c.user.lastActiveAt)} className="-bottom-0.5 -right-0.5" />
               </div>
               <div className="min-w-0 flex-1">

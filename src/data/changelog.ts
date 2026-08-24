@@ -36,6 +36,7 @@ export const changelog: ChangelogEntry[] = [
     ],
     bugsFixed: [
       "Status fixado manualmente (ex: \"Ocupado\") podia ser sobrescrito por engano logo depois de recarregar a página, aparecendo errado pra outras pessoas",
+      "Bolinha de status aparecia cortada no avatar dos membros do servidor, das conversas diretas e da tela de Amigos",
     ],
   },
   {
