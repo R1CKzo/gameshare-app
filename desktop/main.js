@@ -12,53 +12,7 @@ const { spawn } = require("child_process");
 log.transports.file.level = "info";
 autoUpdater.logger = log;
 
-const STABLE_URL = "https://gameshare-app.vercel.app";
-const BETA_URL = "https://gameshare-beta.vercel.app";
-
-// Preferencia de trilha (estavel/beta) guardada em disco, fora da pasta de
-// instalacao — sobrevive a atualizacoes do instalador. Decide tanto qual
-// ENDERECO o app abre (o site beta e um deploy Vercel separado, do branch
-// "beta") quanto qual TRILHA de instalador o auto-updater confere (ver
-// applyUpdaterChannel abaixo) — a maioria das mudancas ainda e so de site
-// e nao precisa de instalador novo nenhum, mas quando precisar (tipo a
-// splash de inicializacao), um build "1.0.9-beta.1" so chega em quem
-// tiver essa trilha ligada.
-const channelFilePath = path.join(app.getPath("userData"), "channel.json");
-
-function getChannel() {
-  try {
-    const data = JSON.parse(fs.readFileSync(channelFilePath, "utf-8"));
-    return data.channel === "beta" ? "beta" : "stable";
-  } catch {
-    return "stable";
-  }
-}
-
-function setChannel(channel) {
-  const next = channel === "beta" ? "beta" : "stable";
-  try {
-    fs.writeFileSync(channelFilePath, JSON.stringify({ channel: next }));
-  } catch (err) {
-    log.error("Erro ao salvar a trilha (beta/estavel):", err);
-  }
-  return next;
-}
-
-function getAppUrl() {
-  return getChannel() === "beta" ? BETA_URL : STABLE_URL;
-}
-
-// Faz o auto-updater conferir a trilha certa: "latest" (arquivo
-// latest.yml, so releases estaveis) ou "beta" (beta.yml, so releases com
-// versao tipo "1.0.9-beta.1" -- o electron-builder gera esse arquivo
-// separado sozinho a partir do sufixo de prerelease na versao). Sem
-// allowPrerelease, o electron-updater ignora releases marcados como
-// prerelease mesmo na trilha beta.
-function applyUpdaterChannel() {
-  const onBeta = getChannel() === "beta";
-  autoUpdater.channel = onBeta ? "beta" : "latest";
-  autoUpdater.allowPrerelease = onBeta;
-}
+const APP_URL = "https://gameshare-app.vercel.app";
 
 // So uma instancia por vez — sem isso, abrir o app de novo enquanto ele ja
 // esta rodando minimizado na bandeja abriria um processo novo do zero em
@@ -221,40 +175,12 @@ ipcMain.on("screen-share:stop-app-audio", () => {
 });
 
 let mainWindow;
-let splashWindow = null;
 let loginPollInterval = null;
 let tray = null;
 let isQuitting = false;
 let lastUnreadState = false;
 
-// Splash de inicializacao (igual o Discord) -- so testando na trilha beta
-// por enquanto (ver getChannel acima), pra nao mexer na experiencia de
-// quem esta na estavel antes de confirmar que funciona bem. So aparece
-// quando o app abre do zero (a janela principal so e recriada de verdade
-// nesse caso -- fechar so esconde ela, ver mainWindow.on("close") abaixo),
-// nunca ao reabrir pela bandeja.
-function createSplashWindow() {
-  const win = new BrowserWindow({
-    width: 300,
-    height: 340,
-    frame: false,
-    resizable: false,
-    movable: true,
-    center: true,
-    show: true,
-    skipTaskbar: true,
-    backgroundColor: "#08090d",
-    icon: path.join(__dirname, "build", "icon.ico"),
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
-  });
-  win.loadFile(path.join(__dirname, "splash.html"));
-  return win;
-}
-
 function createWindow() {
-  const showSplash = getChannel() === "beta";
-  if (showSplash) splashWindow = createSplashWindow();
-
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -264,7 +190,6 @@ function createWindow() {
     icon: path.join(__dirname, "build", "icon.ico"),
     backgroundColor: "#08090d",
     autoHideMenuBar: true,
-    show: !showSplash,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -274,24 +199,7 @@ function createWindow() {
   });
 
   mainWindow.webContents.setUserAgent(DESKTOP_CHROME_UA);
-  mainWindow.loadURL(getAppUrl());
-
-  if (showSplash) {
-    let revealed = false;
-    const revealMainWindow = () => {
-      if (revealed) return;
-      revealed = true;
-      if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
-      splashWindow = null;
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
-    };
-    mainWindow.webContents.once("did-finish-load", revealMainWindow);
-    // Se a pagina falhar ao carregar (rede fora, etc), mostra a janela
-    // principal mesmo assim -- ela tem seu proprio jeito de lidar com isso,
-    // bem melhor que deixar a pessoa presa numa splash pra sempre.
-    mainWindow.webContents.once("did-fail-load", revealMainWindow);
-    setTimeout(revealMainWindow, 15000);
-  }
+  mainWindow.loadURL(APP_URL);
 
   // O login do Google (e qualquer navegacao pro fluxo de sign-in do
   // NextAuth) e barrado dentro da janela do Electron — intercepta antes
@@ -374,30 +282,6 @@ ipcMain.on("badge:set", (_event, hasUnread) => {
   setUnreadBadge(Boolean(hasUnread));
 });
 
-// Trilha beta/estavel (ver getAppUrl acima) — o site em si expoe o toggle
-// nas Configuracoes, aqui so guarda a escolha e recarrega a janela pro
-// endereco novo. mainWindow.loadURL troca a origem por completo (cookies,
-// localStorage etc. ficam isolados por origem sozinhos, sem precisar de
-// nenhuma limpeza manual) — por isso trocar de trilha sempre pede login de
-// novo do outro lado.
-ipcMain.handle("channel:get", () => getChannel());
-
-ipcMain.handle("channel:set", (_event, channel) => {
-  const next = setChannel(channel);
-  mainWindow?.loadURL(getAppUrl());
-  // Passa a conferir a trilha certa de instalador na hora — sem esperar a
-  // proxima checagem periodica (ate 4h) ou reiniciar o app inteiro.
-  applyUpdaterChannel();
-  return next;
-});
-
-// Versao do PROPRIO instalador (de package.json, via app.getVersion()) —
-// pro selo visual de trilha/versao nas Configuracoes e na barra lateral
-// (ver ChannelBadge.tsx). Pode ser diferente entre as trilhas quando um
-// build beta (ex: "1.0.9-beta.1") traz algo que precisa de instalador
-// novo — ver applyUpdaterChannel.
-ipcMain.handle("app:get-version", () => app.getVersion());
-
 function createTray() {
   if (tray) return;
 
@@ -454,29 +338,29 @@ function startDesktopLogin() {
   const code = crypto.randomBytes(16).toString("hex");
 
   mainWindow.loadFile(path.join(__dirname, "wait.html"));
-  shell.openExternal(`${getAppUrl()}/desktop-login/${code}`);
+  shell.openExternal(`${APP_URL}/desktop-login/${code}`);
 
   const startedAt = Date.now();
   loginPollInterval = setInterval(async () => {
     if (Date.now() - startedAt > 10 * 60 * 1000) {
       clearInterval(loginPollInterval);
       loginPollInterval = null;
-      mainWindow?.loadURL(getAppUrl());
+      mainWindow?.loadURL(APP_URL);
       return;
     }
 
     try {
-      const res = await fetch(`${getAppUrl()}/api/desktop-login/${code}`);
+      const res = await fetch(`${APP_URL}/api/desktop-login/${code}`);
       const data = await res.json();
 
       if (data.status === "ready") {
         clearInterval(loginPollInterval);
         loginPollInterval = null;
-        mainWindow?.loadURL(`${getAppUrl()}/api/desktop-login/${code}/finish`);
+        mainWindow?.loadURL(`${APP_URL}/api/desktop-login/${code}/finish`);
       } else if (data.status === "expired") {
         clearInterval(loginPollInterval);
         loginPollInterval = null;
-        mainWindow?.loadURL(getAppUrl());
+        mainWindow?.loadURL(APP_URL);
       }
     } catch {
       // rede instavel — tenta de novo no proximo ciclo
@@ -491,7 +375,6 @@ function startDesktopLogin() {
 function setupAutoUpdate() {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
-  applyUpdaterChannel();
 
   autoUpdater.on("checking-for-update", () => {
     log.info("Checando atualizacoes...");

@@ -24,9 +24,6 @@ type GameshareDesktopBridge = {
   stopAppAudio: () => void;
   onSystemAudioChunk: (callback: (chunk: ArrayBuffer) => void) => () => void;
   setUnreadBadge: (hasUnread: boolean) => void;
-  getChannel: () => Promise<"stable" | "beta">;
-  setChannel: (channel: "stable" | "beta") => Promise<"stable" | "beta">;
-  getAppVersion: () => Promise<string>;
 };
 
 declare global {
@@ -94,25 +91,4 @@ export function onSystemAudioChunk(callback: (chunk: ArrayBuffer) => void): () =
 // que la nao tem bandeja nenhuma pra marcar.
 export function setUnreadBadge(hasUnread: boolean): void {
   window.gameshareDesktop?.setUnreadBadge(hasUnread);
-}
-
-// Trilha beta/estavel do app de desktop — so existe ali, o navegador comum
-// so tem o site de producao mesmo. Trocar recarrega a janela do Electron
-// pro endereco novo (ver channel:set em main.js), entao a troca em si volta
-// pra tela de login do outro lado.
-export function getChannel(): Promise<"stable" | "beta"> {
-  if (typeof window === "undefined" || !window.gameshareDesktop) return Promise.resolve("stable");
-  return window.gameshareDesktop.getChannel();
-}
-
-export function setChannel(channel: "stable" | "beta"): Promise<"stable" | "beta"> {
-  if (typeof window === "undefined" || !window.gameshareDesktop) return Promise.resolve("stable");
-  return window.gameshareDesktop.setChannel(channel);
-}
-
-// Versao do instalador — so existe no app de desktop (o navegador nao tem
-// "versao instalada" nenhuma, so o proprio deploy do site).
-export function getAppVersion(): Promise<string | null> {
-  if (typeof window === "undefined" || !window.gameshareDesktop) return Promise.resolve(null);
-  return window.gameshareDesktop.getAppVersion();
 }

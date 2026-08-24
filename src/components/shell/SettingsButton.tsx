@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { ChannelBadge } from "@/components/shell/ChannelBadge";
 import { useTheme } from "@/components/ThemeProvider";
 import {
   DEFAULT_AUDIO_SETTINGS,
@@ -16,7 +15,7 @@ import {
   sensitivityToGateThreshold,
   type AudioSettings,
 } from "@/lib/audioSettings";
-import { getChannel, isDesktopApp, setChannel as setDesktopChannel } from "@/lib/desktop";
+import { isDesktopApp } from "@/lib/desktop";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 const AVATAR_SIZE = 256;
@@ -129,25 +128,6 @@ function ProfileTab() {
   const nicknameValid = NICKNAME_REGEX.test(nickname);
   const changed = nickname !== (session?.user?.nickname ?? "") || image !== (session?.user?.image ?? null);
 
-  // Trilha beta/estavel — so existe no app de desktop (o navegador comum
-  // sempre esta na estavel, nao tem o que escolher). Trocar recarrega a
-  // janela do Electron pro outro endereco, entao volta pra tela de login.
-  const [channel, setChannelState] = useState<"stable" | "beta">("stable");
-  const [switchingChannel, setSwitchingChannel] = useState(false);
-  useEffect(() => {
-    if (isDesktopApp()) getChannel().then(setChannelState);
-  }, []);
-
-  async function handleChannelChange(next: "stable" | "beta") {
-    if (next === channel || switchingChannel) return;
-    setSwitchingChannel(true);
-    const applied = await setDesktopChannel(next);
-    setChannelState(applied);
-    // A troca de endereco ja acontece sozinha do lado do Electron
-    // (mainWindow.loadURL) — nao precisa desligar switchingChannel, essa
-    // tela inteira esta prestes a sumir junto com a pagina atual.
-  }
-
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -227,42 +207,6 @@ function ProfileTab() {
           </button>
         </div>
       </div>
-
-      {isDesktopApp() && (
-        <div>
-          <div className="mb-2 flex items-center gap-2">
-            <label className="block text-xs font-bold tracking-wide text-muted">PROGRAMA BETA</label>
-            <ChannelBadge />
-          </div>
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              disabled={switchingChannel}
-              onClick={() => handleChannelChange("stable")}
-              className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition disabled:opacity-50 ${
-                channel === "stable" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
-              }`}
-            >
-              Estável
-            </button>
-            <button
-              type="button"
-              disabled={switchingChannel}
-              onClick={() => handleChannelChange("beta")}
-              className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition disabled:opacity-50 ${
-                channel === "beta" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
-              }`}
-            >
-              Beta
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-dim">
-            {switchingChannel
-              ? "Trocando... o app vai pedir login de novo."
-              : "No beta você testa novidades antes do lançamento oficial. Trocar de trilha pede login de novo."}
-          </p>
-        </div>
-      )}
 
       <div className="flex items-center gap-4">
         <button

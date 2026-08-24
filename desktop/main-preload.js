@@ -1,13 +1,12 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-// So expoe a ponte se a pagina carregada for mesmo um dos nossos sites
-// (producao ou o beta, deploy separado do branch "beta" — ver getAppUrl em
-// main.js) — mesmo sendo raro (o main.js ja intercepta navegacao pra
-// fora), evita que essa API fique acessivel se por algum motivo essa
-// janela acabar carregando outra origem.
-const ALLOWED_ORIGINS = ["https://gameshare-app.vercel.app", "https://gameshare-beta.vercel.app"];
+// So expoe a ponte se a pagina carregada for mesmo o nosso site — mesmo
+// sendo raro (o main.js ja intercepta navegacao pra fora), evita que essa
+// API fique acessivel se por algum motivo essa janela acabar carregando
+// outra origem.
+const ALLOWED_ORIGIN = "https://gameshare-app.vercel.app";
 
-if (ALLOWED_ORIGINS.includes(location.origin)) {
+if (location.origin === ALLOWED_ORIGIN) {
   contextBridge.exposeInMainWorld("gameshareDesktop", {
     isDesktop: true,
     // Lista as telas e janelas/apps abertos (com miniatura de cada um) pro
@@ -43,15 +42,5 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     // chamado pelo GlobalNotificationListener toda vez que o total de
     // notificacoes nao lidas do app muda.
     setUnreadBadge: (hasUnread) => ipcRenderer.send("badge:set", hasUnread),
-
-    // Trilha beta/estavel — qual dos dois sites o app abre. Trocar recarrega
-    // a janela pro endereco novo (ver channel:set em main.js), entao pede
-    // login de novo do outro lado.
-    getChannel: () => ipcRenderer.invoke("channel:get"),
-    setChannel: (channel) => ipcRenderer.invoke("channel:set", channel),
-
-    // Versao do instalador — ver o selo de trilha/versao nas Configuracoes
-    // e na barra lateral.
-    getAppVersion: () => ipcRenderer.invoke("app:get-version"),
   });
 }
