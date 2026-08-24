@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
-import { type PresentUser, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { type PresentUser, type RemotePeerTracks, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, dmChannelPusherName, textChannelPusherName } from "@/lib/pusherShared";
 import { playJoinCallSound, playLeaveCallSound } from "@/lib/sound";
@@ -27,9 +27,24 @@ type ActiveCallContextValue = {
   present: PresentUser[];
   live: LiveState;
   localStream: MediaStream | null;
-  remoteStreams: Map<string, MediaStream>;
+  remoteStreams: Map<string, RemotePeerTracks>;
   isMuted: boolean;
   isSharingScreen: boolean;
+  // Quem esta compartilhando agora (null se ninguem) -- derivado aqui (em
+  // vez de cada tela de canal/DM calcular por conta propria, como era
+  // antes) porque o provider tambem precisa saber quando isso MUDA, pra
+  // resetar "estou assistindo" sozinho (ver useEffect abaixo).
+  sharingUserId: string | null;
+  // "Entrar/sair da transmissao": controla so se a faixa de audio/video da
+  // transmissao toca pra mim, sem sair da chamada de voz (a voz de todo
+  // mundo continua tocando sempre, independente disso -- ver
+  // ActiveCallAudioSink). Some sozinho toda vez que sharingUserId muda,
+  // entao uma transmissao nova sempre pede permissao de novo.
+  isWatchingBroadcast: boolean;
+  joinBroadcast: () => void;
+  leaveBroadcast: () => void;
+  getVolumeFor: (userId: string) => number;
+  setVolumeFor: (userId: string, volume: number) => void;
   micError: string | null;
   callError: string | null;
   setCallError: (error: string | null) => void;
@@ -39,6 +54,8 @@ type ActiveCallContextValue = {
   join: (target: ActiveCallTarget, currentUserId: string) => void;
   leave: () => void;
 };
+
+const DEFAULT_BROADCAST_VOLUME = 100;
 
 const ActiveCallContext = createContext<ActiveCallContextValue | null>(null);
 
@@ -60,6 +77,8 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
   const [present, setPresent] = useState<PresentUser[]>([]);
   const [live, setLive] = useState<LiveState>({ isLive: false, broadcaster: null });
   const [callError, setCallError] = useState<string | null>(null);
+  const [isWatchingBroadcast, setIsWatchingBroadcast] = useState(false);
+  const [volumes, setVolumes] = useState<Map<string, number>>(new Map());
 
   const mesh = useVoiceMesh({
     apiBase: target?.apiBase ?? "",
@@ -71,6 +90,24 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (mesh.micError) setCallError(mesh.micError);
   }, [mesh.micError]);
+
+  const sharingUserId = mesh.isSharingScreen ? currentUserId : live.isLive ? live.broadcaster?.id ?? null : null;
+
+  // Cada transmissao nova (troca de compartilhador, ou ninguem mais
+  // compartilhando) pede "entrar" de novo -- sem isso, quem tivesse
+  // entrado numa transmissao continuaria ouvindo/vendo a PROXIMA pessoa a
+  // compartilhar sem ter escolhido isso.
+  useEffect(() => {
+    setIsWatchingBroadcast(false);
+  }, [sharingUserId]);
+
+  const joinBroadcast = useCallback(() => setIsWatchingBroadcast(true), []);
+  const leaveBroadcast = useCallback(() => setIsWatchingBroadcast(false), []);
+
+  const getVolumeFor = useCallback((userId: string) => volumes.get(userId) ?? DEFAULT_BROADCAST_VOLUME, [volumes]);
+  const setVolumeFor = useCallback((userId: string, volume: number) => {
+    setVolumes((prev) => new Map(prev).set(userId, volume));
+  }, []);
 
   useEffect(() => {
     if (!target) return;
@@ -221,6 +258,12 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
         remoteStreams: mesh.remoteStreams,
         isMuted: mesh.isMuted,
         isSharingScreen: mesh.isSharingScreen,
+        sharingUserId,
+        isWatchingBroadcast,
+        joinBroadcast,
+        leaveBroadcast,
+        getVolumeFor,
+        setVolumeFor,
         micError: mesh.micError,
         callError,
         setCallError,
