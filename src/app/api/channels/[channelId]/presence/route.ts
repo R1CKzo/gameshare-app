@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { MAX_CALL_ROOM_SIZE, PRESENCE_WINDOW_MS } from "@/lib/callLimits";
 import { prisma } from "@/lib/prisma";
 import { CALL_UPDATE_EVENT, pusherServer, serverVoicePusherName, textChannelPusherName } from "@/lib/pusher";
 
@@ -52,6 +53,25 @@ export async function POST(
   const serverId = await requireMembership(session.user.id, params.channelId);
   if (!serverId) {
     return NextResponse.json({ error: "Você não é membro desse servidor." }, { status: 403 });
+  }
+
+  // So barra vaga nova (entrar pela primeira vez) — um heartbeat de quem
+  // ja esta na sala nunca pode ser rejeitado, senao a sala inteira ficaria
+  // presa incapaz de renovar a propria presenca assim que bater 10.
+  const alreadyHere = await prisma.channelPresence.findUnique({
+    where: { channelId_userId: { channelId: params.channelId, userId: session.user.id } },
+    select: { id: true },
+  });
+  if (!alreadyHere) {
+    const occupied = await prisma.channelPresence.count({
+      where: { channelId: params.channelId, updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } },
+    });
+    if (occupied >= MAX_CALL_ROOM_SIZE) {
+      return NextResponse.json(
+        { error: `Essa sala já está com o máximo de ${MAX_CALL_ROOM_SIZE} pessoas.` },
+        { status: 409 },
+      );
+    }
   }
 
   const body = await request.json().catch(() => ({}));

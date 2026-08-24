@@ -8,6 +8,7 @@ import { CallControlBar } from "@/components/channel/CallControlBar";
 import { ParticipantGrid } from "@/components/channel/ParticipantGrid";
 import { HamburgerIcon, MembersIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 import { type PresentUser } from "@/hooks/useVoiceMesh";
+import { MAX_CALL_ROOM_SIZE } from "@/lib/callLimits";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, textChannelPusherName } from "@/lib/pusherShared";
 
@@ -37,6 +38,11 @@ export function CallChannel({
   const [localPresent, setLocalPresent] = useState<PresentUser[]>([]);
   const live = isActive ? activeCall.live : localLive;
   const present = isActive ? activeCall.present : localPresent;
+  // Erro de "sala cheia" ao tentar entrar (ver joinRoom) — mora aqui, nao
+  // em activeCall.callError, porque aquele so aparece quando essa chamada
+  // JA e a ativa (ver errorMsg abaixo), e nesse caso a pessoa nem chegou a
+  // entrar.
+  const [preJoinError, setPreJoinError] = useState<string | null>(null);
 
   const { toggleSidebar, toggleMembers } = useMobileUI();
 
@@ -91,6 +97,14 @@ export function CallChannel({
   }, [channelId, isActive]);
 
   function joinRoom() {
+    // So um aviso rapido antes de pedir o microfone — a checagem que vale
+    // de verdade mora no servidor (ver POST /presence), pro caso raro de
+    // duas pessoas entrando no mesmo instante com a sala quase cheia.
+    if (present.length >= MAX_CALL_ROOM_SIZE) {
+      setPreJoinError(`Essa sala já está com o máximo de ${MAX_CALL_ROOM_SIZE} pessoas.`);
+      return;
+    }
+    setPreJoinError(null);
     activeCall.setCallError(null);
     activeCall.join({ kind: "channel", channelId, serverId, apiBase: `/api/channels/${channelId}`, name: channelName }, currentUserId);
   }
@@ -99,7 +113,7 @@ export function CallChannel({
     activeCall.leave();
   }
 
-  const errorMsg = isActive ? activeCall.callError : null;
+  const errorMsg = isActive ? activeCall.callError : preJoinError;
   const broadcasterLabel = live.broadcaster
     ? `${live.broadcaster.nickname ?? "Alguém"}${live.broadcaster.userTag ? "#" + live.broadcaster.userTag : ""}`
     : null;

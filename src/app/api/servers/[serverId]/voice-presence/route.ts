@@ -2,11 +2,10 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { PRESENCE_WINDOW_MS } from "@/lib/callLimits";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const PRESENCE_WINDOW_MS = 30_000;
 
 // Quem esta em CADA sala de chamada do servidor agora — usado pelo
 // ChannelSidebar pra mostrar a lista de gente conectada embaixo de cada

@@ -5,11 +5,10 @@ import { CallChannel } from "@/components/channel/CallChannel";
 import { TextChannelView } from "@/components/channel/TextChannelView";
 import { AppShell } from "@/components/shell/AppShell";
 import { authOptions } from "@/lib/auth";
+import { PRESENCE_WINDOW_MS } from "@/lib/callLimits";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const PRESENCE_WINDOW_MS = 30_000;
 
 export default async function ChannelPage({
   params,

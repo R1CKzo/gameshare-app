@@ -55,6 +55,10 @@ export type PresentUser = {
 };
 
 const QUALITY_POLL_MS = 3000;
+// Tempo de "carencia" depois que uma conexao comeca a receber audio antes
+// do sinal de qualidade passar a julgar ela — cobre o barulho normal da
+// negociacao ICE/DTLS logo no inicio (ver o poll abaixo).
+const STATS_GRACE_MS = 5000;
 
 // Prazo pra uma chamada de saida (peer.call) produzir audio de verdade
 // antes de considerarmos que ela travou na negociacao ICE sem nunca
@@ -202,11 +206,27 @@ export function useVoiceMesh({
   } | null>(null);
   const presentRef = useRef<PresentUser[]>(present);
   presentRef.current = present;
+  // Quando cada conexao comecou a receber audio de verdade — o sinal de
+  // qualidade ignora uma conexao ate ela completar STATS_GRACE_MS nesse
+  // relogio (ver poll abaixo), pra nao confundir o barulho normal de
+  // negociacao ICE/DTLS logo no inicio (uns poucos pacotes perdidos
+  // enquanto a conexao ainda esta se estabelecendo) com uma rede ruim de
+  // verdade.
+  const connectionStartedAtRef = useRef<Map<string, number>>(new Map());
+  // Ultima leitura cumulativa de pacotes de cada conexao — o navegador so
+  // devolve o TOTAL desde o inicio da chamada, nunca "quanto perdeu agora".
+  // Guardar a leitura anterior e comparar a diferenca a cada poll e o que
+  // faz o sinal refletir a rede AGORA, em vez de arrastar pra sempre um
+  // punhado de pacotes perdidos so na largada (que sozinhos já bastavam pra
+  // estourar o limite de 3-8% logo nos primeiros segundos, com poucos
+  // pacotes recebidos ainda no total).
+  const lastStatsRef = useRef<Map<string, { packetsLost: number; packetsReceived: number }>>(new Map());
 
   function registerConnection(peerId: string, call: MediaConnection) {
     connectionsRef.current.set(peerId, call);
     call.on("stream", (stream) => {
       streamedPeerIdsRef.current.add(peerId);
+      connectionStartedAtRef.current.set(peerId, Date.now());
       setRemoteStreams((prev) => new Map(prev).set(peerId, stream));
     });
     // So diagnostico: se uma chamada nunca disparar "stream" nem "error"
@@ -221,6 +241,8 @@ export function useVoiceMesh({
     const drop = () => {
       connectionsRef.current.delete(peerId);
       streamedPeerIdsRef.current.delete(peerId);
+      connectionStartedAtRef.current.delete(peerId);
+      lastStatsRef.current.delete(peerId);
       setRemoteStreams((prev) => {
         if (!prev.has(peerId)) return prev;
         const next = new Map(prev);
@@ -284,7 +306,20 @@ export function useVoiceMesh({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ peerId }),
-          }).catch(() => {});
+          })
+            .then(async (res) => {
+              // So acontece na corrida rara de duas pessoas entrando no
+              // mesmíssimo instante com a sala quase cheia (o aviso normal
+              // de "sala cheia" já barra antes de chegar aqui — ver
+              // CallChannel/DMChatView) — mas se acontecer, a pessoa precisa
+              // saber que entrou "pela metade" (mic aberto, ninguém do outro
+              // lado), em vez de a falha só sumir em silêncio.
+              if (!res.ok && !cancelled) {
+                const data = await res.json().catch(() => ({}));
+                setMicError(data.error ?? "Não foi possível entrar na chamada.");
+              }
+            })
+            .catch(() => {});
         });
 
         peer.on("call", (call) => {
@@ -372,6 +407,8 @@ export function useVoiceMesh({
         call.close();
         connectionsRef.current.delete(peerId);
         streamedPeerIdsRef.current.delete(peerId);
+        connectionStartedAtRef.current.delete(peerId);
+        lastStatsRef.current.delete(peerId);
         setRemoteStreams((prev) => {
           if (!prev.has(peerId)) return prev;
           const next = new Map(prev);
@@ -431,16 +468,33 @@ export function useVoiceMesh({
       }
 
       let worst: ConnectionQuality = "good";
-      for (const call of connectionsRef.current.values()) {
+      for (const [peerId, call] of connectionsRef.current.entries()) {
         const pc = call.peerConnection;
         if (!pc) continue;
+
+        // Recem-conectada: deixa passar sem julgar por um tempo — a
+        // negociacao ICE/DTLS naturalmente perde alguns pacotes antes de
+        // estabilizar, o que sozinho ja bastava pra acender vermelho/amarelo
+        // pros dois lados assim que a call comecava, mesmo com internet boa.
+        const connectedAt = connectionStartedAtRef.current.get(peerId);
+        if (!connectedAt || Date.now() - connectedAt < STATS_GRACE_MS) continue;
+
         try {
           const stats = await pc.getStats();
           let rtt: number | null = null;
+          let nominatedRtt: number | null = null;
           let packetsLost = 0;
           let packetsReceived = 0;
           stats.forEach((report) => {
             if (report.type === "candidate-pair" && report.state === "succeeded" && typeof report.currentRoundTripTime === "number") {
+              // Em algumas redes o navegador mantem mais de um par de
+              // candidatos com estado "succeeded" ao mesmo tempo (um backup
+              // via TURN atras do par direto que esta sendo usado de
+              // verdade, por exemplo) — sem filtrar por "nominated", a
+              // leitura podia pegar o RTT do par ERRADO (mais lento) so por
+              // ordem de iteracao, mesmo com o audio passando tranquilo pelo
+              // par bom.
+              if (report.nominated) nominatedRtt = report.currentRoundTripTime;
               rtt = report.currentRoundTripTime;
             }
             if (report.type === "inbound-rtp" && report.kind === "audio") {
@@ -448,9 +502,22 @@ export function useVoiceMesh({
               packetsReceived = report.packetsReceived ?? 0;
             }
           });
-          const lossRatio = packetsReceived > 0 ? packetsLost / (packetsLost + packetsReceived) : 0;
-          if ((rtt !== null && rtt > 0.3) || lossRatio > 0.08) worst = "bad";
-          else if (worst !== "bad" && ((rtt !== null && rtt > 0.15) || lossRatio > 0.03)) worst = "medium";
+          const effectiveRtt = nominatedRtt ?? rtt;
+
+          // So conta o que aconteceu DESDE o ultimo poll — packetsLost/
+          // packetsReceived do navegador sao contadores acumulados desde o
+          // inicio da chamada inteira, entao usar o total direto faz uns
+          // poucos pacotes perdidos na largada (antes do total de pacotes
+          // recebidos crescer) parecerem uma perda enorme, e o efeito nunca
+          // se desfaz de verdade (so dilui bem devagar com o tempo).
+          const last = lastStatsRef.current.get(peerId);
+          lastStatsRef.current.set(peerId, { packetsLost, packetsReceived });
+          const deltaLost = Math.max(0, packetsLost - (last?.packetsLost ?? packetsLost));
+          const deltaReceived = Math.max(0, packetsReceived - (last?.packetsReceived ?? packetsReceived));
+          const lossRatio = deltaLost + deltaReceived > 0 ? deltaLost / (deltaLost + deltaReceived) : 0;
+
+          if ((effectiveRtt !== null && effectiveRtt > 0.3) || lossRatio > 0.08) worst = "bad";
+          else if (worst !== "bad" && ((effectiveRtt !== null && effectiveRtt > 0.15) || lossRatio > 0.03)) worst = "medium";
         } catch {
           // sem estatistica valida nesse ciclo — nao deixa essa conexao
           // especifica piorar a leitura, so nao contribui com nada

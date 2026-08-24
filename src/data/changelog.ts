@@ -42,6 +42,7 @@ export const changelog: ChangelogEntry[] = [
       "Sinal de conexão (barrinhas verde/amarelo/vermelho) acima do nome de cada pessoa, tanto na chamada quanto na lista da barra lateral",
       "Modo claro pro app inteiro, com opção pra alternar entre escuro e claro nas configurações do seu perfil",
       "Mutar/desmutar, entrar/sair da chamada e começar/parar de compartilhar a tela agora aparecem quase na hora pra quem mais está na sala e na barra lateral, em vez de demorar alguns segundos",
+      "Salas de chamada de servidor agora têm um limite de 10 pessoas ao mesmo tempo, pra manter a chamada estável pra todo mundo dentro dela",
     ],
     bugsFixed: [
       "Status fixado manualmente (ex: \"Ocupado\") podia ser sobrescrito por engano logo depois de recarregar a página, aparecendo errado pra outras pessoas",
@@ -50,6 +51,7 @@ export const changelog: ChangelogEntry[] = [
       "Dados como nickname, tag e configurações de segurança agora se atualizam sozinhos em qualquer tela, sem precisar sair e entrar de novo",
       "Contas com foto de perfil personalizada (enviada por upload, não a do Google) às vezes não conseguiam terminar o login — nem por email/senha, nem pelo Google — ficando presas na tela de login",
       "Foto de perfil personalizada parava de aparecer (ícone de imagem quebrada) logo depois de entrar no app",
+      "Sinal de conexão (barrinhas verde/amarelo/vermelho) acendia amarelo ou vermelho por engano logo ao entrar numa chamada, mesmo com internet boa dos dois lados",
     ],
   },
   {

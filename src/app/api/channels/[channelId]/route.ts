@@ -2,11 +2,10 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { PRESENCE_WINDOW_MS } from "@/lib/callLimits";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const PRESENCE_WINDOW_MS = 30_000;
 
 // Estado atual do canal: quem esta compartilhando a tela (se alguem) e
 // quem esta presente na sala agora, com o peerId de voz de cada um pra

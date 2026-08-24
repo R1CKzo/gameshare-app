@@ -2,11 +2,10 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { PRESENCE_WINDOW_MS } from "@/lib/callLimits";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const PRESENCE_WINDOW_MS = 30_000;
 
 // Mesma logica de src/app/api/channels/[channelId]/route.ts (GET), pra
 // uma DM: quem esta compartilhando a tela agora e quem esta presente na
