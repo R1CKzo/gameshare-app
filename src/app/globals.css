@@ -68,6 +68,70 @@ body {
   height: 100%;
 }
 
+/* Interface "liquid glass" — recurso em teste (ver "Permitir versoes
+   beta" e o interruptor logo abaixo dos botoes de tema nas Configuracoes,
+   ProfileTab em SettingsButton.tsx). Independente de escuro/claro: os
+   dois combinam (vidro sobre fundo escuro, ou vidro sobre fundo claro).
+   So redefine as MESMAS variaveis de cor que ja existem (superficies
+   ficam translucidas em vez de solidas) e acrescenta desfoque atras de
+   quem usa essas classes — nenhum componente precisa saber que o modo
+   existe, e o mesmo truque que faz o tema claro funcionar em qualquer
+   lugar sem tocar em cada tela uma por uma. */
+html[data-glass="true"]:not([data-theme="light"]) {
+  --color-background: rgba(11, 13, 18, 0.55);
+  --color-surface: rgba(21, 24, 34, 0.55);
+  --color-rail: rgba(8, 9, 13, 0.45);
+  --color-sidebar: rgba(14, 16, 24, 0.5);
+  --color-main: rgba(20, 22, 31, 0.5);
+  --color-elevated: rgba(28, 32, 44, 0.5);
+  --color-elevated-hover: rgba(36, 41, 56, 0.65);
+  --color-border: rgba(255, 255, 255, 0.14);
+  --color-overlay-weak: rgba(255, 255, 255, 0.05);
+  --color-overlay: rgba(255, 255, 255, 0.09);
+  --color-overlay-strong: rgba(255, 255, 255, 0.16);
+}
+html[data-glass="true"][data-theme="light"] {
+  --color-background: rgba(244, 245, 248, 0.55);
+  --color-surface: rgba(255, 255, 255, 0.55);
+  --color-rail: rgba(236, 238, 243, 0.5);
+  --color-sidebar: rgba(247, 248, 250, 0.5);
+  --color-main: rgba(255, 255, 255, 0.5);
+  --color-elevated: rgba(238, 240, 244, 0.5);
+  --color-elevated-hover: rgba(228, 231, 238, 0.7);
+  --color-border: rgba(20, 22, 31, 0.12);
+  --color-overlay-weak: rgba(20, 22, 31, 0.04);
+  --color-overlay: rgba(20, 22, 31, 0.07);
+  --color-overlay-strong: rgba(20, 22, 31, 0.12);
+}
+/* Desfoque de verdade atras de cada superficie translucida -- sem isso a
+   transparencia so mostraria a cor solida por baixo (body, ver a seguir),
+   sem o efeito de vidro fosco. */
+html[data-glass="true"] .bg-surface,
+html[data-glass="true"] .bg-elevated,
+html[data-glass="true"] .bg-elevated-hover,
+html[data-glass="true"] .bg-sidebar,
+html[data-glass="true"] .bg-rail,
+html[data-glass="true"] .bg-main,
+html[data-glass="true"] .bg-background {
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+/* O proprio body nao fica translucido (nao tem nada atras DELE pra
+   mostrar) -- em vez disso ganha uma mancha de cor rica, pra todo o vidro
+   flutuando por cima ter alguma coisa colorida pra desfocar. */
+html[data-glass="true"]:not([data-theme="light"]) body {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(34, 211, 238, 0.28), transparent 50%),
+    #0b0d12;
+}
+html[data-glass="true"][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.2), transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(14, 116, 144, 0.16), transparent 50%),
+    #f4f5f8;
+}
+
 /* Slider (<input type="range">) com o mesmo visual em qualquer lugar —
    trilho fino arredondado com a parte "preenchida" em roxo e uma bolinha
    branca, igual o iOS ja desenha sozinho. Sem isso cada navegador/SO

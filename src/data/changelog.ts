@@ -49,6 +49,7 @@ export const changelog: ChangelogEntry[] = [
       "Novo modelo de supressão de ruído do microfone, mais robusto pra separar sua voz de ruído de teclado e fundo",
       "Melhorias na interface e navegação",
       "Novo logo em teste",
+      "Interface \"Liquid Glass\": painéis translúcidos e desfocados, estilo iOS (Configurações > Perfil)",
     ],
     bugsFixed: [
       "Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair",

@@ -28,6 +28,7 @@ const THEME_INIT_SCRIPT = `
   try {
     var t = localStorage.getItem("gameshare-theme");
     if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+    if (localStorage.getItem("gameshare-glass") === "true") document.documentElement.setAttribute("data-glass", "true");
   } catch (e) {}
   try {
     var betaOn = localStorage.getItem("gameshare-allow-beta") === "true";

@@ -223,7 +223,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 
 function ProfileTab() {
   const { data: session, update } = useSession();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, glass, setGlass } = useTheme();
   const router = useRouter();
   const [nickname, setNickname] = useState(session?.user?.nickname ?? "");
   const [image, setImage] = useState<string | null>(session?.user?.image ?? null);
@@ -315,6 +315,33 @@ function ProfileTab() {
           </button>
         </div>
       </div>
+
+      {isBetaEnabled() && (
+        <div>
+          <label className="mb-2 block text-xs font-bold tracking-wide text-muted">INTERFACE</label>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setGlass(false)}
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+                !glass ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
+              }`}
+            >
+              Padrão
+            </button>
+            <button
+              type="button"
+              onClick={() => setGlass(true)}
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+                glass ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
+              }`}
+            >
+              Liquid Glass
+            </button>
+          </div>
+          <p className="mt-1.5 text-xs text-dim">Painéis translúcidos e desfocados, estilo iOS. Recurso em teste.</p>
+        </div>
+      )}
 
       <div className="flex items-center gap-4">
         <button
