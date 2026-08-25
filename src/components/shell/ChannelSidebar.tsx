@@ -13,8 +13,11 @@ import { ServerSettingsButton } from "@/components/shell/ServerSettingsButton";
 import { UserPill } from "@/components/shell/UserPill";
 import type { ConnectionQuality } from "@/hooks/useVoiceMesh";
 import { apiUrl } from "@/lib/apiUrl";
+import { isBetaEnabled } from "@/lib/beta";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, serverVoicePusherName } from "@/lib/pusherShared";
+
+const COLLAPSE_STORAGE_KEY = "gameshare:channelSidebarCollapsed";
 
 type ChannelSummary = {
   id: string;
@@ -85,6 +88,37 @@ export function ChannelSidebar({
   // uma vez so, sem precisar entrar em nenhuma pra ver quem esta la.
   const [voicePresence, setVoicePresence] = useState<Map<string, VoicePresentUser[]>>(new Map());
 
+  // Recolher essa barra pra lateral — recurso em teste. O interruptor de
+  // beta so decide se o botao de recolher/expandir aparece; a preferencia
+  // de estado (recolhida ou nao) e separada e guardada no localStorage, pra
+  // lembrar da escolha entre visitas. "collapsed && betaCollapsible" (nunca
+  // so "collapsed") evita ficar preso sem essa barra e sem o botao pra
+  // trazer ela de volta, caso a pessoa desligue o beta depois de ter
+  // recolhido.
+  const [collapsed, setCollapsed] = useState(false);
+  const [betaCollapsible, setBetaCollapsible] = useState(false);
+  useEffect(() => {
+    setBetaCollapsible(isBetaEnabled());
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSE_STORAGE_KEY) === "true");
+    } catch {
+      // ignora — so nao lembra a escolha entre visitas
+    }
+  }, []);
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(COLLAPSE_STORAGE_KEY, String(next));
+      } catch {
+        // modo privado ou storage cheio — a escolha so nao sobrevive a um
+        // recarregamento, sem quebrar nada
+      }
+      return next;
+    });
+  }
+  const effectiveCollapsed = collapsed && betaCollapsible;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -150,6 +184,18 @@ export function ChannelSidebar({
   }
 
   return (
+    <div className="flex shrink-0">
+      {betaCollapsible && (
+        <button
+          onClick={toggleCollapsed}
+          title={effectiveCollapsed ? "Expandir canais" : "Recolher canais"}
+          aria-label={effectiveCollapsed ? "Expandir canais" : "Recolher canais"}
+          className="flex w-4 shrink-0 items-center justify-center border-r border-overlay bg-sidebar text-dim transition hover:bg-elevated-hover hover:text-foreground"
+        >
+          <ChevronIcon flipped={effectiveCollapsed} />
+        </button>
+      )}
+      {!effectiveCollapsed && (
     <div className="flex w-[252px] shrink-0 flex-col border-r border-overlay bg-sidebar">
       <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-overlay px-4">
         <span className="truncate font-bold">{serverName}</span>
@@ -204,6 +250,8 @@ export function ChannelSidebar({
       </div>
 
       <UserPill user={user} serverId={serverId} isServerOwner={permissions.isOwner} />
+    </div>
+      )}
     </div>
   );
 }
@@ -566,6 +614,24 @@ function ChannelActionsMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete
           document.body,
         )}
     </>
+  );
+}
+
+function ChevronIcon({ flipped }: { flipped: boolean }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`transition-transform ${flipped ? "rotate-180" : ""}`}
+    >
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
   );
 }
 
