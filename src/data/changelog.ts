@@ -27,6 +27,7 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.0.13",
     date: "2026-08-25",
     title: "Melhorias no sistema de beta",
     items: ["Sistema de patch para correções adicionais atualizados"],
