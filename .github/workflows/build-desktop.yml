@@ -43,7 +43,8 @@ jobs:
       # pequeno (ver checkForPatch em main.js).
       - name: Registra o commit desse build
         shell: bash
-        run: echo "{\"commit\": \"${{ github.sha }}\"}" > build-info.json
+        run: |
+          echo "{\"commit\": \"${{ github.sha }}\"}" > build-info.json
 
       # Recursos em teste ficam atras do interruptor "Permitir versoes
       # beta" (ver src/lib/beta.ts), dentro da mesma versao normal -- nao
