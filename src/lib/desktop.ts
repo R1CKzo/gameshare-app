@@ -15,12 +15,6 @@ export type ScreenSource = {
 
 export type StartSystemAudioResult = { ok: true } | { ok: false; reason: string };
 
-export type BetaCheckResult =
-  | { available: true; version: string; publishedAt: string; notes: string; downloadUrl: string }
-  | { available: false };
-
-export type BetaInstallResult = { ok: true } | { ok: false; error: string };
-
 type GameshareDesktopBridge = {
   isDesktop: true;
   getScreenSources: () => Promise<ScreenSource[]>;
@@ -43,13 +37,11 @@ type GameshareDesktopBridge = {
   getAuthToken?: () => Promise<string | null>;
   startLogin?: () => Promise<{ ok: boolean; error?: string }>;
   clearAuthToken?: () => Promise<void>;
-  // Programa beta (ver SettingsButton.tsx e desktop/main.js) — checa se
-  // tem uma build beta publicada no GitHub e baixa/instala se a pessoa
-  // confirmar. Sempre existe no app de desktop atual (nao e exclusivo da
-  // janela de teste do app nativo, ao contrario dos 3 de cima).
-  checkBetaBuild: () => Promise<BetaCheckResult>;
-  downloadAndInstallBeta: (downloadUrl: string) => Promise<BetaInstallResult>;
   getAppVersion: () => Promise<string>;
+  // Reinicia o app -- usado ao ligar/desligar "Permitir versoes beta" (ver
+  // SettingsButton.tsx), pra carregar (ou parar de carregar) os recursos
+  // em teste de forma limpa.
+  restartApp?: () => void;
 };
 
 declare global {
@@ -119,32 +111,28 @@ export function setUnreadBadge(hasUnread: boolean): void {
   window.gameshareDesktop?.setUnreadBadge(hasUnread);
 }
 
-// Verifica se tem uma build beta publicada (ver desktop/main.js) — so faz
-// sentido no app de desktop; no navegador nunca ha build beta pra baixar.
-// Checa o METODO especifico (nao so window.gameshareDesktop) porque o site
-// atualiza sozinho e na hora, mas o preload.js do app instalado so muda
-// numa atualizacao nova do instalador — sem essa checagem, quem ainda esta
-// numa versao mais antiga (sem esses metodos no preload) chamava undefined
-// como funcao e quebrava o app inteiro (aconteceu em producao, ver
-// [[feedback-...]] se isso virar licao permanente).
-export function checkBetaBuild(): Promise<BetaCheckResult> {
-  if (typeof window === "undefined" || !window.gameshareDesktop?.checkBetaBuild) {
-    return Promise.resolve({ available: false });
-  }
-  return window.gameshareDesktop.checkBetaBuild();
-}
-
-export function downloadAndInstallBeta(downloadUrl: string): Promise<BetaInstallResult> {
-  if (typeof window === "undefined" || !window.gameshareDesktop?.downloadAndInstallBeta) {
-    return Promise.resolve({ ok: false, error: "Não foi possível baixar a versão beta agora." });
-  }
-  return window.gameshareDesktop.downloadAndInstallBeta(downloadUrl);
-}
-
 // Versao do instalador rodando agora — so usado pro selo "BETA" (ver
 // UserPill.tsx). String vazia no navegador (nunca ha versao de instalador
 // nenhuma la).
 export function getAppVersion(): Promise<string> {
   if (typeof window === "undefined" || !window.gameshareDesktop?.getAppVersion) return Promise.resolve("");
   return window.gameshareDesktop.getAppVersion();
+}
+
+// Reinicia o app de desktop (ou recarrega a pagina no navegador comum) —
+// usado ao ligar/desligar "Permitir versoes beta" nas Configuracoes, pra
+// carregar (ou parar de carregar) os recursos em teste de forma limpa.
+// Checa o METODO especifico (nao so window.gameshareDesktop) porque o
+// site atualiza sozinho e na hora, mas o preload.js do app instalado so
+// muda numa atualizacao nova do instalador — quem ainda estiver numa
+// versao mais antiga sem esse metodo cai no reload normal em vez de
+// quebrar (ja aconteceu de um metodo novo faltando derrubar o app inteiro
+// em producao, ver [[feedback-...]]).
+export function restartAppOrReload(): void {
+  if (typeof window === "undefined") return;
+  if (window.gameshareDesktop?.restartApp) {
+    window.gameshareDesktop.restartApp();
+    return;
+  }
+  window.location.reload();
 }

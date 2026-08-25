@@ -17,7 +17,7 @@ import {
 } from "@/lib/audioSettings";
 import { apiUrl } from "@/lib/apiUrl";
 import { BETA_STORAGE_KEY } from "@/lib/beta";
-import { checkBetaBuild, downloadAndInstallBeta, isDesktopApp, type BetaCheckResult } from "@/lib/desktop";
+import { isDesktopApp, restartAppOrReload } from "@/lib/desktop";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 const AVATAR_SIZE = 256;
@@ -466,41 +466,25 @@ function AudioTab() {
   );
 }
 
-// Programa beta simplificado: sem canal do electron-updater nem download
-// em segundo plano (o sistema anterior fazia isso e quebrou repetidas
-// vezes) -- so um interruptor local (guardado no localStorage desse
-// computador, sem rota de API) que, ligado, checa o GitHub direto (ver
-// checkBetaBuild em src/lib/desktop.ts) e mostra um botao pra baixar e
-// abrir o instalador na hora.
+// Programa beta reformulado: sem instalador proprio nem download nenhum
+// (o sistema anterior fazia isso e quebrou repetidas vezes) -- so um
+// interruptor local (guardado no localStorage desse navegador/computador,
+// sem rota de API) que libera acesso a RECURSOS que ainda estao em teste
+// dentro do proprio app de sempre, atualizado pelo auto-update padrao. As
+// versoes lancadas em si nunca mais tem "beta" separada -- so recursos
+// dentro de uma versao normal, ligados ou desligados por esse interruptor.
+// Como alguns recursos beta so sao lidos uma vez, no inicio, ligar/desligar
+// pede um reinicio (recarregar a pagina, no navegador comum) pra aplicar
+// de forma limpa -- nao forca na hora, ja que a pessoa pode estar no meio
+// de uma chamada.
 function BetaTab() {
   const [allowed, setAllowed] = useState(false);
-  const [checkState, setCheckState] = useState<"idle" | "checking" | "none" | "available">("idle");
-  const [beta, setBeta] = useState<Extract<BetaCheckResult, { available: true }> | null>(null);
-  const [installing, setInstalling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [needsRestart, setNeedsRestart] = useState(false);
+  const desktop = isDesktopApp();
 
   useEffect(() => {
     setAllowed(localStorage.getItem(BETA_STORAGE_KEY) === "true");
   }, []);
-
-  useEffect(() => {
-    if (!allowed) return;
-    let cancelled = false;
-    setCheckState("checking");
-    checkBetaBuild().then((result) => {
-      if (cancelled) return;
-      if (result.available) {
-        setBeta(result);
-        setCheckState("available");
-      } else {
-        setBeta(null);
-        setCheckState("none");
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [allowed]);
 
   function handleToggle(v: boolean) {
     setAllowed(v);
@@ -510,51 +494,29 @@ function BetaTab() {
       // modo privado ou storage cheio — a escolha so nao sobrevive a um
       // recarregamento, sem quebrar nada
     }
-  }
-
-  async function handleInstall() {
-    if (!beta) return;
-    setInstalling(true);
-    setError(null);
-    const result = await downloadAndInstallBeta(beta.downloadUrl);
-    if (!result.ok) {
-      setError(result.error);
-      setInstalling(false);
-    }
-    // Se deu certo o app fecha sozinho em seguida (ver
-    // downloadAndInstallBeta) -- nao precisa desligar o "instalando".
+    setNeedsRestart(true);
   }
 
   return (
     <div className="space-y-4">
       <ToggleRow
         label="Permitir versões beta"
-        description="Mostra aqui quando tiver uma versão de teste disponível pra baixar, e libera funções novas do site que ainda estão em teste."
+        description="Libera acesso a recursos que ainda estão em teste, antes de virarem oficiais pra todo mundo."
         checked={allowed}
         onChange={handleToggle}
       />
 
-      {allowed && (
+      {needsRestart && (
         <div className="rounded-xl bg-elevated/60 p-3.5">
-          {checkState === "checking" && <p className="text-sm text-muted">Procurando versão beta…</p>}
-          {checkState === "none" && <p className="text-sm text-muted">Nenhuma versão beta disponível no momento.</p>}
-          {checkState === "available" && beta && (
-            <div className="space-y-2">
-              <p className="text-sm font-bold text-foreground">Versão beta {beta.version} disponível</p>
-              {beta.notes && <p className="whitespace-pre-wrap text-xs text-dim">{beta.notes}</p>}
-              <button
-                onClick={handleInstall}
-                disabled={installing}
-                className="rounded-md bg-primary px-3 py-1.5 text-sm font-bold text-white disabled:opacity-50"
-              >
-                {installing ? "Baixando…" : "Baixar e instalar"}
-              </button>
-              {installing && (
-                <p className="text-xs text-dim">O app vai fechar sozinho assim que o instalador abrir.</p>
-              )}
-              {error && <p className="text-xs text-danger">{error}</p>}
-            </div>
-          )}
+          <p className="text-sm text-foreground">
+            {desktop ? "Reinicie o app pra aplicar essa mudança." : "Recarregue a página pra aplicar essa mudança."}
+          </p>
+          <button
+            onClick={restartAppOrReload}
+            className="mt-2 rounded-md bg-primary px-3 py-1.5 text-sm font-bold text-white"
+          >
+            {desktop ? "Reiniciar agora" : "Recarregar agora"}
+          </button>
         </div>
       )}
     </div>

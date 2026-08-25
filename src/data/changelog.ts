@@ -12,6 +12,10 @@ export type ChangelogEntry = {
   title: string;
   items: string[];
   bugsFixed?: string[];
+  // Recursos que só aparecem pra quem ligou "Permitir versões beta" nas
+  // Configurações — nunca vão pra todo mundo direto, mesma ideia dos
+  // bugsFixed, só numa área própria (ver src/app/novidades/page.tsx).
+  betaFeatures?: string[];
 };
 
 // Identifica uma entrada de forma estavel mesmo sem versao numerada (varias
@@ -23,12 +27,17 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-08-25",
+    title: "Melhorias no sistema de beta",
+    items: [],
+    bugsFixed: [],
+  },
+  {
     version: "1.0.12",
     date: "2026-08-25",
     title: "Áudio da transmissão, silenciar geral e expulsar da chamada",
     items: [
-      "Compartilhar a tela inteira agora leva o som do sistema junto (sem pegar a voz de ninguém na chamada)",
-      "Cada pessoa controla o volume do que está assistindo, e pode entrar ou sair da transmissão sem sair da chamada",
+      "O áudio da transmissão que estava em beta na versão 1.0.11 agora é oficial pra todo mundo: tela inteira leva o som do sistema junto, cada pessoa controla o volume do que está assistindo, e dá pra entrar ou sair da transmissão sem sair da chamada",
       "Botão de tela cheia no vídeo de quem está compartilhando",
       "Botão de silenciar geral (ícone de fone cortado): para de ouvir a chamada inteira sem sair dela — igual o Discord, também muta seu microfone, e os dois avisos aparecem pra quem mais estiver na sala",
       "Quem pode expulsar membros do servidor agora também pode remover alguém de uma chamada específica (passe o mouse no avatar da pessoa)",
@@ -45,7 +54,10 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-08-24",
     title: "Programa beta",
     items: [
-      "Nova aba \"Beta\" nas Configurações: ative pra baixar versões de teste assim que saírem, direto pelo app, sem esperar a atualização normal",
+      "Nova aba \"Beta\" nas Configurações: ative pra liberar acesso a recursos que ainda estão em teste, antes de virarem oficiais pra todo mundo",
+    ],
+    betaFeatures: [
+      "Áudio da transmissão separado da voz: tela inteira leva o som do sistema junto, cada pessoa controla o volume do que está assistindo, e dá pra entrar ou sair da transmissão sem sair da chamada",
     ],
     bugsFixed: [],
   },

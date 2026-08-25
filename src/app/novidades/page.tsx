@@ -71,8 +71,26 @@ export default async function NovidadesPage() {
                 </ul>
               )}
 
-              {entry.bugsFixed && entry.bugsFixed.length > 0 && (
+              {entry.betaFeatures && entry.betaFeatures.length > 0 && (
                 <div className={entry.items.length > 0 ? "mt-3" : ""}>
+                  <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-muted">
+                    <span className="rounded bg-accent px-1 py-px text-[9px] font-bold text-background">BETA</span>
+                    RECURSOS EM TESTE
+                  </div>
+                  <p className="mb-1.5 text-xs text-dim">Só aparecem pra quem ligar "Permitir versões beta" nas Configurações.</p>
+                  <ul className="space-y-1.5">
+                    {entry.betaFeatures.map((item, j) => (
+                      <li key={j} className="flex gap-2 text-sm text-foreground-secondary">
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {entry.bugsFixed && entry.bugsFixed.length > 0 && (
+                <div className={entry.items.length > 0 || (entry.betaFeatures && entry.betaFeatures.length > 0) ? "mt-3" : ""}>
                   <div className="mb-1.5 text-[11px] font-bold tracking-wider text-muted">BUGS CORRIGIDOS</div>
                   <ul className="space-y-1.5">
                     {entry.bugsFixed.map((item, j) => (

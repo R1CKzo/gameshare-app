@@ -595,101 +595,23 @@ function setupAutoUpdate() {
   setInterval(check, 4 * 60 * 60 * 1000);
 }
 
-// --- Programa beta (verificacao manual, sem canal do electron-updater) ---
-// Builds beta saem como prerelease no GitHub (nunca em /releases/latest,
-// nunca no latest.yml que o auto-update normal acima le -- ver
-// .github/workflows/build-desktop.yml) e so aparecem pra quem ligou
-// "Permitir versoes beta" nas Configuracoes (ver SettingsButton.tsx). Sem
-// download em segundo plano nem troca de canal: a pessoa clica, baixa, o
-// instalador assume — a mesma causa dos bugs do sistema anterior (canal do
-// electron-updater, precedencia de semver de prerelease) nunca entra em
-// jogo aqui.
-const GITHUB_RELEASES_URL = "https://api.github.com/repos/R1CKzo/gameshare-app/releases";
-
-async function checkBetaBuild() {
-  try {
-    const res = await fetch(GITHUB_RELEASES_URL, { headers: { Accept: "application/vnd.github+json" } });
-    if (!res.ok) return { available: false };
-
-    const releases = await res.json();
-    const beta = releases.find((r) => r.prerelease);
-    if (!beta) return { available: false };
-
-    // A tag "desktop-v*" enviada pro git so serve pra DISPARAR o build (ver
-    // build-desktop.yml) -- quem realmente nomeia a Release/tag no GitHub e
-    // o proprio electron-builder, sempre como "v<versao>" (ex: "v1.0.11"),
-    // ignorando a tag que disparou o build. Tirar o prefixo errado
-    // ("desktop-v") nunca dava match nenhum, entao "version" saia com o
-    // "v" grudado (ex: "v1.0.12-beta.1" em vez de "1.0.12-beta.1") -- nome
-    // errado na tela E a comparacao com app.getVersion() abaixo nunca
-    // batia mesmo quando ja era exatamente essa a versao instalada.
-    const version = beta.tag_name.replace(/^v/, "");
-    if (version === app.getVersion()) return { available: false };
-
-    const asset = beta.assets.find((a) => a.name.endsWith(".exe"));
-    if (!asset) return { available: false };
-
-    return {
-      available: true,
-      version,
-      publishedAt: beta.published_at,
-      notes: beta.body ?? "",
-      downloadUrl: asset.browser_download_url,
-    };
-  } catch (err) {
-    log.error("[beta] erro ao checar build beta", err);
-    return { available: false };
-  }
-}
-
-ipcMain.handle("beta:check", () => checkBetaBuild());
-
 // Versao rodando agora — so pra mostrar o selo "BETA" na interface quando
-// a pessoa instalou uma build beta por cima (ver SettingsButton.tsx/
-// UserPill.tsx). Nada a ver com checkBetaBuild acima (que olha o GitHub
-// atras de uma build NOVA); esse aqui e so o app.getVersion() local.
+// o interruptor "Permitir versoes beta" esta ligado (ver
+// resetBetaIfStableVersionChanged em src/lib/beta.ts e UserPill.tsx).
 ipcMain.handle("app:get-version", () => app.getVersion());
 
-async function downloadAndInstallBeta(downloadUrl) {
-  try {
-    const res = await fetch(downloadUrl);
-    if (!res.ok) {
-      log.error("[beta] falha ao baixar build beta, HTTP", res.status);
-      return { ok: false, error: "Não foi possível baixar a versão beta. Tente de novo mais tarde." };
-    }
-
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const dest = path.join(app.getPath("temp"), "GameShare-Beta-Setup.exe");
-    fs.writeFileSync(dest, buffer);
-
-    // Instalador destacado, sem esperar ele terminar — e fecha o app logo
-    // em seguida, pra nao brigar com o processo atual rodando (mesma
-    // mecanica de sempre, so sem precisar fechar na mao primeiro). MAS so
-    // fecha depois de confirmar que o instalador abriu de verdade -- a
-    // primeira versao disso chamava spawn() e ja fechava o app 500ms
-    // depois sem checar nada, entao uma falha silenciosa pra abrir o .exe
-    // (antivirus bloqueando um instalador sem assinatura digital, por
-    // exemplo) so fechava o app sem instalar nada, sem erro nenhum visivel
-    // em lugar nenhum -- exatamente o bug relatado.
-    return await new Promise((resolve) => {
-      const child = spawn(dest, [], { detached: true, stdio: "ignore" });
-      child.once("error", (err) => {
-        log.error("[beta] instalador nao abriu", err);
-        resolve({ ok: false, error: "Não foi possível abrir o instalador. Tente de novo mais tarde." });
-      });
-      child.once("spawn", () => {
-        child.unref();
-        setTimeout(() => app.quit(), 500);
-        resolve({ ok: true });
-      });
-    });
-  } catch (err) {
-    log.error("[beta] erro ao baixar/instalar build beta", err);
-    return { ok: false, error: "Não foi possível baixar a versão beta. Tente de novo mais tarde." };
-  }
-}
-
-ipcMain.handle("beta:download-and-install", (_event, downloadUrl) => downloadAndInstallBeta(downloadUrl));
+// Programa beta (reformulado): sem instalador proprio nem download nenhum
+// -- so um interruptor local (Configuracoes > Beta) que libera acesso a
+// RECURSOS que ainda estao em teste dentro do app normal (o mesmo
+// instalador de sempre, atualizado pelo auto-update padrao). Como alguns
+// recursos beta so sao lidos uma vez, no inicio (nao dá pra simplesmente
+// aparecer/sumir sozinho no meio da sessao), ligar ou desligar o
+// interruptor reinicia o app pra carregar (ou parar de carregar) esses
+// recursos de forma limpa -- ver handleToggle em SettingsButton.tsx.
+ipcMain.on("app:restart", () => {
+  app.relaunch();
+  app.exit(0);
+});
 
 function notify(title, body) {
   if (!Notification.isSupported()) return;

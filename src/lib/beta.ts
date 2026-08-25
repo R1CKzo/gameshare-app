@@ -1,10 +1,11 @@
-// Interruptor global de "beta" (Configurações > Beta). Além de checar
-// instalador novo do desktop pra baixar (ver checkBetaBuild em
-// desktop.ts), esse mesmo interruptor libera funcionalidades novas que só
-// existem no código do site (ex: áudio separado da transmissão em
-// useVoiceMesh.ts) e que ainda não são pra rodar pra todo mundo -- ligado,
-// já mostra as duas coisas. Só no localStorage desse navegador/computador,
-// sem rota de API nem servidor envolvido.
+// Interruptor global de "beta" (Configurações > Beta). Sem instalador nem
+// download separado nenhum -- esse unico interruptor libera acesso a
+// RECURSOS que ainda estao em teste, dentro do app normal de sempre (ex:
+// áudio separado da transmissao em useVoiceMesh.ts, quando ainda nao era
+// oficial). Ligar/desligar pede reinicio pra aplicar (ver BetaTab em
+// SettingsButton.tsx e restartAppOrReload em desktop.ts). Só no
+// localStorage desse navegador/computador, sem rota de API nem servidor
+// envolvido.
 export const BETA_STORAGE_KEY = "gameshare-allow-beta";
 
 export function isBetaEnabled(): boolean {

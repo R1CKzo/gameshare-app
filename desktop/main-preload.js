@@ -53,10 +53,11 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     startLogin: () => ipcRenderer.invoke("auth:start-login"),
     clearAuthToken: () => ipcRenderer.invoke("auth:clear-token"),
 
-    // Programa beta (ver main.js) — checa se tem uma build beta publicada
-    // no GitHub e, se a pessoa confirmar, baixa e abre o instalador.
-    checkBetaBuild: () => ipcRenderer.invoke("beta:check"),
-    downloadAndInstallBeta: (downloadUrl) => ipcRenderer.invoke("beta:download-and-install", downloadUrl),
     getAppVersion: () => ipcRenderer.invoke("app:get-version"),
+
+    // Reinicia o app (fecha e abre de novo sozinho) -- usado ao ligar/
+    // desligar "Permitir versoes beta" nas Configuracoes, pra carregar (ou
+    // parar de carregar) os recursos em teste de forma limpa (ver main.js).
+    restartApp: () => ipcRenderer.send("app:restart"),
   });
 }
