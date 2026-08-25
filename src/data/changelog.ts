@@ -44,7 +44,7 @@ export const changelog: ChangelogEntry[] = [
       "Donos de servidor podem alterar nome e imagem do servidor",
       "Atualizações de correções de segurança",
     ],
-    betaFeatures: ["Tela de Configurações remodelada, no estilo do Discord"],
+    betaFeatures: ["Tela de Configurações remodelada, em tela cheia com categorias na lateral"],
     bugsFixed: [
       "Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair",
       "Deixar o app aberto por um tempo podia levar de volta pra página de Novidades, mesmo já tendo sido vista",
@@ -60,7 +60,7 @@ export const changelog: ChangelogEntry[] = [
     items: [
       "O áudio da transmissão que estava em beta na versão 1.0.11 agora é oficial pra todo mundo: tela inteira leva o som do sistema junto, cada pessoa controla o volume do que está assistindo, e dá pra entrar ou sair da transmissão sem sair da chamada",
       "Botão de tela cheia no vídeo de quem está compartilhando",
-      "Botão de silenciar geral (ícone de fone cortado): para de ouvir a chamada inteira sem sair dela — igual o Discord, também muta seu microfone, e os dois avisos aparecem pra quem mais estiver na sala",
+      "Botão de silenciar geral (ícone de fone cortado): para de ouvir a chamada inteira sem sair dela, também muta seu microfone, e os dois avisos aparecem pra quem mais estiver na sala",
       "Quem pode expulsar membros do servidor agora também pode remover alguém de uma chamada específica (passe o mouse no avatar da pessoa)",
       "Transmissão de tela otimizada pra consumir menos desempenho do jogo durante o compartilhamento",
       "Melhorias na interface",
