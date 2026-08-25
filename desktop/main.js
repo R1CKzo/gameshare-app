@@ -684,15 +684,38 @@ ipcMain.handle("patch:check", () => checkForPatch());
 // desse repositorio), a pior coisa que um script malicioso consegue fazer
 // e disparar a instalacao de uma correcao de verdade, nunca de algo
 // arbitrario.
+// O instalador tem dezenas de MB -- numa rede fraca/instavel, uma unica
+// tentativa de baixar tudo de uma vez falha com frequencia (conexao cai no
+// meio, reset). Tenta de novo antes de desistir de verdade, em vez de
+// mostrar erro na primeira falha.
+async function fetchWithRetry(url, attempts = 3) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return res;
+      lastErr = new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      lastErr = err;
+    }
+    log.warn(`[patch] tentativa ${i + 1}/${attempts} de baixar falhou`, lastErr);
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 2000));
+  }
+  throw lastErr;
+}
+
 async function downloadAndInstallPatch() {
   try {
     const patch = await checkForPatch();
     if (!patch.available) {
       return { ok: false, error: "Nenhuma correção disponível." };
     }
-    const res = await fetch(patch.downloadUrl);
-    if (!res.ok) {
-      log.error("[patch] falha ao baixar, HTTP", res.status);
+
+    let res;
+    try {
+      res = await fetchWithRetry(patch.downloadUrl);
+    } catch (err) {
+      log.error("[patch] falha ao baixar depois de repetir", err);
       return { ok: false, error: "Não foi possível baixar a atualização. Tente de novo mais tarde." };
     }
 
