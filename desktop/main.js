@@ -613,6 +613,98 @@ ipcMain.on("app:restart", () => {
   app.exit(0);
 });
 
+// --- Correcoes sem trocar de versao ("patch") ---
+// Toda build (mesmo republicando a MESMA versao, sem bump nenhum) grava um
+// build-info.json com o commit exato dela — embutido dentro do instalador
+// (ver extraResources em package.json) e TAMBEM publicado como arquivo
+// solto na Release do GitHub (ver build-desktop.yml). Comparando os dois
+// (o que esta embutido no app JA INSTALADO vs o que esta publicado agora
+// pra essa mesma versao), da pra saber se saiu uma correcao nova sem
+// precisar de bump de versao pra cada ajuste pequeno -- o auto-update
+// padrao (acima) so dispara quando o NUMERO da versao muda, entao isso
+// aqui cobre o buraco: quem ja tem o app instalado ve um icone (ver
+// UserPill.tsx) e baixa na mao quando quiser; quem instala do zero ja
+// baixa a Release mais recente, sempre com a correcao mais nova dentro.
+function getBuildInfoPath() {
+  const fileName = "build-info.json";
+  return app.isPackaged ? path.join(process.resourcesPath, fileName) : path.join(__dirname, fileName);
+}
+
+function getLocalBuildCommit() {
+  try {
+    const raw = fs.readFileSync(getBuildInfoPath(), "utf-8");
+    return JSON.parse(raw).commit ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function checkForPatch() {
+  try {
+    const localCommit = getLocalBuildCommit();
+    if (!localCommit) return { available: false };
+
+    const res = await fetch(`https://api.github.com/repos/R1CKzo/gameshare-app/releases/tags/v${app.getVersion()}`, {
+      headers: { Accept: "application/vnd.github+json" },
+    });
+    if (!res.ok) return { available: false };
+    const release = await res.json();
+
+    const infoAsset = release.assets?.find((a) => a.name === "build-info.json");
+    if (!infoAsset) return { available: false };
+    const infoRes = await fetch(infoAsset.browser_download_url);
+    if (!infoRes.ok) return { available: false };
+    const remoteInfo = await infoRes.json();
+    if (!remoteInfo.commit || remoteInfo.commit === localCommit) return { available: false };
+
+    const exeAsset = release.assets.find((a) => a.name.endsWith(".exe"));
+    if (!exeAsset) return { available: false };
+
+    return { available: true, downloadUrl: exeAsset.browser_download_url };
+  } catch (err) {
+    log.error("[patch] erro ao checar atualizacao", err);
+    return { available: false };
+  }
+}
+
+ipcMain.handle("patch:check", () => checkForPatch());
+
+// Mesma mecanica robusta do instalador de sempre (so fecha o app depois de
+// confirmar que o instalador realmente abriu, nunca antes -- ver o
+// historico dessa exata logica pra correcao do bug "fechava sem instalar
+// nada").
+async function downloadAndInstallPatch(downloadUrl) {
+  try {
+    const res = await fetch(downloadUrl);
+    if (!res.ok) {
+      log.error("[patch] falha ao baixar, HTTP", res.status);
+      return { ok: false, error: "Não foi possível baixar a atualização. Tente de novo mais tarde." };
+    }
+
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const dest = path.join(app.getPath("temp"), "GameShare-Patch-Setup.exe");
+    fs.writeFileSync(dest, buffer);
+
+    return await new Promise((resolve) => {
+      const child = spawn(dest, [], { detached: true, stdio: "ignore" });
+      child.once("error", (err) => {
+        log.error("[patch] instalador nao abriu", err);
+        resolve({ ok: false, error: "Não foi possível abrir o instalador. Tente de novo mais tarde." });
+      });
+      child.once("spawn", () => {
+        child.unref();
+        setTimeout(() => app.quit(), 500);
+        resolve({ ok: true });
+      });
+    });
+  } catch (err) {
+    log.error("[patch] erro ao baixar/instalar", err);
+    return { ok: false, error: "Não foi possível baixar a atualização. Tente de novo mais tarde." };
+  }
+}
+
+ipcMain.handle("patch:download-and-install", (_event, downloadUrl) => downloadAndInstallPatch(downloadUrl));
+
 function notify(title, body) {
   if (!Notification.isSupported()) return;
   new Notification({ title, body, icon: path.join(__dirname, "build", "icon.ico") }).show();

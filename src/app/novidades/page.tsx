@@ -55,7 +55,7 @@ export default async function NovidadesPage() {
                       v{entry.version}
                     </span>
                   )}
-                  <h2 className="font-display text-base font-bold text-foreground">{entry.title}</h2>
+                  <h2 className="font-display text-base font-bold text-foreground">Todas as novidades desta atualização</h2>
                 </div>
                 <span className="text-xs font-semibold text-dim">{formatDate(entry.date)}</span>
               </div>

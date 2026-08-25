@@ -59,5 +59,11 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     // desligar "Permitir versoes beta" nas Configuracoes, pra carregar (ou
     // parar de carregar) os recursos em teste de forma limpa (ver main.js).
     restartApp: () => ipcRenderer.send("app:restart"),
+
+    // Correcoes sem trocar de versao (ver main.js) -- checa se saiu uma
+    // build nova pra MESMA versao instalada e, se a pessoa confirmar,
+    // baixa e abre o instalador.
+    checkForPatch: () => ipcRenderer.invoke("patch:check"),
+    downloadAndInstallPatch: (downloadUrl) => ipcRenderer.invoke("patch:download-and-install", downloadUrl),
   });
 }

@@ -30,7 +30,8 @@
       "build/dot-badge.png"
     ],
     "extraResources": [
-      { "from": "loopback_helper.exe", "to": "loopback_helper.exe" }
+      { "from": "loopback_helper.exe", "to": "loopback_helper.exe" },
+      { "from": "build-info.json", "to": "build-info.json" }
     ],
     "directories": {
       "output": "release"

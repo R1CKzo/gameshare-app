@@ -35,6 +35,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Identifica esse build especifico (commit) mesmo quando a VERSAO
+      # nao muda -- embutido no instalador (ver extraResources) e comparado
+      # com o mesmo arquivo publicado na release (passo mais abaixo) pra o
+      # app detectar sozinho quando uma correcao nova sai pra versao que ja
+      # esta instalada, sem precisar de bump de versao pra cada ajuste
+      # pequeno (ver checkForPatch em main.js).
+      - name: Registra o commit desse build
+        shell: bash
+        run: echo "{\"commit\": \"${{ github.sha }}\"}" > build-info.json
+
       # Recursos em teste ficam atras do interruptor "Permitir versoes
       # beta" (ver src/lib/beta.ts), dentro da mesma versao normal -- nao
       # existe mais instalador beta separado, entao toda tag publica como
@@ -42,5 +52,14 @@ jobs:
       - name: Build and publish
         shell: bash
         run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Sobe o mesmo build-info.json pra dentro da Release tambem (alem de
+      # ja estar embutido no instalador) -- e o que o app compara pra saber
+      # se o que esta publicado e diferente do que ele proprio tem.
+      - name: Publica o build-info.json na release
+        shell: bash
+        run: gh release upload "v$(node -p "require('./package.json').version")" build-info.json --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

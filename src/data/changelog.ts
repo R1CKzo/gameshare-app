@@ -29,7 +29,7 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-08-25",
     title: "Melhorias no sistema de beta",
-    items: [],
+    items: ["Sistema de patch para correções adicionais atualizados"],
     bugsFixed: [],
   },
   {
@@ -54,7 +54,7 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-08-24",
     title: "Programa beta",
     items: [
-      "Nova aba \"Beta\" nas Configurações: ative pra liberar acesso a recursos que ainda estão em teste, antes de virarem oficiais pra todo mundo",
+      "Programa beta: nova aba \"Beta\" nas Configurações — ative pra liberar acesso a recursos que ainda estão em teste, antes de virarem oficiais pra todo mundo",
     ],
     betaFeatures: [
       "Áudio da transmissão separado da voz: tela inteira leva o som do sistema junto, cada pessoa controla o volume do que está assistindo, e dá pra entrar ou sair da transmissão sem sair da chamada",

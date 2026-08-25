@@ -15,6 +15,9 @@ export type ScreenSource = {
 
 export type StartSystemAudioResult = { ok: true } | { ok: false; reason: string };
 
+export type PatchCheckResult = { available: true; downloadUrl: string } | { available: false };
+export type PatchInstallResult = { ok: true } | { ok: false; error: string };
+
 type GameshareDesktopBridge = {
   isDesktop: true;
   getScreenSources: () => Promise<ScreenSource[]>;
@@ -42,6 +45,11 @@ type GameshareDesktopBridge = {
   // SettingsButton.tsx), pra carregar (ou parar de carregar) os recursos
   // em teste de forma limpa.
   restartApp?: () => void;
+  // Correcoes sem trocar de versao (ver main.js e UserPill.tsx) -- checa
+  // se saiu uma build nova pra MESMA versao instalada e baixa/instala se
+  // a pessoa confirmar.
+  checkForPatch?: () => Promise<PatchCheckResult>;
+  downloadAndInstallPatch?: (downloadUrl: string) => Promise<PatchInstallResult>;
 };
 
 declare global {
@@ -135,4 +143,24 @@ export function restartAppOrReload(): void {
     return;
   }
   window.location.reload();
+}
+
+// Checa se saiu uma correcao nova pra MESMA versao ja instalada (ver
+// main.js) -- so faz sentido no app de desktop; no navegador o site
+// atualiza sozinho, na hora, sem nada disso. Checa o METODO especifico
+// (nao so window.gameshareDesktop) porque quem ainda esta numa versao
+// instalada mais antiga (sem esse metodo no preload) nao tem essa
+// capacidade ainda -- cai em "nao disponivel" em vez de quebrar.
+export function checkForPatch(): Promise<PatchCheckResult> {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.checkForPatch) {
+    return Promise.resolve({ available: false });
+  }
+  return window.gameshareDesktop.checkForPatch();
+}
+
+export function downloadAndInstallPatch(downloadUrl: string): Promise<PatchInstallResult> {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.downloadAndInstallPatch) {
+    return Promise.resolve({ ok: false, error: "Não foi possível baixar a atualização agora." });
+  }
+  return window.gameshareDesktop.downloadAndInstallPatch(downloadUrl);
 }

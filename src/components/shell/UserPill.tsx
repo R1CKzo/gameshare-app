@@ -10,7 +10,12 @@ import { MoreMenu } from "@/components/shell/MoreMenu";
 import { SettingsButton } from "@/components/shell/SettingsButton";
 import { StatusMenu } from "@/components/shell/StatusMenu";
 import { isBetaEnabled, resetBetaIfStableVersionChanged } from "@/lib/beta";
-import { getAppVersion } from "@/lib/desktop";
+import { checkForPatch, downloadAndInstallPatch, getAppVersion } from "@/lib/desktop";
+
+// Confere se saiu uma correcao nova pra MESMA versao ja instalada (ver
+// checkForPatch em desktop.ts) a cada meia hora -- nao precisa ser mais
+// frequente, e uma correcao pequena, nao uma emergencia.
+const PATCH_CHECK_MS = 30 * 60 * 1000;
 
 export function UserPill({
   user,
@@ -41,6 +46,43 @@ export function UserPill({
       setIsBeta(isBetaEnabled());
     });
   }, []);
+
+  // Correcao disponivel pra MESMA versao ja instalada (sem bump de
+  // versao nenhum -- ver checkForPatch em desktop.ts). No navegador
+  // comum isso nunca fica disponivel (o site ja atualiza sozinho, na
+  // hora), entao o icone so aparece mesmo no app de desktop.
+  const [patchDownloadUrl, setPatchDownloadUrl] = useState<string | null>(null);
+  const [installingPatch, setInstallingPatch] = useState(false);
+  const [patchError, setPatchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    function check() {
+      checkForPatch().then((result) => {
+        if (cancelled) return;
+        setPatchDownloadUrl(result.available ? result.downloadUrl : null);
+      });
+    }
+    check();
+    const interval = setInterval(check, PATCH_CHECK_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  async function handleInstallPatch() {
+    if (!patchDownloadUrl || installingPatch) return;
+    setInstallingPatch(true);
+    setPatchError(null);
+    const result = await downloadAndInstallPatch(patchDownloadUrl);
+    if (!result.ok) {
+      setPatchError(result.error);
+      setInstallingPatch(false);
+    }
+    // Se deu certo o app fecha sozinho em seguida (ver
+    // downloadAndInstallPatch) -- nao precisa desligar o "instalando".
+  }
 
   return (
     <div className="shrink-0 border-t border-overlay bg-black/20 p-2">
@@ -110,11 +152,26 @@ export function UserPill({
           </div>
         )}
 
-        {/* Config/mais ficam escondidos durante uma chamada -- com os 3
-            botoes de chamada + nome + avatar, nao sobra espaco pros dois
-            juntos na barra lateral estreita (252px) sem cortar o nome. */}
+        {/* Config/mais/atualizacao ficam escondidos durante uma chamada --
+            com os 3 botoes de chamada + nome + avatar, nao sobra espaco
+            pra mais nada junto na barra lateral estreita (252px) sem
+            cortar o nome. Uma correcao disponivel pode esperar a call
+            acabar. */}
         {!target && (
           <div className="flex shrink-0 items-center gap-0.5">
+            {patchDownloadUrl && (
+              <button
+                onClick={handleInstallPatch}
+                disabled={installingPatch}
+                aria-label={patchError ?? (installingPatch ? "Baixando atualização…" : "Atualização disponível — clique pra baixar")}
+                title={patchError ?? (installingPatch ? "Baixando atualização…" : "Atualização disponível — clique pra baixar")}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition ${
+                  patchError ? "text-danger" : "text-accent hover:bg-elevated-hover"
+                } ${installingPatch ? "animate-pulse" : ""}`}
+              >
+                <DownloadIcon />
+              </button>
+            )}
             <SettingsButton />
             <MoreMenu isAdmin={session?.user?.isAdmin ?? false} serverId={serverId} isServerOwner={isServerOwner} />
           </div>
@@ -155,6 +212,16 @@ function PillIconButton({
     >
       {children}
     </button>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M12 15V3" />
+    </svg>
   );
 }
 
