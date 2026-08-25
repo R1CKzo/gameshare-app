@@ -53,7 +53,76 @@ export function getPeerOptions(): PeerJSOption {
   };
 }
 
+// Prefere H.264 (que tem aceleracao de hardware no Windows/Chromium) em vez
+// do VP8/VP9 que o Chromium negocia por padrao (codificados por SOFTWARE,
+// direto na CPU) -- pensado pra sobrar mais CPU/GPU pro jogo durante o
+// compartilhamento de tela. O PeerJS nao da nenhuma brecha pra mexer no
+// RTCPeerConnection ANTES dele criar a oferta/resposta (addTrack e
+// createOffer acontecem em sequencia direta, sem nenhum ponto de espera no
+// meio pra gente entrar) -- entao a unica forma seria remendar essa parte
+// da negociacao na mao, sem o PeerJS. Em vez disso, isso aqui intercepta
+// createOffer/createAnswer no proprio RTCPeerConnection do navegador (que o
+// PeerJS usa por baixo, sem saber) e so define a preferencia de codec bem
+// na hora antes de cada chamada de verdade acontecer. So mexe nesse app: em
+// nenhum outro lugar do GameShare cria RTCPeerConnection.
+//
+// Protegido em cada etapa pra NUNCA impedir a chamada de conectar: se o
+// navegador nao suportar nada disso, se H.264 nao estiver disponivel, ou se
+// setCodecPreferences recusar a lista por qualquer motivo, so segue sem
+// preferencia nenhuma (o comportamento padrao de antes) -- createOffer/
+// createAnswer sempre rodam de verdade no final, aconteca o que acontecer
+// antes.
+let codecPreferencePatched = false;
+
+function applyVideoCodecPreference(pc: RTCPeerConnection) {
+  try {
+    if (typeof pc.getTransceivers !== "function") return;
+    if (typeof RTCRtpSender === "undefined" || typeof RTCRtpSender.getCapabilities !== "function") return;
+    const capabilities = RTCRtpSender.getCapabilities("video");
+    if (!capabilities?.codecs?.length) return;
+
+    const h264 = capabilities.codecs.filter((c) => c.mimeType.toLowerCase() === "video/h264");
+    if (h264.length === 0) return; // navegador sem H.264 -- nao mexe em nada
+    const rest = capabilities.codecs.filter((c) => c.mimeType.toLowerCase() !== "video/h264");
+    const ordered = [...h264, ...rest];
+
+    for (const transceiver of pc.getTransceivers()) {
+      if (transceiver.sender.track?.kind !== "video" && transceiver.receiver.track?.kind !== "video") continue;
+      if (typeof transceiver.setCodecPreferences !== "function") continue;
+      try {
+        transceiver.setCodecPreferences(ordered);
+      } catch {
+        // lista recusada por algum motivo (formato, transceiver ja usado
+        // por outra coisa, etc) -- segue sem preferencia nesse transceiver
+      }
+    }
+  } catch {
+    // qualquer erro inesperado aqui NUNCA deve impedir a chamada de
+    // acontecer -- so desiste da preferencia de codec dessa vez
+  }
+}
+
+function patchVideoCodecPreference() {
+  if (codecPreferencePatched || typeof window === "undefined" || typeof window.RTCPeerConnection === "undefined") return;
+  codecPreferencePatched = true;
+
+  const proto = window.RTCPeerConnection.prototype;
+  const originalCreateOffer = proto.createOffer;
+  const originalCreateAnswer = proto.createAnswer;
+
+  proto.createOffer = function (this: RTCPeerConnection, ...args: Parameters<typeof originalCreateOffer>) {
+    applyVideoCodecPreference(this);
+    return originalCreateOffer.apply(this, args);
+  } as typeof proto.createOffer;
+
+  proto.createAnswer = function (this: RTCPeerConnection, ...args: Parameters<typeof originalCreateAnswer>) {
+    applyVideoCodecPreference(this);
+    return originalCreateAnswer.apply(this, args);
+  } as typeof proto.createAnswer;
+}
+
 export async function createPeer(id?: string): Promise<Peer> {
+  patchVideoCodecPreference();
   const { default: PeerJS } = await import("peerjs");
   return new PeerJS(id as string, getPeerOptions());
 }
