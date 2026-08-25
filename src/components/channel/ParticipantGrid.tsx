@@ -202,7 +202,8 @@ function BroadcastPreview({
               value={volume}
               onChange={(e) => onVolumeChange(Number(e.target.value))}
               aria-label="Volume da transmissão"
-              className="w-16 accent-accent sm:w-20"
+              className="gs-range gs-range-accent w-16 sm:w-20"
+              style={{ "--range-progress": `${volume}%` } as React.CSSProperties}
             />
             <button
               onClick={onLeave}

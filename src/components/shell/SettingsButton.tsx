@@ -521,7 +521,8 @@ function AudioTab() {
           max={100}
           value={settings.sensitivity}
           onChange={(e) => update({ sensitivity: Number(e.target.value) })}
-          className="w-full accent-primary"
+          className="gs-range w-full"
+          style={{ "--range-progress": `${settings.sensitivity}%` } as React.CSSProperties}
         />
         <p className="mt-1.5 text-xs text-dim">
           Baixa: só deixa passar sua voz falando alto, corta ruído/eco de fundo. Alta: pega qualquer som, mesmo baixinho.
@@ -673,18 +674,37 @@ function ToggleRow({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
+  // Checkbox desenhado na mao (nao o <input type="checkbox"> nativo) --
+  // cada navegador/SO estiliza o nativo de um jeito bem diferente, mesmo
+  // com accent-color (quadrado fino e sem graca no Windows, arredondado e
+  // roxo bonito no iOS) — assim fica sempre identico em qualquer lugar. O
+  // input em si continua ali, so invisivel (sr-only), pra manter foco por
+  // teclado e leitor de tela funcionando normalmente.
   return (
     <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl bg-elevated/60 p-3.5">
       <div>
         <div className="text-sm font-bold text-foreground">{label}</div>
         <div className="mt-0.5 text-xs text-dim">{description}</div>
       </div>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-1 h-5 w-5 shrink-0 accent-primary"
-      />
+      <span className="relative mt-0.5 shrink-0">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="peer sr-only"
+        />
+        <span
+          className={`flex h-6 w-6 items-center justify-center rounded-[7px] border-2 transition active:scale-90 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 ${
+            checked ? "border-primary bg-primary" : "border-border"
+          }`}
+        >
+          {checked && (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          )}
+        </span>
+      </span>
     </label>
   );
 }
