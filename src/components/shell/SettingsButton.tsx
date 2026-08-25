@@ -339,7 +339,7 @@ function ProfileTab() {
               Liquid Glass
             </button>
           </div>
-          <p className="mt-1.5 text-xs text-dim">Painéis translúcidos e desfocados, estilo iOS. Recurso em teste.</p>
+          <p className="mt-1.5 text-xs text-dim">Painéis translúcidos e desfocados. Recurso em teste.</p>
         </div>
       )}
 

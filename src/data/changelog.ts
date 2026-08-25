@@ -49,7 +49,7 @@ export const changelog: ChangelogEntry[] = [
       "Novo modelo de supressão de ruído do microfone, mais robusto pra separar sua voz de ruído de teclado e fundo",
       "Melhorias na interface e navegação",
       "Novo logo em teste",
-      "Interface \"Liquid Glass\": painéis translúcidos e desfocados, estilo iOS (Configurações > Perfil)",
+      "Novo estilo de interface: \"liquid glass\" (Configurações > Perfil)",
     ],
     bugsFixed: [
       "Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair",
@@ -58,6 +58,8 @@ export const changelog: ChangelogEntry[] = [
       "Baixar uma correção podia falhar sem repetir a tentativa, mesmo em redes instáveis",
       "Botões de minimizar/maximizar/fechar da janela ficavam com o tom de cor errado em algumas telas, inclusive no tema claro (beta)",
       "Barra de canais recolhível ficava flutuando, sem ocupar a altura certa da tela (beta)",
+      "Interruptor do \"liquid glass\" não aplicava efeito nenhum ao ativar (beta)",
+      "Página de Novidades ficava com o visual quebrado com o \"liquid glass\" ativo (beta)",
     ],
   },
   {
