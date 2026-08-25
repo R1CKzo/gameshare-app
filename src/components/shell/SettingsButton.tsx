@@ -16,7 +16,7 @@ import {
   type AudioSettings,
 } from "@/lib/audioSettings";
 import { apiUrl } from "@/lib/apiUrl";
-import { BETA_STORAGE_KEY } from "@/lib/beta";
+import { BETA_STORAGE_KEY, isBetaEnabled } from "@/lib/beta";
 import { isDesktopApp, restartAppOrReload } from "@/lib/desktop";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
@@ -50,6 +50,15 @@ async function resizeImageToDataUrl(file: File, maxBytes = 180_000): Promise<str
 
 export function SettingsButton() {
   const [open, setOpen] = useState(false);
+  // So le o interruptor de beta depois de montar (localStorage nao existe
+  // no server) -- mesmo padrao do "isBeta" em UserPill.tsx. Quem tiver
+  // "Permitir versoes beta" ligado ve a tela de configuracoes remodelada
+  // (ver DiscordSettingsModal); todo mundo continua no modal de sempre.
+  const [betaSettingsUI, setBetaSettingsUI] = useState(false);
+  useEffect(() => {
+    setBetaSettingsUI(isBetaEnabled());
+  }, []);
+
   return (
     <>
       <button
@@ -59,8 +68,94 @@ export function SettingsButton() {
       >
         <GearIcon />
       </button>
-      {open && <SettingsModal onClose={() => setOpen(false)} />}
+      {open &&
+        (betaSettingsUI ? (
+          <DiscordSettingsModal onClose={() => setOpen(false)} />
+        ) : (
+          <SettingsModal onClose={() => setOpen(false)} />
+        ))}
     </>
+  );
+}
+
+// Configuracoes remodeladas pra ficar o mais parecido possivel com o
+// Discord (pedido explicito do dono) -- tela cheia, categoria na lateral
+// esquerda, conteudo largo a direita, botao de fechar redondo flutuando
+// fora do painel com "ESC" embaixo. So a "casca" muda: reaproveita as
+// mesmas abas (ProfileTab/AudioTab/SegurancaTab/BetaTab/BugReportTab) do
+// modal de sempre, sem duplicar nenhuma logica de formulario. Atras do
+// interruptor de beta de proposito -- e uma mudanca grande de visual, so
+// pra quem escolheu testar recursos em teste.
+function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
+  const [tab, setTab] = useState<"perfil" | "audio" | "seguranca" | "beta" | "bug">("perfil");
+  const tabs = ["perfil", "audio", "seguranca", ...(isDesktopApp() ? (["beta"] as const) : []), "bug"] as const;
+  const labels: Record<(typeof tabs)[number], string> = {
+    perfil: "Minha Conta",
+    audio: "Voz",
+    seguranca: "Privacidade e Segurança",
+    beta: "Beta",
+    bug: "Reportar um Problema",
+  };
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background md:flex-row" onClick={onClose}>
+      <div
+        className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-overlay bg-surface px-3 py-2 md:w-[218px] md:flex-col md:justify-start md:overflow-y-auto md:overflow-x-hidden md:border-b-0 md:px-2 md:py-[60px] md:pl-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-1 hidden px-2.5 text-xs font-bold uppercase tracking-wide text-dim md:block">
+          Configurações do usuário
+        </div>
+        {tabs.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-2 text-left text-[15px] font-medium transition ${
+              tab === t ? "bg-elevated text-foreground" : "text-muted hover:bg-elevated-hover hover:text-foreground-secondary"
+            }`}
+          >
+            {labels[t]}
+          </button>
+        ))}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto max-w-[600px] px-5 py-8 md:px-10 md:py-[60px]">
+          <h2 className="mb-6 font-display text-xl font-bold">{labels[tab]}</h2>
+          {tab === "perfil" ? (
+            <ProfileTab />
+          ) : tab === "audio" ? (
+            <AudioTab />
+          ) : tab === "seguranca" ? (
+            <SegurancaTab />
+          ) : tab === "beta" ? (
+            <BetaTab />
+          ) : (
+            <BugReportTab onClose={onClose} />
+          )}
+        </div>
+      </div>
+
+      <button
+        onClick={onClose}
+        aria-label="Fechar"
+        className="absolute right-3 top-3 flex flex-col items-center gap-1 text-muted transition hover:text-foreground md:right-10 md:top-[60px]"
+      >
+        <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-current">
+          <CloseIcon />
+        </span>
+        <span className="hidden text-[11px] font-bold md:block">ESC</span>
+      </button>
+    </div>,
+    document.body,
   );
 }
 

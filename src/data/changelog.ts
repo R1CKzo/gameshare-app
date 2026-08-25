@@ -44,6 +44,7 @@ export const changelog: ChangelogEntry[] = [
       "Donos de servidor podem alterar nome e imagem do servidor",
       "Atualizações de correções de segurança",
     ],
+    betaFeatures: ["Tela de Configurações remodelada, no estilo do Discord"],
     bugsFixed: [
       "Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair",
       "Deixar o app aberto por um tempo podia levar de volta pra página de Novidades, mesmo já tendo sido vista",
