@@ -256,24 +256,21 @@ ipcMain.on("beta:sync-titlebar-flag", (_event, enabled) => {
   }
 });
 
-// Os botoes de minimizar/maximizar/fechar (titleBarOverlay) sao pintados
-// pelo proprio Windows, fora do alcance do CSS da pagina -- só respondem a
-// setTitleBarOverlay() chamado daqui do processo principal. Sem isso eles
-// ficavam travados na cor escura de sempre, destoando feio de quem trocasse
-// pro tema claro nas Configuracoes (ver ThemeProvider.tsx, que chama isso
-// direto na troca e tambem uma vez ao montar).
-ipcMain.on("theme:set-titlebar-colors", (_event, theme) => {
+// Minimizar/maximizar/fechar desenhados na propria pagina (ver
+// DesktopTitleBar.tsx), nao mais pelo Windows -- o titleBarOverlay nativo
+// so pintava UMA cor de fundo fixa, que nunca batia direito com o tom
+// exato de cada tela (login, Configuracoes, etc. usam tons escuros
+// ligeiramente diferentes entre si) nem trocava sozinho com o tema
+// claro/escuro. Sendo botao de verdade na pagina, usa os mesmos tokens de
+// cor do resto do app, sem costura visivel em lugar nenhum.
+ipcMain.on("window:minimize", () => mainWindow?.minimize());
+ipcMain.on("window:toggle-maximize", () => {
   if (!mainWindow) return;
-  const colors =
-    theme === "light" ? { color: "#eceef3", symbolColor: "#14161f" } : { color: "#08090d", symbolColor: "#f5f5f7" };
-  try {
-    mainWindow.setTitleBarOverlay({ ...colors, height: 36 });
-  } catch {
-    // setTitleBarOverlay so existe/faz efeito numa janela criada com
-    // titleBarStyle "hidden" -- se o beta de barra customizada estiver
-    // desligado, a chamada falha e a gente so ignora, sem quebrar nada.
-  }
+  if (mainWindow.isMaximized()) mainWindow.unmaximize();
+  else mainWindow.maximize();
 });
+ipcMain.on("window:close", () => mainWindow?.close());
+ipcMain.handle("window:is-maximized", () => mainWindow?.isMaximized() ?? false);
 
 function createWindow() {
   const customTitlebar = readBetaTitlebarFlag();
@@ -287,17 +284,9 @@ function createWindow() {
     icon: path.join(__dirname, "build", "icon.ico"),
     backgroundColor: "#08090d",
     autoHideMenuBar: true,
-    // Mantem os botoes de minimizar/maximizar/fechar desenhados pelo
-    // proprio Windows (comportamento/acessibilidade garantidos), so troca
-    // a cor deles e libera o resto da faixa do topo pra virar conteudo web
-    // (ver DesktopTitleBar.tsx) -- nao precisa reimplementar os botoes na
-    // mao.
-    ...(customTitlebar
-      ? {
-          titleBarStyle: "hidden",
-          titleBarOverlay: { color: "#08090d", symbolColor: "#f5f5f7", height: 36 },
-        }
-      : {}),
+    // Sem moldura nativa nenhuma -- a pagina desenha sua propria barra de
+    // titulo inteira (marca + botoes), ver DesktopTitleBar.tsx.
+    frame: !customTitlebar,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -308,6 +297,13 @@ function createWindow() {
 
   mainWindow.webContents.setUserAgent(DESKTOP_CHROME_UA);
   mainWindow.loadURL(APP_URL);
+
+  // Avisa a pagina quando o estado maximizado muda por qualquer via que nao
+  // seja o botao dela mesma (atalho de teclado, arrastar pra borda da
+  // tela, etc) -- pra DesktopTitleBar.tsx trocar o icone certo (maximizar
+  // vs restaurar) mesmo nesses casos.
+  mainWindow.on("maximize", () => mainWindow?.webContents.send("window:maximized-changed", true));
+  mainWindow.on("unmaximize", () => mainWindow?.webContents.send("window:maximized-changed", false));
 
   // O login do Google (e qualquer navegacao pro fluxo de sign-in do
   // NextAuth) e barrado dentro da janela do Electron — intercepta antes

@@ -72,10 +72,17 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     // DesktopTitleBar.tsx). So faz efeito depois de reiniciar o app.
     syncBetaTitlebarFlag: (enabled) => ipcRenderer.send("beta:sync-titlebar-flag", enabled),
 
-    // Recolore os botoes de minimizar/maximizar/fechar nativos (desenhados
-    // pelo Windows, fora do alcance do CSS) pra acompanhar o tema
-    // claro/escuro escolhido -- sem efeito se a janela nao tiver nascido
-    // sem moldura nativa (ver theme:set-titlebar-colors em main.js).
-    setTitleBarTheme: (theme) => ipcRenderer.send("theme:set-titlebar-colors", theme),
+    // Controles da janela desenhados na propria pagina (ver
+    // DesktopTitleBar.tsx) -- so tem efeito de verdade quando a janela
+    // nasceu sem moldura nativa (ver createWindow em main.js).
+    minimizeWindow: () => ipcRenderer.send("window:minimize"),
+    toggleMaximizeWindow: () => ipcRenderer.send("window:toggle-maximize"),
+    closeWindow: () => ipcRenderer.send("window:close"),
+    isWindowMaximized: () => ipcRenderer.invoke("window:is-maximized"),
+    onWindowMaximizedChanged: (callback) => {
+      const listener = (_event, isMaximized) => callback(isMaximized);
+      ipcRenderer.on("window:maximized-changed", listener);
+      return () => ipcRenderer.removeListener("window:maximized-changed", listener);
+    },
   });
 }

@@ -2,8 +2,6 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-import { setTitleBarTheme } from "@/lib/desktop";
-
 export type Theme = "dark" | "light";
 
 const STORAGE_KEY = "gameshare-theme";
@@ -38,12 +36,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    // Os botoes nativos de minimizar/maximizar/fechar (titleBarOverlay, ver
-    // DesktopTitleBar.tsx) sao pintados pelo Windows, fora do alcance desse
-    // atributo/CSS -- sem isso ficavam sempre na cor escura, destoando de
-    // quem trocasse pro tema claro. No-op em quem nao tem a barra
-    // customizada ativa.
-    setTitleBarTheme(theme);
   }, [theme]);
 
   function setTheme(next: Theme) {

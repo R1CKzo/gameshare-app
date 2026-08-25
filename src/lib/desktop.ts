@@ -54,10 +54,14 @@ type GameshareDesktopBridge = {
   // no boot, se a janela nasce sem moldura nativa (ver DesktopTitleBar.tsx
   // e createWindow em main.js). So faz efeito depois de reiniciar o app.
   syncBetaTitlebarFlag?: (enabled: boolean) => void;
-  // Recolore os botoes de minimizar/maximizar/fechar nativos pra acompanhar
-  // o tema — sem efeito se a janela nao tiver a barra de titulo customizada
-  // ativa (ver theme:set-titlebar-colors em main.js).
-  setTitleBarTheme?: (theme: "dark" | "light") => void;
+  // Controles da janela desenhados na propria pagina (ver
+  // DesktopTitleBar.tsx) -- so tem efeito de verdade quando a janela nasceu
+  // sem moldura nativa (ver createWindow em main.js).
+  minimizeWindow?: () => void;
+  toggleMaximizeWindow?: () => void;
+  closeWindow?: () => void;
+  isWindowMaximized?: () => Promise<boolean>;
+  onWindowMaximizedChanged?: (callback: (isMaximized: boolean) => void) => () => void;
 };
 
 declare global {
@@ -184,9 +188,33 @@ export function syncBetaTitlebarFlag(enabled: boolean): void {
   window.gameshareDesktop?.syncBetaTitlebarFlag?.(enabled);
 }
 
-// No-op no navegador comum ou em instalacao antiga demais pra ter esse
-// metodo no preload.
-export function setTitleBarTheme(theme: "dark" | "light"): void {
+// Controles da janela desenhados na propria pagina (ver
+// DesktopTitleBar.tsx) -- no-op no navegador comum ou em instalacao antiga
+// demais pra ter esses metodos no preload.
+export function minimizeWindow(): void {
   if (typeof window === "undefined") return;
-  window.gameshareDesktop?.setTitleBarTheme?.(theme);
+  window.gameshareDesktop?.minimizeWindow?.();
+}
+
+export function toggleMaximizeWindow(): void {
+  if (typeof window === "undefined") return;
+  window.gameshareDesktop?.toggleMaximizeWindow?.();
+}
+
+export function closeWindow(): void {
+  if (typeof window === "undefined") return;
+  window.gameshareDesktop?.closeWindow?.();
+}
+
+export async function isWindowMaximized(): Promise<boolean> {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.isWindowMaximized) return false;
+  return window.gameshareDesktop.isWindowMaximized();
+}
+
+// Devolve uma funcao de "parar de escutar" (ou um no-op se a ponte nao
+// existir) -- mesmo formato do onSystemAudioChunk, pra sempre dar pra
+// limpar no cleanup de um useEffect sem checar undefined toda vez.
+export function onWindowMaximizedChanged(callback: (isMaximized: boolean) => void): () => void {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.onWindowMaximizedChanged) return () => {};
+  return window.gameshareDesktop.onWindowMaximizedChanged(callback);
 }

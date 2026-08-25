@@ -55,7 +55,7 @@ export const changelog: ChangelogEntry[] = [
       "Deixar o app aberto por um tempo podia levar de volta pra página de Novidades, mesmo já tendo sido vista",
       "Ser removido de um servidor (ou ele ser excluído) enquanto você estava nele podia travar numa tela sem saída",
       "Baixar uma correção podia falhar sem repetir a tentativa, mesmo em redes instáveis",
-      "Botões de minimizar/maximizar/fechar da janela ficavam com a cor errada no tema claro (beta)",
+      "Botões de minimizar/maximizar/fechar da janela ficavam com o tom de cor errado em algumas telas, inclusive no tema claro (beta)",
       "Barra de canais recolhível ficava flutuando, sem ocupar a altura certa da tela (beta)",
     ],
   },
