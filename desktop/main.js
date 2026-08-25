@@ -615,7 +615,15 @@ async function checkBetaBuild() {
     const beta = releases.find((r) => r.prerelease);
     if (!beta) return { available: false };
 
-    const version = beta.tag_name.replace(/^desktop-v/, "");
+    // A tag "desktop-v*" enviada pro git so serve pra DISPARAR o build (ver
+    // build-desktop.yml) -- quem realmente nomeia a Release/tag no GitHub e
+    // o proprio electron-builder, sempre como "v<versao>" (ex: "v1.0.11"),
+    // ignorando a tag que disparou o build. Tirar o prefixo errado
+    // ("desktop-v") nunca dava match nenhum, entao "version" saia com o
+    // "v" grudado (ex: "v1.0.12-beta.1" em vez de "1.0.12-beta.1") -- nome
+    // errado na tela E a comparacao com app.getVersion() abaixo nunca
+    // batia mesmo quando ja era exatamente essa a versao instalada.
+    const version = beta.tag_name.replace(/^v/, "");
     if (version === app.getVersion()) return { available: false };
 
     const asset = beta.assets.find((a) => a.name.endsWith(".exe"));
