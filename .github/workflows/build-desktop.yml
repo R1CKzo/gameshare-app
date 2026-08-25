@@ -56,11 +56,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Sobe o mesmo build-info.json pra dentro da Release tambem (alem de
-      # ja estar embutido no instalador) -- e o que o app compara pra saber
-      # se o que esta publicado e diferente do que ele proprio tem.
-      - name: Publica o build-info.json na release
+      # O proprio electron-builder RECUSA sobrescrever os artefatos quando a
+      # Release ja existe ha mais de 2 horas (protecao interna dele contra
+      # publicar em cima de uma release "antiga" por engano) -- o passo
+      # anterior ainda GERA os arquivos normalmente em release/, so pula o
+      # upload nesse caso. Isso aqui garante o upload de verdade sempre,
+      # inclusive pra correcoes ("patch") na MESMA versao ja publicada --
+      # --clobber sobrescreve o que ja estava la, sem criar nada duplicado.
+      - name: Garante que os artefatos ficam publicados de verdade
         shell: bash
-        run: gh release upload "v$(node -p "require('./package.json').version")" build-info.json --clobber
+        run: |
+          TAG="v$(node -p "require('./package.json').version")"
+          gh release upload "$TAG" release/GameShare-Setup.exe release/GameShare-Setup.exe.blockmap release/latest.yml build-info.json --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
