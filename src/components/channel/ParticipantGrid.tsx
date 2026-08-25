@@ -7,7 +7,6 @@ import { useActiveCall } from "@/components/call/ActiveCallProvider";
 import { SignalIcon } from "@/components/call/SignalIcon";
 import { useSpeakingDetector } from "@/hooks/useSpeakingDetector";
 import type { PresentUser, RemotePeerTracks } from "@/hooks/useVoiceMesh";
-import { isBetaEnabled } from "@/lib/beta";
 
 export function ParticipantGrid({
   present,
@@ -41,11 +40,6 @@ export function ParticipantGrid({
   }, [sharer, isSharerSelf, localStream, sharerTracks]);
 
   const sharerVolume = sharer && !isSharerSelf ? getVolumeFor(sharer.id) : 100;
-  // "Entrar/sair da transmissao" e o controle de volume so aparecem pra
-  // quem ligou "Permitir versoes beta" -- pra todo mundo, ActiveCallProvider
-  // ja forca "assistindo" sempre true (ver isWatchingBroadcast la), entao
-  // showBroadcast acima ja fica true sem precisar desse botao.
-  const betaEnabled = isBetaEnabled();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-5">
@@ -53,7 +47,7 @@ export function ParticipantGrid({
         <BroadcastPreview
           stream={sharerVideoStream}
           label={isSharerSelf ? "Você está compartilhando a tela" : `${sharer.nickname ?? "Alguém"} está compartilhando a tela`}
-          showBroadcastControls={!isSharerSelf && betaEnabled}
+          showBroadcastControls={!isSharerSelf}
           volume={sharerVolume}
           onVolumeChange={(v) => setVolumeFor(sharer.id, v)}
           onLeave={leaveBroadcast}

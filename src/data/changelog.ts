@@ -23,6 +23,19 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.0.12",
+    date: "2026-08-25",
+    title: "Áudio da transmissão e tela cheia",
+    items: [
+      "Compartilhar a tela inteira agora leva o som do sistema junto (sem pegar a voz de ninguém na chamada)",
+      "Cada pessoa controla o volume do que está assistindo, e pode entrar ou sair da transmissão sem sair da chamada",
+      "Botão de tela cheia no vídeo de quem está compartilhando",
+    ],
+    bugsFixed: [
+      "Áudio da transmissão (tela inteira ou app específico) não chegava pra quem estava assistindo",
+    ],
+  },
+  {
     version: "1.0.11",
     date: "2026-08-24",
     title: "Programa beta",

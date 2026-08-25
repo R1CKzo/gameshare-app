@@ -1,6 +1,6 @@
 {
   "name": "gameshare-desktop",
-  "version": "1.0.12-beta.2",
+  "version": "1.0.12",
   "description": "GameShare para Windows — cliente de desktop (Electron) que abre o app web com login do Google e checa atualizacoes sozinho.",
   "main": "main.js",
   "author": "GameShare",

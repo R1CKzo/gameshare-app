@@ -8,7 +8,7 @@ import { usePresence } from "@/components/notifications/PresenceProvider";
 import { MoreMenu } from "@/components/shell/MoreMenu";
 import { SettingsButton } from "@/components/shell/SettingsButton";
 import { StatusMenu } from "@/components/shell/StatusMenu";
-import { isBetaEnabled } from "@/lib/beta";
+import { isBetaEnabled, resetBetaIfStableVersionChanged } from "@/lib/beta";
 import { getAppVersion } from "@/lib/desktop";
 
 export function UserPill({
@@ -24,18 +24,20 @@ export function UserPill({
   const { effectiveStatus } = usePresence();
   const label = user.nickname ?? "Alguem";
 
-  // Mostra o selo "BETA" quando a build instalada veio do programa beta
-  // (versao do instalador do desktop) OU quando o interruptor "Permitir
-  // versoes beta" (Configuracoes > Beta) esta ligado nesse navegador --
-  // esse segundo caso libera funcoes novas so do site (ver isBetaEnabled),
-  // sem precisar de instalador nenhum, entao precisa do proprio aviso.
+  // Mostra o selo "BETA" so quando o interruptor "Permitir versoes beta"
+  // (Configuracoes > Beta) esta ligado nesse navegador -- nao quando a
+  // build instalada por si so e uma versao beta (a pessoa pode ter
+  // desligado o interruptor depois de instalar uma). Antes de ler o
+  // interruptor, confere se essa e uma versao estavel diferente da ultima
+  // vista -- se for, desliga ele sozinho (ver resetBetaIfStableVersionChanged),
+  // pra ninguem continuar "preso" em beta so porque uma vez ativou pra
+  // testar algo que ja virou oficial.
   const [isBeta, setIsBeta] = useState(false);
   useEffect(() => {
-    if (isBetaEnabled()) {
-      setIsBeta(true);
-      return;
-    }
-    getAppVersion().then((version) => setIsBeta(version.includes("beta")));
+    getAppVersion().then((version) => {
+      resetBetaIfStableVersionChanged(version);
+      setIsBeta(isBetaEnabled());
+    });
   }, []);
 
   return (
