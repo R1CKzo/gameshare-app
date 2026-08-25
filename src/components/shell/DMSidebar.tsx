@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useUnread } from "@/components/notifications/UnreadContext";
 import { StatusDot } from "@/components/shell/StatusDot";
@@ -101,45 +102,160 @@ export function DMSidebar({
           if (!c.user) return null;
           const unread = c.id !== currentDmId && isDmUnread(c.id);
           return (
-            <Link
-              key={c.id}
-              href={`/dms/${c.id}`}
-              prefetch
-              className={`mb-0.5 flex items-center gap-2.5 rounded-md px-2 py-1.5 transition ${
-                c.id === currentDmId ? "bg-elevated" : "hover:bg-overlay-weak"
-              }`}
-            >
-              <div className="relative h-8 w-8 shrink-0">
-                <div className="relative h-full w-full overflow-hidden rounded-full bg-primary">
-                  {c.user.image ? (
-                    <Image src={c.user.image} alt="" fill sizes="32px" className="object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">
-                      {(c.user.nickname ?? "?").slice(0, 1).toUpperCase()}
-                    </div>
+            <div key={c.id} className="group relative mb-0.5">
+              <Link
+                href={`/dms/${c.id}`}
+                prefetch
+                className={`flex items-center gap-2.5 rounded-md py-1.5 pl-2 pr-8 transition ${
+                  c.id === currentDmId ? "bg-elevated" : "hover:bg-overlay-weak"
+                }`}
+              >
+                <div className="relative h-8 w-8 shrink-0">
+                  <div className="relative h-full w-full overflow-hidden rounded-full bg-primary">
+                    {c.user.image ? (
+                      <Image src={c.user.image} alt="" fill sizes="32px" className="object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">
+                        {(c.user.nickname ?? "?").slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <StatusDot status={deriveStatus(c.user.status, c.user.lastActiveAt)} className="-bottom-0.5 -right-0.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div
+                    className={`truncate text-sm ${
+                      c.id === currentDmId || unread ? "font-semibold text-foreground" : "text-foreground-secondary"
+                    }`}
+                  >
+                    {c.user.nickname}
+                  </div>
+                  {c.lastMessage && (
+                    <div className={`truncate text-xs ${unread ? "text-foreground-secondary" : "text-dim"}`}>{c.lastMessage.content}</div>
                   )}
                 </div>
-                <StatusDot status={deriveStatus(c.user.status, c.user.lastActiveAt)} className="-bottom-0.5 -right-0.5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div
-                  className={`truncate text-sm ${
-                    c.id === currentDmId || unread ? "font-semibold text-foreground" : "text-foreground-secondary"
-                  }`}
-                >
-                  {c.user.nickname}
-                </div>
-                {c.lastMessage && (
-                  <div className={`truncate text-xs ${unread ? "text-foreground-secondary" : "text-dim"}`}>{c.lastMessage.content}</div>
-                )}
-              </div>
-              {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />}
-            </Link>
+                {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />}
+              </Link>
+              <DMActionsMenu dmChannelId={c.id} />
+            </div>
           );
         })}
       </div>
 
       <UserPill user={user} />
     </div>
+  );
+}
+
+// Mesmo padrao de menu flutuante do ChannelActionsMenu (ChannelSidebar.tsx)
+// e do MoreMenu.tsx -- so que aqui e novo, nao existia nenhum menu por
+// conversa antes.
+function DMActionsMenu({ dmChannelId }: { dmChannelId: string }) {
+  const { isDmMuted, setDmMuted } = useUnread();
+  const muted = isDmMuted(dmChannelId);
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  function toggleOpen() {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({ top: rect.bottom + 4, left: Math.min(rect.left, window.innerWidth - 200 - 12) });
+    }
+    setOpen((v) => !v);
+  }
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
+        setOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    if (open) {
+      document.addEventListener("mousedown", onClickOutside);
+      document.addEventListener("keydown", onKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        onClick={(e) => {
+          e.preventDefault();
+          toggleOpen();
+        }}
+        title="Opções da conversa"
+        className={`absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 shrink-0 items-center justify-center rounded bg-sidebar text-muted transition hover:bg-elevated-hover hover:text-foreground ${
+          open ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        }`}
+      >
+        <HamburgerIcon />
+      </button>
+      {open &&
+        position &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{ top: position.top, left: position.left, width: 200 }}
+            className="fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+          >
+            <button
+              onClick={() => {
+                setDmMuted(dmChannelId, !muted);
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
+            >
+              {muted ? <BellIcon /> : <BellOffIcon />}
+              {muted ? "Ativar notificações" : "Silenciar conversa"}
+            </button>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+function HamburgerIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  );
+}
+
+function BellOffIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M13.73 21a1.94 1.94 0 0 1-3.41 0" />
+      <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
+      <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
+      <path d="M18 8a6 6 0 0 0-9.33-5" />
+      <path d="M1 1l22 22" />
+    </svg>
   );
 }

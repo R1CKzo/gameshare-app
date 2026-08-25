@@ -19,6 +19,7 @@ import {
 import { apiUrl } from "@/lib/apiUrl";
 import { BETA_STORAGE_KEY, isBetaEnabled } from "@/lib/beta";
 import { clearCache, isDesktopApp, restartAppOrReload, syncBetaTitlebarFlag, syncHardwareAccel } from "@/lib/desktop";
+import { SOUND_CALLS_KEY, SOUND_MESSAGES_KEY } from "@/lib/sound";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 const AVATAR_SIZE = 256;
@@ -198,10 +199,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
               description="Configurações de bate-papo (emojis, GIFs, formatação de mensagens) ainda estão a caminho."
             />
           ) : tab === "notificacoes" ? (
-            <ComingSoonTab
-              title="Em breve"
-              description="Controle fino de notificações (sons, quem pode te mencionar, silenciar canais) ainda está a caminho."
-            />
+            <NotificacoesTab />
           ) : tab === "avancado" ? (
             <AvancadoTab />
           ) : (
@@ -515,6 +513,56 @@ function AcessibilidadeTab() {
         checked={highContrast}
         onChange={setHighContrast}
       />
+    </div>
+  );
+}
+
+function NotificacoesTab() {
+  const [messageSound, setMessageSoundState] = useState(true);
+  const [callSound, setCallSoundState] = useState(true);
+
+  useEffect(() => {
+    setMessageSoundState(localStorage.getItem(SOUND_MESSAGES_KEY) !== "false");
+    setCallSoundState(localStorage.getItem(SOUND_CALLS_KEY) !== "false");
+  }, []);
+
+  function handleToggleMessageSound(v: boolean) {
+    setMessageSoundState(v);
+    try {
+      localStorage.setItem(SOUND_MESSAGES_KEY, String(v));
+    } catch {
+      // modo privado ou storage cheio — a escolha so nao sobrevive a um
+      // recarregamento, sem quebrar nada
+    }
+  }
+
+  function handleToggleCallSound(v: boolean) {
+    setCallSoundState(v);
+    try {
+      localStorage.setItem(SOUND_CALLS_KEY, String(v));
+    } catch {
+      // idem
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <ToggleRow
+        label="Som de mensagem"
+        description="Toca um som quando chega uma mensagem nova em canal ou DM que você não está vendo."
+        checked={messageSound}
+        onChange={handleToggleMessageSound}
+      />
+      <ToggleRow
+        label="Som de chamada"
+        description="Toca um som ao entrar, sair, ou mutar/desmutar numa chamada de voz."
+        checked={callSound}
+        onChange={handleToggleCallSound}
+      />
+      <p className="text-xs text-dim">
+        Pra silenciar um servidor, canal ou conversa específica, use o menu (⋯ ou ≡) dele — os interruptores aqui
+        controlam o app inteiro.
+      </p>
     </div>
   );
 }

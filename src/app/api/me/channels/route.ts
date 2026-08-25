@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   }
   const userId = session.user.id;
 
-  const [channels, dmChannels, channelReads, dmReads] = await Promise.all([
+  const [channels, dmChannels, channelReads, dmReads, mutedServers, channelMutes, dmMutes] = await Promise.all([
     prisma.channel.findMany({
       where: { type: "TEXT", server: { members: { some: { userId } } } },
       select: {
@@ -38,6 +38,9 @@ export async function GET(request: Request) {
     }),
     prisma.channelRead.findMany({ where: { userId }, select: { channelId: true, lastReadAt: true } }),
     prisma.dMRead.findMany({ where: { userId }, select: { dmChannelId: true, lastReadAt: true } }),
+    prisma.serverMember.findMany({ where: { userId, notificationsMuted: true }, select: { serverId: true } }),
+    prisma.channelMute.findMany({ where: { userId }, select: { channelId: true } }),
+    prisma.dMMute.findMany({ where: { userId }, select: { dmChannelId: true } }),
   ]);
 
   const channelReadMap = new Map(channelReads.map((r) => [r.channelId, r.lastReadAt]));
@@ -65,6 +68,9 @@ export async function GET(request: Request) {
           unread: Boolean(lastReadAt && lastMessageAt && lastMessageAt > lastReadAt),
         };
       }),
+      mutedServerIds: mutedServers.map((m) => m.serverId),
+      mutedChannelIds: channelMutes.map((m) => m.channelId),
+      mutedDmIds: dmMutes.map((m) => m.dmChannelId),
     }),
   );
 }

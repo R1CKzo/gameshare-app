@@ -369,7 +369,7 @@ function ChannelRow({
           </div>
         )}
       </Link>
-      {canManage && <ChannelActionsMenu onEdit={() => setRenaming(true)} onDelete={onDelete} />}
+      <ChannelActionsMenu channelId={channel.id} canManage={canManage} onEdit={() => setRenaming(true)} onDelete={onDelete} />
       </div>
       {isCall && voicePresent.length > 0 && (
         <div className="ml-6 space-y-0.5 py-0.5">
@@ -537,7 +537,19 @@ function ChannelCreateButton({ onCreate }: { onCreate: (name: string) => Promise
 // Botao hamburguer que so aparece no hover da linha (ou sempre, se quem
 // esta vendo pode gerenciar canais) — abre um menu pra editar (renomear
 // inline) ou excluir aquele canal especifico.
-function ChannelActionsMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+function ChannelActionsMenu({
+  channelId,
+  canManage,
+  onEdit,
+  onDelete,
+}: {
+  channelId: string;
+  canManage: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { isChannelMuted, setChannelMuted } = useUnread();
+  const muted = isChannelMuted(channelId);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -581,7 +593,7 @@ function ChannelActionsMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete
       <button
         ref={buttonRef}
         onClick={toggleOpen}
-        title="Editar canal"
+        title="Opções do canal"
         className={`absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 shrink-0 items-center justify-center rounded bg-sidebar text-muted transition hover:bg-elevated-hover hover:text-foreground ${
           open ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
@@ -593,29 +605,43 @@ function ChannelActionsMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete
         createPortal(
           <div
             ref={menuRef}
-            style={{ top: position.top, left: position.left, width: 160 }}
+            style={{ top: position.top, left: position.left, width: 180 }}
             className="fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
             <button
               onClick={() => {
+                setChannelMuted(channelId, !muted);
                 setOpen(false);
-                onEdit();
               }}
               className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
             >
-              <EditIcon />
-              Editar
+              {muted ? <BellIcon /> : <BellOffIcon />}
+              {muted ? "Ativar notificações" : "Silenciar canal"}
             </button>
-            <button
-              onClick={() => {
-                setOpen(false);
-                onDelete();
-              }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-danger transition hover:bg-danger/10"
-            >
-              <TrashIcon />
-              Excluir
-            </button>
+            {canManage && (
+              <>
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    onEdit();
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
+                >
+                  <EditIcon />
+                  Editar
+                </button>
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    onDelete();
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-danger transition hover:bg-danger/10"
+                >
+                  <TrashIcon />
+                  Excluir
+                </button>
+              </>
+            )}
           </div>,
           document.body,
         )}
@@ -653,6 +679,27 @@ function HamburgerIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
       <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  );
+}
+
+function BellOffIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M13.73 21a1.94 1.94 0 0 1-3.41 0" />
+      <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
+      <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
+      <path d="M18 8a6 6 0 0 0-9.33-5" />
+      <path d="M1 1l22 22" />
     </svg>
   );
 }

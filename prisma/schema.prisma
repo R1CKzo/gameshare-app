@@ -151,6 +151,7 @@ model User {
   serverBans   ServerBan[]
   securityCodes SecurityCode[]
   channelReads ChannelRead[]
+  channelMutes ChannelMute[]
 
   friendshipsSent     Friendship[]    @relation("FriendshipRequester")
   friendshipsReceived Friendship[]    @relation("FriendshipAddressee")
@@ -158,6 +159,7 @@ model User {
   dmMessages          DMMessage[]
   dmPresences         DMPresence[]
   dmReads             DMRead[]
+  dmMutes             DMMute[]
   dmBroadcasting      DMChannel[]     @relation("DMBroadcaster")
   bugReports          BugReport[]
 
@@ -235,6 +237,11 @@ model ServerMember {
   roleId String?
   role   Role?   @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
+  // Silencia som + badge de nao lido de TODO canal desse servidor pra essa
+  // pessoa (nao mexe em mais ninguem). Boolean simples, sem duracao/snooze
+  // -- a pessoa desliga manualmente quando quiser voltar a ser notificada.
+  notificationsMuted Boolean @default(false)
+
   @@unique([userId, serverId])
 }
 
@@ -307,6 +314,7 @@ model Channel {
   presences ChannelPresence[]
   messages  Message[]
   reads     ChannelRead[]
+  mutes     ChannelMute[]
 
   @@index([serverId])
 }
@@ -335,6 +343,22 @@ model Message {
 model ChannelRead {
   id         String   @id @default(uuid())
   lastReadAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  channelId String
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+}
+
+// Silencia notificacoes (som + badge de nao lido) desse canal pra essa
+// pessoa, sem afetar mais ninguem. Mesma forma do ChannelRead: linha
+// ausente = nao silenciado, linha presente = silenciado.
+model ChannelMute {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -424,6 +448,7 @@ model DMChannel {
   messages     DMMessage[]
   presences    DMPresence[]
   reads        DMRead[]
+  mutes        DMMute[]
 
   // Mesmo papel do Channel.isLive/broadcasterId: quem esta compartilhando
   // a tela agora nessa DM (a chamada de voz em si nao precisa disso, so
@@ -468,6 +493,21 @@ model DMMessage {
 model DMRead {
   id         String   @id @default(uuid())
   lastReadAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dmChannelId String
+  dmChannel   DMChannel @relation(fields: [dmChannelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dmChannelId])
+}
+
+// Mesma logica do ChannelMute, so que pra uma DM em vez de um canal de
+// servidor.
+model DMMute {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

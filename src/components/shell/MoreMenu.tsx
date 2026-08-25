@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useUnread } from "@/components/notifications/UnreadContext";
 import { apiUrl } from "@/lib/apiUrl";
 import { isDesktopApp } from "@/lib/desktop";
 
@@ -25,6 +26,8 @@ export function MoreMenu({
   isServerOwner?: boolean;
 }) {
   const router = useRouter();
+  const { isServerMuted, setServerMuted } = useUnread();
+  const serverMuted = serverId ? isServerMuted(serverId) : false;
   const [open, setOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
@@ -137,6 +140,19 @@ export function MoreMenu({
               </Link>
             )}
 
+            {serverId && (
+              <button
+                onClick={() => {
+                  setServerMuted(serverId, !serverMuted);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-semibold text-foreground-secondary transition hover:bg-elevated-hover hover:text-foreground"
+              >
+                {serverMuted ? <BellIcon /> : <BellOffIcon />}
+                {serverMuted ? "Ativar notificações do servidor" : "Silenciar servidor"}
+              </button>
+            )}
+
             {serverId && !isServerOwner && (
               <button
                 onClick={leaveServer}
@@ -148,9 +164,7 @@ export function MoreMenu({
               </button>
             )}
 
-            {(!isDesktopApp() || isAdmin || (serverId && !isServerOwner)) && (
-              <div className="my-1.5 border-t border-overlay" />
-            )}
+            {(!isDesktopApp() || isAdmin || serverId) && <div className="my-1.5 border-t border-overlay" />}
 
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
@@ -200,6 +214,27 @@ function BugIcon() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <rect x="8" y="6" width="8" height="14" rx="4" />
       <path d="M19 7l-3 2M5 7l3 2M19 19l-3-2M5 19l3-2M12 2v4M8 13H2M22 13h-6" />
+    </svg>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  );
+}
+
+function BellOffIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M13.73 21a1.94 1.94 0 0 1-3.41 0" />
+      <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
+      <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
+      <path d="M18 8a6 6 0 0 0-9.33-5" />
+      <path d="M1 1l22 22" />
     </svg>
   );
 }

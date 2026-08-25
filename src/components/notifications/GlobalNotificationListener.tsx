@@ -37,25 +37,40 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
   const [dmIds, setDmIds] = useState<string[]>([]);
   const [unreadChannelIds, setUnreadChannelIds] = useState<Set<string>>(new Set());
   const [unreadDmIds, setUnreadDmIds] = useState<Set<string>>(new Set());
+  const [mutedServerIds, setMutedServerIds] = useState<Set<string>>(new Set());
+  const [mutedChannelIds, setMutedChannelIds] = useState<Set<string>>(new Set());
+  const [mutedDmIds, setMutedDmIds] = useState<Set<string>>(new Set());
   const [dmActivity, setDmActivity] = useState<Map<string, DmActivity>>(new Map());
   const [friendsEventVersion, setFriendsEventVersion] = useState(0);
   const [incomingFriendRequestCount, setIncomingFriendRequestCount] = useState(0);
 
-  // Carrega a lista de canais/DMs + estado inicial de nao lido, uma vez.
+  // Carrega a lista de canais/DMs + estado inicial de nao lido/silenciado,
+  // uma vez.
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
     fetch(apiUrl("/api/me/channels"))
       .then((r) => r.json())
-      .then((data: { channels?: (ChannelMeta & { unread: boolean })[]; dms?: { dmChannelId: string; unread: boolean }[] }) => {
-        if (cancelled) return;
-        const channels = data.channels ?? [];
-        const dms = data.dms ?? [];
-        setChannelMeta(channels.map((c) => ({ channelId: c.channelId, serverId: c.serverId })));
-        setDmIds(dms.map((d) => d.dmChannelId));
-        setUnreadChannelIds(new Set(channels.filter((c) => c.unread).map((c) => c.channelId)));
-        setUnreadDmIds(new Set(dms.filter((d) => d.unread).map((d) => d.dmChannelId)));
-      })
+      .then(
+        (data: {
+          channels?: (ChannelMeta & { unread: boolean })[];
+          dms?: { dmChannelId: string; unread: boolean }[];
+          mutedServerIds?: string[];
+          mutedChannelIds?: string[];
+          mutedDmIds?: string[];
+        }) => {
+          if (cancelled) return;
+          const channels = data.channels ?? [];
+          const dms = data.dms ?? [];
+          setChannelMeta(channels.map((c) => ({ channelId: c.channelId, serverId: c.serverId })));
+          setDmIds(dms.map((d) => d.dmChannelId));
+          setUnreadChannelIds(new Set(channels.filter((c) => c.unread).map((c) => c.channelId)));
+          setUnreadDmIds(new Set(dms.filter((d) => d.unread).map((d) => d.dmChannelId)));
+          setMutedServerIds(new Set(data.mutedServerIds ?? []));
+          setMutedChannelIds(new Set(data.mutedChannelIds ?? []));
+          setMutedDmIds(new Set(data.mutedDmIds ?? []));
+        },
+      )
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -110,6 +125,23 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
+  // O efeito que assina o Pusher (logo abaixo) so roda de novo quando
+  // channelMeta/dmIds mudam -- sem esses refs, os handlers ficariam presos
+  // lendo o estado de silenciado de quando foram criados, e silenciar um
+  // canal so faria efeito depois de trocar de canal/servidor.
+  const mutedServerIdsRef = useRef(mutedServerIds);
+  const mutedChannelIdsRef = useRef(mutedChannelIds);
+  const mutedDmIdsRef = useRef(mutedDmIds);
+  useEffect(() => {
+    mutedServerIdsRef.current = mutedServerIds;
+  }, [mutedServerIds]);
+  useEffect(() => {
+    mutedChannelIdsRef.current = mutedChannelIds;
+  }, [mutedChannelIds]);
+  useEffect(() => {
+    mutedDmIdsRef.current = mutedDmIds;
+  }, [mutedDmIds]);
+
   // Assina cada canal de texto + DM pra mensagem nova, e o canal privado do
   // usuario pra pedido de amizade/aceito/cargo atribuido.
   useEffect(() => {
@@ -123,6 +155,7 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       const handler = (message: IncomingMessage) => {
         if (message.user?.id === userId) return;
         if (isViewingChannel(meta.channelId)) return; // useChatMessages ja marca lido nesse caso
+        if (mutedServerIdsRef.current.has(meta.serverId) || mutedChannelIdsRef.current.has(meta.channelId)) return;
         setUnreadChannelIds((prev) => (prev.has(meta.channelId) ? prev : new Set(prev).add(meta.channelId)));
         playMessageSound();
       };
@@ -140,6 +173,7 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
         setDmActivity((prev) => new Map(prev).set(dmChannelId, { content: message.content, createdAt: message.createdAt }));
         if (message.user?.id === userId) return;
         if (isViewingDm(dmChannelId)) return;
+        if (mutedDmIdsRef.current.has(dmChannelId)) return;
         setUnreadDmIds((prev) => (prev.has(dmChannelId) ? prev : new Set(prev).add(dmChannelId)));
         playMessageSound();
       };
@@ -202,6 +236,81 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
     return pathname === `/dms/${dmChannelId}`;
   }
 
+  // Muda a UI na hora (otimista) e desfaz sozinho se a chamada falhar --
+  // mesmo padrao ja usado no resto do app pra acoes rapidas de um clique
+  // so, sem precisar de estado de "salvando" visivel pra isso.
+  async function setServerMuted(serverId: string, muted: boolean) {
+    setMutedServerIds((prev) => {
+      const next = new Set(prev);
+      if (muted) next.add(serverId);
+      else next.delete(serverId);
+      return next;
+    });
+    try {
+      const res = await fetch(apiUrl(`/api/servers/${serverId}/mute`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ muted }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setMutedServerIds((prev) => {
+        const next = new Set(prev);
+        if (muted) next.delete(serverId);
+        else next.add(serverId);
+        return next;
+      });
+    }
+  }
+
+  async function setChannelMuted(channelId: string, muted: boolean) {
+    setMutedChannelIds((prev) => {
+      const next = new Set(prev);
+      if (muted) next.add(channelId);
+      else next.delete(channelId);
+      return next;
+    });
+    try {
+      const res = await fetch(apiUrl(`/api/channels/${channelId}/mute`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ muted }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setMutedChannelIds((prev) => {
+        const next = new Set(prev);
+        if (muted) next.delete(channelId);
+        else next.add(channelId);
+        return next;
+      });
+    }
+  }
+
+  async function setDmMuted(dmChannelId: string, muted: boolean) {
+    setMutedDmIds((prev) => {
+      const next = new Set(prev);
+      if (muted) next.add(dmChannelId);
+      else next.delete(dmChannelId);
+      return next;
+    });
+    try {
+      const res = await fetch(apiUrl(`/api/dms/${dmChannelId}/mute`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ muted }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setMutedDmIds((prev) => {
+        const next = new Set(prev);
+        if (muted) next.delete(dmChannelId);
+        else next.add(dmChannelId);
+        return next;
+      });
+    }
+  }
+
   const serverIdByChannel = useMemo(() => new Map(channelMeta.map((c) => [c.channelId, c.serverId])), [channelMeta]);
   const unreadServerIds = useMemo(() => {
     const set = new Set<string>();
@@ -228,6 +337,13 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       isChannelUnread: (channelId: string) => unreadChannelIds.has(channelId),
       isServerUnread: (serverId: string) => unreadServerIds.has(serverId),
       isDmUnread: (dmChannelId: string) => unreadDmIds.has(dmChannelId),
+      isServerMuted: (serverId: string) => mutedServerIds.has(serverId),
+      isChannelMuted: (channelId: string) =>
+        mutedChannelIds.has(channelId) || mutedServerIds.has(serverIdByChannel.get(channelId) ?? ""),
+      isDmMuted: (dmChannelId: string) => mutedDmIds.has(dmChannelId),
+      setServerMuted,
+      setChannelMuted,
+      setDmMuted,
       dmActivity,
       friendsEventVersion,
       incomingFriendRequestCount,
@@ -238,6 +354,10 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       unreadChannelIds,
       unreadServerIds,
       unreadDmIds,
+      mutedServerIds,
+      mutedChannelIds,
+      mutedDmIds,
+      serverIdByChannel,
       dmActivity,
       friendsEventVersion,
       incomingFriendRequestCount,

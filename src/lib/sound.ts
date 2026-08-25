@@ -2,6 +2,23 @@
 // precisar de nenhum arquivo de audio no repo (nada de licenca, nada de
 // asset pra baixar). Reaproveitado tanto pra notificacao de mensagem quanto
 // pros sons de entrar/sair da chamada e mutar/desmutar.
+// Interruptores de som (Notificações nas Configurações) -- ligados por
+// padrao, guardados so no localStorage desse navegador/computador. Lidos
+// direto aqui (sem Context/Provider) porque quem escreve (SettingsButton)
+// e quem le (essas funcoes) sao coisas simples o bastante pra nao precisar
+// de estado React compartilhado -- mesmo raciocinio do interruptor de
+// aceleracao de hardware em Avancado.
+export const SOUND_MESSAGES_KEY = "gameshare-sound-messages";
+export const SOUND_CALLS_KEY = "gameshare-sound-calls";
+
+function isEnabled(key: string): boolean {
+  try {
+    return localStorage.getItem(key) !== "false";
+  } catch {
+    return true;
+  }
+}
+
 let audioContext: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
@@ -32,20 +49,24 @@ function playTone(freq: number, duration: number, startAt: number, volume = 0.15
 }
 
 export function playMessageSound(): void {
+  if (!isEnabled(SOUND_MESSAGES_KEY)) return;
   playTone(880, 0.1, 0);
   playTone(1320, 0.12, 0.08);
 }
 
 export function playJoinCallSound(): void {
+  if (!isEnabled(SOUND_CALLS_KEY)) return;
   playTone(520, 0.09, 0);
   playTone(780, 0.12, 0.07);
 }
 
 export function playLeaveCallSound(): void {
+  if (!isEnabled(SOUND_CALLS_KEY)) return;
   playTone(780, 0.09, 0);
   playTone(520, 0.12, 0.07);
 }
 
 export function playMuteSound(muted: boolean): void {
+  if (!isEnabled(SOUND_CALLS_KEY)) return;
   playTone(muted ? 400 : 620, 0.07, 0, 0.12);
 }
