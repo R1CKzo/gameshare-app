@@ -65,5 +65,11 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     // baixa e abre o instalador.
     checkForPatch: () => ipcRenderer.invoke("patch:check"),
     downloadAndInstallPatch: () => ipcRenderer.invoke("patch:download-and-install"),
+
+    // Espelha o interruptor "Permitir versoes beta" num arquivo que o
+    // processo principal consegue ler de forma sincrona no boot -- decide
+    // se a janela nasce sem moldura nativa (ver createWindow em main.js e
+    // DesktopTitleBar.tsx). So faz efeito depois de reiniciar o app.
+    syncBetaTitlebarFlag: (enabled) => ipcRenderer.send("beta:sync-titlebar-flag", enabled),
   });
 }

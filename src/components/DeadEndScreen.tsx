@@ -8,7 +8,7 @@ import Link from "next/link";
 // não dava nenhum caminho pra continuar usando o app).
 export function DeadEndScreen({ title, description }: { title: string; description: string }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
+    <div className="flex min-h-[calc(100dvh_-_var(--titlebar-h,0px))] items-center justify-center bg-background px-4 text-center">
       <div>
         <h1 className="font-display text-xl font-bold">{title}</h1>
         <p className="mt-2 text-sm text-muted">{description}</p>

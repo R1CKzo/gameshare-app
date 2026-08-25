@@ -31,7 +31,7 @@ export default async function AdminBugsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background px-4 py-10 sm:px-8">
+    <div className="min-h-[calc(100dvh_-_var(--titlebar-h,0px))] bg-background px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8 flex items-start justify-between gap-3">
           <div>

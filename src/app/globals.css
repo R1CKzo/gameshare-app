@@ -68,6 +68,37 @@ body {
   height: 100%;
 }
 
+/* Barra de rolagem customizada — recurso em beta (ver "Permitir versoes
+   beta" nas Configuracoes). Sem isso, todo mundo usa a barra padrao do
+   SO/navegador (grossa, cinza, sem relacao nenhuma com o tema do app —
+   era a reclamacao original). Escopado atras de [data-beta-ui="true"]
+   (ligado no script inline em layout.tsx, antes da primeira pintura, pra
+   nao trocar de aparencia depois de carregar) em vez de aplicar pra todo
+   mundo direto. */
+html[data-beta-ui="true"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-overlay-strong) transparent;
+}
+html[data-beta-ui="true"] *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+html[data-beta-ui="true"] *::-webkit-scrollbar-track {
+  background: transparent;
+}
+html[data-beta-ui="true"] *::-webkit-scrollbar-thumb {
+  background-color: var(--color-overlay-strong);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+html[data-beta-ui="true"] *::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-muted);
+}
+html[data-beta-ui="true"] *::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Cada troca de servidor/canal/DM remonta a tela inteira do zero (so o
    layout raiz sobrevive entre rotas) — sem isso, o conteudo novo "estala"
    na tela assim que os dados chegam. Essa classe da uma entrada suave em

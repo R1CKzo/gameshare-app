@@ -17,7 +17,7 @@ import {
 } from "@/lib/audioSettings";
 import { apiUrl } from "@/lib/apiUrl";
 import { BETA_STORAGE_KEY, isBetaEnabled } from "@/lib/beta";
-import { isDesktopApp, restartAppOrReload } from "@/lib/desktop";
+import { isDesktopApp, restartAppOrReload, syncBetaTitlebarFlag } from "@/lib/desktop";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 const AVATAR_SIZE = 256;
@@ -628,6 +628,11 @@ function BetaTab() {
       // modo privado ou storage cheio — a escolha so nao sobrevive a um
       // recarregamento, sem quebrar nada
     }
+    // Sincroniza na hora (nao so no proximo mount) -- sem isso, reiniciar
+    // logo em seguida ainda leria o arquivo antigo no boot, e a barra de
+    // titulo customizada (ver DesktopTitleBar.tsx) so pegaria a mudanca no
+    // SEGUNDO reinicio.
+    syncBetaTitlebarFlag(v);
     setNeedsRestart(true);
   }
 

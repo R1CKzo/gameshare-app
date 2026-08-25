@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 
+import { DeadEndScreen } from "@/components/DeadEndScreen";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -24,14 +25,10 @@ export default async function ServerRedirectPage({ params }: { params: { serverI
   ]);
   if (!membership) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
-        <div>
-          <h1 className="font-display text-xl font-bold">Você não é membro desse servidor</h1>
-          <p className="mt-2 text-sm text-muted">
-            Peça pra quem te chamou o link de convite (algo como /invite/xxxxxxxx).
-          </p>
-        </div>
-      </div>
+      <DeadEndScreen
+        title="Você não é membro desse servidor"
+        description="Peça pra quem te chamou o link de convite (algo como /invite/xxxxxxxx)."
+      />
     );
   }
 

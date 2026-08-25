@@ -47,6 +47,7 @@ export const changelog: ChangelogEntry[] = [
     betaFeatures: [
       "Tela de Configurações remodelada, em tela cheia com categorias na lateral",
       "Novo modelo de supressão de ruído do microfone, mais robusto pra separar sua voz de ruído de teclado e fundo",
+      "Melhorias na interface e navegação",
     ],
     bugsFixed: [
       "Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair",

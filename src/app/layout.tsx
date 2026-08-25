@@ -14,10 +14,29 @@ export const metadata: Metadata = {
 // app carrega, ate o React montar e o ThemeProvider corrigir. Roda direto
 // no <head>, bloqueante de proposito, pra terminar antes da primeira
 // pintura da pagina.
+//
+// Tambem liga os atributos dos dois recursos em beta de interface (ver
+// project state): "data-beta-ui" pra barra de rolagem customizada
+// (globals.css) e "--titlebar-h"/"data-desktop-titlebar" pro caso da
+// janela do app de desktop ter nascido sem moldura nativa nesse boot (ver
+// createWindow em desktop/main.js e DesktopTitleBar.tsx) — as telas do app
+// (AppShell, FriendsShell, etc) descontam essa variavel da propria altura
+// pra nao ficar cortadas embaixo da janela. Roda aqui, cedo, pelo mesmo
+// motivo do tema: sem isso a altura mudaria depois da primeira pintura.
+// "gameshare-allow-beta" tem que bater com BETA_STORAGE_KEY (src/lib/beta.ts).
 const THEME_INIT_SCRIPT = `
   try {
     var t = localStorage.getItem("gameshare-theme");
     if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+  } catch (e) {}
+  try {
+    var betaOn = localStorage.getItem("gameshare-allow-beta") === "true";
+    if (betaOn) document.documentElement.setAttribute("data-beta-ui", "true");
+    var isDesktop = typeof window !== "undefined" && window.gameshareDesktop && window.gameshareDesktop.isDesktop === true;
+    if (betaOn && isDesktop) {
+      document.documentElement.style.setProperty("--titlebar-h", "36px");
+      document.documentElement.setAttribute("data-desktop-titlebar", "true");
+    }
   } catch (e) {}
 `;
 

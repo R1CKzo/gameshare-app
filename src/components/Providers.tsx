@@ -8,6 +8,7 @@ import { ActiveCallBar } from "@/components/call/ActiveCallBar";
 import { ActiveCallProvider } from "@/components/call/ActiveCallProvider";
 import { GlobalNotificationListener } from "@/components/notifications/GlobalNotificationListener";
 import { PresenceProvider } from "@/components/notifications/PresenceProvider";
+import { DesktopTitleBar } from "@/components/shell/DesktopTitleBar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -27,6 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <GlobalNotificationListener>
           <PresenceProvider>
             <ActiveCallProvider>
+              <DesktopTitleBar />
               {children}
               <ActiveCallBar />
               <ActiveCallAudioSink />

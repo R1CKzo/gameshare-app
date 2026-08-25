@@ -229,7 +229,36 @@ let tray = null;
 let isQuitting = false;
 let lastUnreadState = false;
 
+// Barra de titulo customizada (recurso beta, ver DesktopTitleBar.tsx): so
+// decide se a janela nasce sem moldura nativa NESSE lancamento do app --
+// como isso e escolhido antes de qualquer pagina carregar (portanto antes
+// de dar pra ler o interruptor de beta, que mora no localStorage da
+// renderer), a renderer espelha o interruptor aqui num arquivo pequeno
+// sempre que muda (ver ipcMain "beta:sync-titlebar-flag" abaixo e
+// syncBetaTitlebarFlag em UserPill.tsx) -- lido de forma sincrona, uma vez,
+// no boot. Precisa reiniciar o app pra pegar uma mudanca, mesma regra do
+// resto do sistema de beta.
+function getBetaTitlebarFlagPath() {
+  return path.join(app.getPath("userData"), "beta-titlebar.json");
+}
+function readBetaTitlebarFlag() {
+  try {
+    return JSON.parse(fs.readFileSync(getBetaTitlebarFlagPath(), "utf-8")).enabled === true;
+  } catch {
+    return false;
+  }
+}
+ipcMain.on("beta:sync-titlebar-flag", (_event, enabled) => {
+  try {
+    fs.writeFileSync(getBetaTitlebarFlagPath(), JSON.stringify({ enabled: enabled === true }));
+  } catch (err) {
+    log.error("[beta] falha ao salvar preferencia de barra de titulo", err);
+  }
+});
+
 function createWindow() {
+  const customTitlebar = readBetaTitlebarFlag();
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -239,6 +268,17 @@ function createWindow() {
     icon: path.join(__dirname, "build", "icon.ico"),
     backgroundColor: "#08090d",
     autoHideMenuBar: true,
+    // Mantem os botoes de minimizar/maximizar/fechar desenhados pelo
+    // proprio Windows (comportamento/acessibilidade garantidos), so troca
+    // a cor deles e libera o resto da faixa do topo pra virar conteudo web
+    // (ver DesktopTitleBar.tsx) -- nao precisa reimplementar os botoes na
+    // mao.
+    ...(customTitlebar
+      ? {
+          titleBarStyle: "hidden",
+          titleBarOverlay: { color: "#08090d", symbolColor: "#f5f5f7", height: 36 },
+        }
+      : {}),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

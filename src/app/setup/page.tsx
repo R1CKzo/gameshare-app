@@ -48,7 +48,7 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
+    <div className="relative flex min-h-[calc(100dvh_-_var(--titlebar-h,0px))] items-center justify-center overflow-hidden bg-background px-4">
       <div className="pointer-events-none absolute -top-56 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.20)_0%,rgba(34,211,238,0.08)_45%,transparent_70%)]" />
 
       <div className="relative w-full max-w-md rounded-[20px] border border-overlay-strong bg-surface p-10 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
