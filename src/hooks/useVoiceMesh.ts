@@ -96,6 +96,18 @@ export type ScreenShareOptions = {
   height: number;
 };
 
+// Teto de bitrate (bps) do video da transmissao, por resolucao escolhida.
+// Sem isso, cada conexao tenta usar o maximo de banda que conseguir
+// sozinha, sem limite nenhum -- generoso o bastante pra continuar nitido,
+// mas evita uma conexao sozinha saturar o upload de quem esta
+// compartilhando (que fica pior conforme mais gente assiste, ja que cada
+// pessoa e uma copia separada saindo do mesmo upload).
+function maxVideoBitrateFor(options: ScreenShareOptions): number {
+  if (options.height >= 1440) return 6_000_000;
+  if (options.height >= 1080) return 4_000_000;
+  return 2_500_000;
+}
+
 // Constraints "legado" do Chromium (chromeMediaSource/chromeMediaSourceId)
 // pra capturar exatamente a fonte escolhida no seletor nativo do Electron
 // (desktopCapturer), com FPS/resolucao exatos — o TypeScript padrao nao
@@ -281,6 +293,12 @@ export function useVoiceMesh({
     displayStream: MediaStream;
     nativeAudioCleanup: (() => void) | null;
   } | null>(null);
+  // Teto de bitrate do video da transmissao (bps) enquanto compartilhando,
+  // null quando nao. Guardado numa ref pra aplicar tambem em conexoes NOVAS
+  // que abrirem no meio de uma transmissao ja em andamento (ver
+  // registerConnection) -- sem isso, quem entrasse na sala depois de
+  // alguem ja estar compartilhando ficaria sem o limite.
+  const videoBitrateCapRef = useRef<number | null>(null);
   const presentRef = useRef<PresentUser[]>(present);
   presentRef.current = present;
   // Quando cada conexao comecou a receber audio de verdade — o sinal de
@@ -304,8 +322,28 @@ export function useVoiceMesh({
   // servidor DEPOIS do DELETE de "sair" e recrie a linha de presenca.
   const writeAbortRef = useRef<AbortController | null>(null);
 
+  // Aplica o teto de bitrate + preferencia "manter FPS" (cortar nitidez
+  // antes de cortar quadros por segundo sob pressao de rede) no sender de
+  // video de uma conexao -- usado tanto ao trocar a faixa (replaceVideoTrack,
+  // quando a transmissao comeca/termina) quanto em conexoes NOVAS que
+  // abrirem no meio de uma transmissao ja em andamento (logo abaixo, em
+  // registerConnection) -- sem isso, quem entrasse na sala depois de
+  // alguem ja estar compartilhando ficava sem o limite.
+  function applyVideoEncodingLimits(sender: RTCRtpSender | undefined, maxBitrate: number | null) {
+    if (!sender) return;
+    const params = sender.getParameters();
+    if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
+    params.encodings[0].maxBitrate = maxBitrate ?? undefined;
+    params.degradationPreference = "maintain-framerate";
+    sender.setParameters(params).catch(() => {});
+  }
+
   function registerConnection(peerId: string, call: MediaConnection) {
     connectionsRef.current.set(peerId, call);
+    if (videoBitrateCapRef.current !== null) {
+      const sender = call.peerConnection?.getSenders().find((s) => s.track?.kind === "video");
+      applyVideoEncodingLimits(sender, videoBitrateCapRef.current);
+    }
     call.on("stream", () => {
       streamedPeerIdsRef.current.add(peerId);
       connectionStartedAtRef.current.set(peerId, Date.now());
@@ -692,10 +730,12 @@ export function useVoiceMesh({
     setLocalStream(new MediaStream([micTrackRef.current, videoTrackRef.current]));
   }
 
-  function replaceVideoTrack(video: MediaStreamTrack) {
+  function replaceVideoTrack(video: MediaStreamTrack, maxBitrate: number | null = null) {
+    videoBitrateCapRef.current = maxBitrate;
     connectionsRef.current.forEach((call) => {
       const sender = call.peerConnection?.getSenders().find((s) => s.track?.kind === "video");
       sender?.replaceTrack(video).catch(() => {});
+      applyVideoEncodingLimits(sender, maxBitrate);
     });
     videoTrackRef.current = video;
     syncOutgoingStream();
@@ -763,7 +803,7 @@ export function useVoiceMesh({
       shareMixRef.current = { audioContext, displayStream, nativeAudioCleanup };
       displayVideoTrack.addEventListener("ended", stopScreenShare);
 
-      replaceVideoTrack(displayVideoTrack);
+      replaceVideoTrack(displayVideoTrack, maxVideoBitrateFor(options));
       replaceBroadcastAudioTrack(capture?.track ?? createSilentAudioTrack());
       setIsSharingScreen(true);
 
