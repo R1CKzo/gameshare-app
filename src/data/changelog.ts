@@ -46,6 +46,9 @@ export const changelog: ChangelogEntry[] = [
     ],
     betaFeatures: [
       "Tela de Configurações remodelada, em tela cheia com categorias na lateral",
+      "Configurações reorganizadas em grupos (Configurações do usuário, Config. do aplicativo, Suporte), com Aparência numa aba própria",
+      "Nova aba Acessibilidade: tamanho do texto, reduzir movimento e alto contraste",
+      "Nova aba Avançado (app de desktop): aceleração de hardware e limpar cache",
       "Novo modelo de supressão de ruído do microfone, mais robusto pra separar sua voz de ruído de teclado e fundo",
       "Melhorias na interface e navegação",
       "Novo logo em teste",
@@ -60,6 +63,7 @@ export const changelog: ChangelogEntry[] = [
       "Barra de canais recolhível ficava flutuando, sem ocupar a altura certa da tela (beta)",
       "Interruptor do \"liquid glass\" não aplicava efeito nenhum ao ativar (beta)",
       "Página de Novidades ficava com o visual quebrado com o \"liquid glass\" ativo (beta)",
+      "Liquid Glass ficava transparente demais, difícil de enxergar o conteúdo por trás (beta)",
     ],
   },
   {
