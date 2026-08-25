@@ -656,12 +656,25 @@ async function downloadAndInstallBeta(downloadUrl) {
 
     // Instalador destacado, sem esperar ele terminar — e fecha o app logo
     // em seguida, pra nao brigar com o processo atual rodando (mesma
-    // mecanica de sempre, so sem precisar fechar na mao primeiro).
-    const child = spawn(dest, [], { detached: true, stdio: "ignore" });
-    child.unref();
-    setTimeout(() => app.quit(), 500);
-
-    return { ok: true };
+    // mecanica de sempre, so sem precisar fechar na mao primeiro). MAS so
+    // fecha depois de confirmar que o instalador abriu de verdade -- a
+    // primeira versao disso chamava spawn() e ja fechava o app 500ms
+    // depois sem checar nada, entao uma falha silenciosa pra abrir o .exe
+    // (antivirus bloqueando um instalador sem assinatura digital, por
+    // exemplo) so fechava o app sem instalar nada, sem erro nenhum visivel
+    // em lugar nenhum -- exatamente o bug relatado.
+    return await new Promise((resolve) => {
+      const child = spawn(dest, [], { detached: true, stdio: "ignore" });
+      child.once("error", (err) => {
+        log.error("[beta] instalador nao abriu", err);
+        resolve({ ok: false, error: "Não foi possível abrir o instalador. Tente de novo mais tarde." });
+      });
+      child.once("spawn", () => {
+        child.unref();
+        setTimeout(() => app.quit(), 500);
+        resolve({ ok: true });
+      });
+    });
   } catch (err) {
     log.error("[beta] erro ao baixar/instalar build beta", err);
     return { ok: false, error: "Não foi possível baixar a versão beta. Tente de novo mais tarde." };
