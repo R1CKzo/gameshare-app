@@ -54,6 +54,7 @@ export const changelog: ChangelogEntry[] = [
       "Deixar o app aberto por um tempo podia levar de volta pra página de Novidades, mesmo já tendo sido vista",
       "Ser removido de um servidor (ou ele ser excluído) enquanto você estava nele podia travar numa tela sem saída",
       "Baixar uma correção podia falhar sem repetir a tentativa, mesmo em redes instáveis",
+      "Barra de canais recolhível ficava flutuando, sem ocupar a altura certa da tela (beta)",
     ],
   },
   {
