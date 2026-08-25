@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 
 import { type PresentUser, type RemotePeerTracks, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
 import { getPusherClient } from "@/lib/pusherClient";
-import { CALL_UPDATE_EVENT, dmChannelPusherName, textChannelPusherName } from "@/lib/pusherShared";
+import { CALL_KICKED_EVENT, CALL_UPDATE_EVENT, dmChannelPusherName, textChannelPusherName, userPusherName } from "@/lib/pusherShared";
 import { playJoinCallSound, playLeaveCallSound } from "@/lib/sound";
 
 export type ActiveCallTarget =
@@ -29,6 +29,11 @@ type ActiveCallContextValue = {
   localStream: MediaStream | null;
   remoteStreams: Map<string, RemotePeerTracks>;
   isMuted: boolean;
+  // "Silenciar geral": para de tocar a voz e a transmissao de todo mundo
+  // pra mim, sem sair da call nem mexer no meu proprio microfone (ver
+  // ActiveCallAudioSink). So local -- ninguem mais sabe que estou surdo.
+  isDeafened: boolean;
+  toggleDeafen: () => void;
   isSharingScreen: boolean;
   // Quem esta compartilhando agora (null se ninguem) -- derivado aqui (em
   // vez de cada tela de canal/DM calcular por conta propria, como era
@@ -52,7 +57,7 @@ type ActiveCallContextValue = {
   startScreenShare: (options: ScreenShareOptions) => Promise<void>;
   stopScreenShare: () => void;
   join: (target: ActiveCallTarget, currentUserId: string) => void;
-  leave: () => void;
+  leave: (reason?: string) => void;
 };
 
 const DEFAULT_BROADCAST_VOLUME = 100;
@@ -79,6 +84,9 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
   const [callError, setCallError] = useState<string | null>(null);
   const [isWatchingBroadcast, setIsWatchingBroadcast] = useState(false);
   const [volumes, setVolumes] = useState<Map<string, number>>(new Map());
+  const [isDeafened, setIsDeafened] = useState(false);
+
+  const toggleDeafen = useCallback(() => setIsDeafened((v) => !v), []);
 
   const mesh = useVoiceMesh({
     apiBase: target?.apiBase ?? "",
@@ -202,7 +210,7 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     playJoinCallSound();
   }, []);
 
-  const leave = useCallback(async () => {
+  const leave = useCallback(async (reason?: string) => {
     if (mesh.isSharingScreen) mesh.stopScreenShare();
     // Cancela qualquer heartbeat ou mudanca de mudo que ja estava a
     // caminho ANTES de mandar o DELETE — a rede nao garante ordem entre
@@ -224,10 +232,39 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
       }
     }
     setTarget(null);
-    setCallError(null);
+    // "reason" e como leave() avisa por que saiu sem ser por escolha
+    // propria (ex: expulso por um moderador — ver o useEffect de
+    // CALL_KICKED_EVENT abaixo). Um "sair" normal nao passa nada, e limpa
+    // qualquer erro antigo do jeito que sempre fez.
+    setCallError(reason ?? null);
+    setIsDeafened(false);
     playLeaveCallSound();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesh.isSharingScreen, mesh.abortPendingWrites, target]);
+
+  // Se um moderador me expulsar dessa chamada (ver POST
+  // /api/channels/[channelId]/kick), o servidor ja apaga minha presenca no
+  // banco -- isso aqui e so o que faz o MEU proprio client perceber e sair
+  // de verdade (desligar microfone, fechar a malha), em vez de continuar
+  // conectado achando que ainda esta na sala. So se aplica a canais de
+  // servidor (DM nao tem "expulsar", so 2 pessoas).
+  useEffect(() => {
+    if (!target || target.kind !== "channel" || !currentUserId) return;
+    const channelId = target.channelId;
+    const pusher = getPusherClient();
+    const name = userPusherName(currentUserId);
+    const channel = pusher.subscribe(name);
+    const handler = (data: { channelId?: string }) => {
+      if (data?.channelId !== channelId) return;
+      leave("Você foi removido da chamada por um moderador.");
+    };
+    channel.bind(CALL_KICKED_EVENT, handler);
+    return () => {
+      channel.unbind(CALL_KICKED_EVENT, handler);
+      pusher.unsubscribe(name);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, currentUserId]);
 
   const startScreenShare = useCallback(
     async (options: ScreenShareOptions) => {
@@ -257,6 +294,8 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
         localStream: mesh.localStream,
         remoteStreams: mesh.remoteStreams,
         isMuted: mesh.isMuted,
+        isDeafened,
+        toggleDeafen,
         isSharingScreen: mesh.isSharingScreen,
         sharingUserId,
         isWatchingBroadcast,

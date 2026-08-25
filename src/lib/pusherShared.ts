@@ -30,6 +30,12 @@ export const NEW_MESSAGE_EVENT = "new-message";
 export const FRIEND_REQUEST_EVENT = "friend-request";
 export const FRIEND_ACCEPTED_EVENT = "friend-accepted";
 export const ROLE_GRANTED_EVENT = "role-granted";
+// Disparado no canal privado de UM usuario especifico (ver userPusherName)
+// quando um moderador expulsa ele de uma chamada (ver POST
+// /api/channels/[channelId]/kick) -- carrega o channelId pra o client
+// confirmar que e a mesma sala em que esta antes de sair sozinho (ver
+// ActiveCallProvider).
+export const CALL_KICKED_EVENT = "call-kicked";
 // Disparado em toda mudanca de presenca de chamada (entrar, sair, mutar/
 // desmutar, comecar/parar de compartilhar a tela) — em vez de mandar o
 // estado novo dentro do evento, so avisa "algo mudou nessa sala", e quem

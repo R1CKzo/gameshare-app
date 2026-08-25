@@ -111,6 +111,7 @@ export default async function ChannelPage({
           serverId={membership.server.id}
           currentUserId={session.user.id}
           initialLive={{ isLive: channel.isLive, broadcaster: channel.broadcaster }}
+          canKick={permissions.canKick}
         />
       )}
     </AppShell>

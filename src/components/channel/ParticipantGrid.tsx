@@ -15,6 +15,8 @@ export function ParticipantGrid({
   remoteStreams,
   isMuted,
   sharingUserId,
+  canKick = false,
+  onKick,
 }: {
   present: PresentUser[];
   currentUserId: string;
@@ -22,6 +24,10 @@ export function ParticipantGrid({
   remoteStreams: Map<string, RemotePeerTracks>;
   isMuted: boolean;
   sharingUserId: string | null;
+  // So faz sentido em chamada de servidor (DM nao tem "expulsar", so 2
+  // pessoas) -- por isso opcional, com padrao desligado.
+  canKick?: boolean;
+  onKick?: (userId: string) => void;
 }) {
   const { isWatchingBroadcast, joinBroadcast, leaveBroadcast, getVolumeFor, setVolumeFor } = useActiveCall();
 
@@ -85,6 +91,7 @@ export function ParticipantGrid({
               micTrack={isSelf ? null : tracks?.micTrack ?? null}
               muted={isSelf ? isMuted : user.isMuted}
               size={tileSize(present.length, !!sharer)}
+              onKick={canKick && !isSelf && onKick ? () => onKick(user.id) : undefined}
             />
           );
         })}
@@ -262,6 +269,7 @@ function ParticipantTile({
   micTrack,
   muted,
   size,
+  onKick,
 }: {
   user: PresentUser;
   isSelf: boolean;
@@ -270,6 +278,7 @@ function ParticipantTile({
   micTrack: MediaStreamTrack | null;
   muted: boolean;
   size: TileSize;
+  onKick?: () => void;
 }) {
   // So a voz (nunca a transmissao) alimenta o detector de "esta falando" --
   // sem isolar a faixa, o aro acenderia com o som do jogo/app de quem esta
@@ -281,7 +290,7 @@ function ParticipantTile({
   const label = `${user.nickname ?? "Alguém"}${user.userTag ? "#" + user.userTag : ""}`;
 
   return (
-    <div className={`flex flex-col items-center justify-center gap-2 rounded-xl bg-elevated/70 transition ${size.pad}`}>
+    <div className={`group flex flex-col items-center justify-center gap-2 rounded-xl bg-elevated/70 transition ${size.pad}`}>
       <div
         className={`relative rounded-full border-[3px] p-0.5 transition-colors ${speaking ? "border-accent" : "border-transparent"}`}
       >
@@ -293,6 +302,16 @@ function ParticipantTile({
           )}
         </div>
         {isSharing && <ShareBadge />}
+        {onKick && (
+          <button
+            onClick={onKick}
+            aria-label={`Expulsar ${user.nickname ?? "essa pessoa"} da chamada`}
+            title="Expulsar da chamada"
+            className="absolute -right-0.5 -top-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-elevated bg-danger text-white opacity-0 transition-opacity hover:bg-danger-hover group-hover:opacity-100"
+          >
+            <KickIcon />
+          </button>
+        )}
       </div>
       <SignalIcon quality={user.connectionQuality} />
       <div className="flex max-w-full items-center gap-1 px-2 text-xs font-semibold text-foreground-secondary">
@@ -335,6 +354,15 @@ function ShareBadge() {
         <path d="M12 17v4" />
       </svg>
     </div>
+  );
+}
+
+function KickIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6 6 18" />
+      <path d="M6 6l12 12" />
+    </svg>
   );
 }
 

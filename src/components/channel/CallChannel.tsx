@@ -19,12 +19,14 @@ export function CallChannel({
   serverId,
   currentUserId,
   initialLive,
+  canKick,
 }: {
   channelId: string;
   channelName: string;
   serverId: string;
   currentUserId: string;
   initialLive: LiveState;
+  canKick: boolean;
 }) {
   const activeCall = useActiveCall();
   const isActive = activeCall.target?.kind === "channel" && activeCall.target.channelId === channelId;
@@ -114,6 +116,14 @@ export function CallChannel({
     activeCall.leave();
   }
 
+  function handleKick(userId: string) {
+    fetch(apiUrl(`/api/channels/${channelId}/kick`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    }).catch(() => {});
+  }
+
   const errorMsg = isActive ? activeCall.callError : preJoinError;
   const broadcasterLabel = live.broadcaster
     ? `${live.broadcaster.nickname ?? "Alguém"}${live.broadcaster.userTag ? "#" + live.broadcaster.userTag : ""}`
@@ -179,6 +189,8 @@ export function CallChannel({
             remoteStreams={activeCall.remoteStreams}
             isMuted={activeCall.isMuted}
             sharingUserId={sharingUserId}
+            canKick={canKick}
+            onKick={handleKick}
           />
           <CallControlBar isMuted={activeCall.isMuted} onToggleMute={activeCall.toggleMute} onDisconnect={leaveRoom} />
         </>

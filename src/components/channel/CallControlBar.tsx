@@ -52,6 +52,15 @@ export function CallControlBar({
         </ControlButton>
 
         <ControlButton
+          active={activeCall.isDeafened}
+          activeClass="bg-danger/15 text-danger"
+          label={activeCall.isDeafened ? "Voltar a ouvir a chamada" : "Silenciar chamada (não ouvir ninguém)"}
+          onClick={activeCall.toggleDeafen}
+        >
+          {activeCall.isDeafened ? <HeadphoneOffIcon /> : <HeadphoneIcon />}
+        </ControlButton>
+
+        <ControlButton
           active={activeCall.isSharingScreen}
           activeClass="bg-accent/15 text-accent"
           label={shareLabel}
@@ -130,6 +139,25 @@ function MicOffIcon() {
       <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
       <path d="M17 16.95A7 7 0 0 1 5 12v-2M19 10v2a7 7 0 0 1-.11 1.23" />
       <path d="M12 19v4M8 23h8" />
+    </svg>
+  );
+}
+
+function HeadphoneIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+    </svg>
+  );
+}
+
+function HeadphoneOffIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 1l22 22" />
+      <path d="M3 14v-2a9 9 0 0 1 15.5-6.24M21 12v2" />
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v3z" />
     </svg>
   );
 }

@@ -588,6 +588,17 @@ export function useVoiceMesh({
         if (!connectedAt || Date.now() - connectedAt < STATS_GRACE_MS) continue;
 
         try {
+          // Desde que a voz e a transmissao viraram faixas separadas, cada
+          // conexao tem DUAS estatisticas "inbound-rtp" de audio (voz e
+          // transmissao) -- sem filtrar por qual e qual, o report da
+          // transmissao (silencio na maior parte do tempo, com um ritmo de
+          // pacotes bem mais irregular) podia sobrescrever o da voz e
+          // inventar uma perda enorme do nada, mesmo com a voz passando
+          // perfeita. O sinal de qualidade so faz sentido medindo a VOZ (a
+          // transmissao tem player e volume proprios, nao afeta "dar pra
+          // conversar" com a pessoa).
+          const micTrackId = pc.getReceivers().find((r) => r.track?.kind === "audio")?.track?.id ?? null;
+
           const stats = await pc.getStats();
           let rtt: number | null = null;
           let nominatedRtt: number | null = null;
@@ -605,7 +616,7 @@ export function useVoiceMesh({
               if (report.nominated) nominatedRtt = report.currentRoundTripTime;
               rtt = report.currentRoundTripTime;
             }
-            if (report.type === "inbound-rtp" && report.kind === "audio") {
+            if (report.type === "inbound-rtp" && report.kind === "audio" && report.trackIdentifier === micTrackId) {
               packetsLost = report.packetsLost ?? 0;
               packetsReceived = report.packetsReceived ?? 0;
             }
@@ -727,6 +738,12 @@ export function useVoiceMesh({
     try {
       displayStream = await captureDesktopSource(options);
       const displayVideoTrack = displayStream.getVideoTracks()[0];
+      // Avisa o codificador que isso e video em movimento (jogo, video),
+      // nao uma imagem parada -- ele passa a priorizar manter os quadros
+      // por segundo em vez de gastar mais processamento tentando afiar
+      // cada quadro individual, o que ajuda a sobrar mais CPU/GPU pro
+      // jogo em si durante a transmissao.
+      displayVideoTrack.contentHint = "motion";
 
       audioContext = new AudioContext();
       // Tela inteira usa captureSystemAudio (tudo, menos o proprio

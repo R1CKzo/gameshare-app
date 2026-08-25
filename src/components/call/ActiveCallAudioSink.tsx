@@ -14,7 +14,7 @@ import type { RemotePeerTracks } from "@/hooks/useVoiceMesh";
 // recebido — dava a impressao de ter saido da call mesmo continuando
 // conectado.
 export function ActiveCallAudioSink() {
-  const { remoteStreams, present, sharingUserId, isWatchingBroadcast, getVolumeFor } = useActiveCall();
+  const { remoteStreams, present, sharingUserId, isWatchingBroadcast, getVolumeFor, isDeafened } = useActiveCall();
 
   const sharerPeerId = sharingUserId ? present.find((u) => u.id === sharingUserId)?.peerId ?? null : null;
 
@@ -26,7 +26,8 @@ export function ActiveCallAudioSink() {
           <RemoteAudio
             key={peerId}
             tracks={tracks}
-            playBroadcast={isWatchingBroadcast && peerId === sharerPeerId}
+            playMic={!isDeafened}
+            playBroadcast={!isDeafened && isWatchingBroadcast && peerId === sharerPeerId}
             volume={userId ? getVolumeFor(userId) : 100}
           />
         );
@@ -37,18 +38,22 @@ export function ActiveCallAudioSink() {
 
 function RemoteAudio({
   tracks,
+  playMic,
   playBroadcast,
   volume,
 }: {
   tracks: RemotePeerTracks;
+  playMic: boolean;
   playBroadcast: boolean;
   volume: number;
 }) {
   const micRef = useRef<HTMLAudioElement>(null);
   const broadcastRef = useRef<HTMLAudioElement>(null);
   // Faixa isolada (nao a stream inteira, que agora tem mic + video +
-  // transmissao juntos vindo de useVoiceMesh) -- a voz toca sempre, pra
-  // todo mundo; a transmissao so toca pra quem clicou "entrar".
+  // transmissao juntos vindo de useVoiceMesh) -- a voz toca pra todo
+  // mundo (a menos que eu tenha me silenciado geral -- ver isDeafened em
+  // ActiveCallProvider); a transmissao so toca pra quem clicou "entrar" E
+  // nao estiver silenciado.
   const micStream = useMemo(() => (tracks.micTrack ? new MediaStream([tracks.micTrack]) : null), [tracks.micTrack]);
   const broadcastStream = useMemo(
     () => (tracks.broadcastTrack ? new MediaStream([tracks.broadcastTrack]) : null),
@@ -59,14 +64,22 @@ function RemoteAudio({
     const el = micRef.current;
     if (!el || !micStream) return;
     el.srcObject = micStream;
-    // O atributo autoPlay e "solte e esqueça" — se o navegador bloquear
-    // (politica de autoplay) isso falha em silencio, sem erro nenhum em
-    // lugar nenhum. Chamando play() na mao a gente pelo menos consegue ver
-    // no console quando isso acontece, em vez de só "sem audio, sem pista".
-    el.play().catch((err) => {
-      console.error("[ActiveCallAudioSink] play() da voz falhou:", err);
-    });
   }, [micStream]);
+
+  useEffect(() => {
+    const el = micRef.current;
+    if (!el) return;
+    if (playMic) {
+      // Chamando play() na mao (em vez de so confiar no autoPlay) a gente
+      // consegue ver no console se o navegador bloquear por politica de
+      // autoplay, em vez de só "sem audio, sem pista".
+      el.play().catch((err) => {
+        console.error("[ActiveCallAudioSink] play() da voz falhou:", err);
+      });
+    } else {
+      el.pause();
+    }
+  }, [playMic, micStream]);
 
   useEffect(() => {
     const el = broadcastRef.current;
@@ -92,7 +105,7 @@ function RemoteAudio({
 
   return (
     <>
-      <audio ref={micRef} autoPlay />
+      <audio ref={micRef} />
       <audio ref={broadcastRef} />
     </>
   );

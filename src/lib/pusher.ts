@@ -6,6 +6,7 @@ export {
   FRIEND_ACCEPTED_EVENT,
   ROLE_GRANTED_EVENT,
   CALL_UPDATE_EVENT,
+  CALL_KICKED_EVENT,
   textChannelPusherName,
   dmChannelPusherName,
   userPusherName,
