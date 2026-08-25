@@ -149,12 +149,12 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
   return createPortal(
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background md:flex-row" onClick={onClose}>
       <div
-        className="grid shrink-0 grid-cols-2 gap-1 border-b border-overlay bg-surface px-3 pb-3 pt-[calc(0.5rem_+_var(--titlebar-h,0px))] md:flex md:w-[218px] md:flex-col md:justify-start md:gap-0.5 md:overflow-y-auto md:overflow-x-hidden md:border-b-0 md:px-2 md:py-[60px] md:pl-4"
+        className="flex max-h-[45vh] shrink-0 flex-col gap-0.5 overflow-y-auto border-b border-overlay bg-surface px-3 pb-3 pt-[calc(0.5rem_+_var(--titlebar-h,0px))] md:max-h-none md:w-[218px] md:justify-start md:overflow-x-hidden md:border-b-0 md:px-2 md:py-[60px] md:pl-4"
         onClick={(e) => e.stopPropagation()}
       >
         {groups.map((group) => (
-          <div key={group.label} className="contents md:mt-5 md:block md:first:mt-0">
-            <div className="mb-1 hidden px-2.5 text-xs font-bold uppercase tracking-wide text-dim md:block">
+          <div key={group.label} className="mt-4 flex flex-col gap-0.5 first:mt-0 md:mt-5">
+            <div className="mb-1 px-2.5 text-xs font-bold uppercase tracking-wide text-dim">
               {group.label}
             </div>
             {group.tabs.map((t) => (
