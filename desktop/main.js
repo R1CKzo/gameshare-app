@@ -732,9 +732,19 @@ async function downloadAndInstallPatch() {
     return { ok: false, error: `Não foi possível baixar a atualização.${describeErr(err)} Tente de novo mais tarde.` };
   }
 
+  // Numa rede fraca o download pode "terminar" (res.ok) mas vir cortado no
+  // meio -- sem essa checagem a gente rodava um instalador incompleto sem
+  // perceber. O GitHub sempre manda Content-Length nesses assets, entao da
+  // pra conferir contra o tamanho que realmente chegou antes de instalar.
+  const expectedSize = Number(res.headers.get("content-length"));
+
   let dest;
   try {
     const buffer = Buffer.from(await res.arrayBuffer());
+    if (expectedSize > 0 && buffer.length !== expectedSize) {
+      log.error(`[patch] download incompleto: esperado ${expectedSize} bytes, recebido ${buffer.length}`);
+      return { ok: false, error: "Download incompleto (conexão caiu no meio). Tente de novo." };
+    }
     dest = path.join(app.getPath("temp"), "GameShare-Patch-Setup.exe");
     fs.writeFileSync(dest, buffer);
   } catch (err) {
