@@ -195,7 +195,13 @@ export function ChannelSidebar({
           <ChevronIcon flipped={effectiveCollapsed} />
         </button>
       )}
-      {!effectiveCollapsed && (
+      {/* Largura de fora anima 252px -> 0 (overflow escondendo o conteudo
+          conforme fecha); o conteudo de dentro mantem 252px fixo sempre,
+          senao o texto ficaria quebrando/reajustando durante a transicao
+          em vez de so "deslizar pra fora". */}
+      <div
+        className={`overflow-hidden transition-[width] duration-300 ease-in-out ${effectiveCollapsed ? "w-0" : "w-[252px]"}`}
+      >
     <div className="flex w-[252px] shrink-0 flex-col border-r border-overlay bg-sidebar">
       <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-overlay px-4">
         <span className="truncate font-bold">{serverName}</span>
@@ -251,7 +257,7 @@ export function ChannelSidebar({
 
       <UserPill user={user} serverId={serverId} isServerOwner={permissions.isOwner} />
     </div>
-      )}
+      </div>
     </div>
   );
 }
