@@ -46,7 +46,9 @@ export const changelog: ChangelogEntry[] = [
     ],
     bugsFixed: [
       "Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair",
+      "Deixar o app aberto por um tempo podia levar de volta pra página de Novidades, mesmo já tendo sido vista",
       "Ser removido de um servidor (ou ele ser excluído) enquanto você estava nele podia travar numa tela sem saída",
+      "Baixar uma correção podia falhar sem repetir a tentativa, mesmo em redes instáveis",
     ],
   },
   {
