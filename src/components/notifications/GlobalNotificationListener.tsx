@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { type DmActivity, UnreadContext } from "@/components/notifications/UnreadContext";
 import { apiUrl } from "@/lib/apiUrl";
@@ -83,12 +83,20 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
 
   // Se a pessoa ainda nao viu a entrada mais recente do changelog, leva ela
   // pra /novidades sozinho ao abrir o app — substitui a telinha separada que
-  // existia so no app de desktop. So roda uma vez por sessao (depende so de
-  // userId): a propria pagina de Novidades marca como vista ao renderizar,
-  // entao um recarregamento depois nao redireciona de novo.
+  // existia so no app de desktop. So deve rodar uma vez por aba/sessao — o
+  // guard em checkedRef garante isso de verdade, mesmo se userId oscilar
+  // (ex: refetch periodico da sessao) e o efeito rodar de novo sozinho; sem
+  // ele, a pessoa podia ser jogada de volta pra /novidades depois de ja ter
+  // fechado, so por deixar o app aberto um tempo (ver relato do usuario em
+  // 2026-08-25). A propria pagina de Novidades marca como vista ao
+  // renderizar, entao um recarregamento de pagina de verdade (F5, reabrir o
+  // app) ainda funciona normalmente se realmente tiver novidade nao vista.
+  const checkedChangelogRef = useRef(false);
   useEffect(() => {
     if (!userId) return;
+    if (checkedChangelogRef.current) return;
     if (pathname === "/novidades") return;
+    checkedChangelogRef.current = true;
     let cancelled = false;
     fetch(apiUrl("/api/me/changelog-status"))
       .then((r) => r.json())
