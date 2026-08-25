@@ -54,6 +54,10 @@ type GameshareDesktopBridge = {
   // no boot, se a janela nasce sem moldura nativa (ver DesktopTitleBar.tsx
   // e createWindow em main.js). So faz efeito depois de reiniciar o app.
   syncBetaTitlebarFlag?: (enabled: boolean) => void;
+  // Recolore os botoes de minimizar/maximizar/fechar nativos pra acompanhar
+  // o tema — sem efeito se a janela nao tiver a barra de titulo customizada
+  // ativa (ver theme:set-titlebar-colors em main.js).
+  setTitleBarTheme?: (theme: "dark" | "light") => void;
 };
 
 declare global {
@@ -178,4 +182,11 @@ export function downloadAndInstallPatch(): Promise<PatchInstallResult> {
 export function syncBetaTitlebarFlag(enabled: boolean): void {
   if (typeof window === "undefined") return;
   window.gameshareDesktop?.syncBetaTitlebarFlag?.(enabled);
+}
+
+// No-op no navegador comum ou em instalacao antiga demais pra ter esse
+// metodo no preload.
+export function setTitleBarTheme(theme: "dark" | "light"): void {
+  if (typeof window === "undefined") return;
+  window.gameshareDesktop?.setTitleBarTheme?.(theme);
 }

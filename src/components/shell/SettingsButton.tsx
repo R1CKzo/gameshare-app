@@ -108,7 +108,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
   return createPortal(
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background md:flex-row" onClick={onClose}>
       <div
-        className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-overlay bg-surface px-3 py-2 md:w-[218px] md:flex-col md:justify-start md:overflow-y-auto md:overflow-x-hidden md:border-b-0 md:px-2 md:py-[60px] md:pl-4"
+        className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-overlay bg-surface px-3 pb-2 pt-[calc(0.5rem_+_var(--titlebar-h,0px))] md:w-[218px] md:flex-col md:justify-start md:overflow-y-auto md:overflow-x-hidden md:border-b-0 md:px-2 md:py-[60px] md:pl-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 hidden px-2.5 text-xs font-bold uppercase tracking-wide text-dim md:block">
@@ -147,7 +147,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
       <button
         onClick={onClose}
         aria-label="Fechar"
-        className="absolute right-3 top-3 flex flex-col items-center gap-1 text-muted transition hover:text-foreground md:right-10 md:top-[60px]"
+        className="absolute right-3 top-[calc(0.75rem_+_var(--titlebar-h,0px))] flex flex-col items-center gap-1 text-muted transition hover:text-foreground md:right-10 md:top-[calc(60px_+_var(--titlebar-h,0px))]"
       >
         <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-current">
           <CloseIcon />

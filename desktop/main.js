@@ -256,6 +256,25 @@ ipcMain.on("beta:sync-titlebar-flag", (_event, enabled) => {
   }
 });
 
+// Os botoes de minimizar/maximizar/fechar (titleBarOverlay) sao pintados
+// pelo proprio Windows, fora do alcance do CSS da pagina -- só respondem a
+// setTitleBarOverlay() chamado daqui do processo principal. Sem isso eles
+// ficavam travados na cor escura de sempre, destoando feio de quem trocasse
+// pro tema claro nas Configuracoes (ver ThemeProvider.tsx, que chama isso
+// direto na troca e tambem uma vez ao montar).
+ipcMain.on("theme:set-titlebar-colors", (_event, theme) => {
+  if (!mainWindow) return;
+  const colors =
+    theme === "light" ? { color: "#eceef3", symbolColor: "#14161f" } : { color: "#08090d", symbolColor: "#f5f5f7" };
+  try {
+    mainWindow.setTitleBarOverlay({ ...colors, height: 36 });
+  } catch {
+    // setTitleBarOverlay so existe/faz efeito numa janela criada com
+    // titleBarStyle "hidden" -- se o beta de barra customizada estiver
+    // desligado, a chamada falha e a gente so ignora, sem quebrar nada.
+  }
+});
+
 function createWindow() {
   const customTitlebar = readBetaTitlebarFlag();
 
