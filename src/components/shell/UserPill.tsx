@@ -158,11 +158,14 @@ export function UserPill({
           </div>
         )}
 
-        {/* Config/mais/atualizacao ficam escondidos durante uma chamada --
-            com os 3 botoes de chamada + nome + avatar, nao sobra espaco
-            pra mais nada junto na barra lateral estreita (252px) sem
+        {/* Mais/atualizacao ficam escondidos durante uma chamada -- com os
+            3 botoes de chamada + nome + avatar + Configuracoes, nao sobra
+            espaco pra ISSO tambem na barra lateral estreita (252px) sem
             cortar o nome. Uma correcao disponivel pode esperar a call
-            acabar. */}
+            acabar. Configuracoes, porem, sempre fica -- ficar preso sem
+            conseguir abri-la so porque entrou numa call e um problema
+            de verdade (relatado pelo dono), nao so cosmetico como o
+            resto desse bloco. */}
         {!target && (
           <div className="flex shrink-0 items-center gap-0.5">
             {patchDownloadUrl && (
@@ -178,10 +181,10 @@ export function UserPill({
                 <DownloadIcon />
               </button>
             )}
-            <SettingsButton />
             <MoreMenu isAdmin={session?.user?.isAdmin ?? false} serverId={serverId} isServerOwner={isServerOwner} />
           </div>
         )}
+        <SettingsButton />
       </div>
     </div>
   );
