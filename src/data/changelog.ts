@@ -49,6 +49,8 @@ export const changelog: ChangelogEntry[] = [
       "Configurações reorganizadas em grupos (Configurações do usuário, Config. do aplicativo, Suporte), com Aparência numa aba própria",
       "Nova aba Acessibilidade: tamanho do texto, reduzir movimento e alto contraste",
       "Nova aba Avançado (app de desktop): aceleração de hardware e limpar cache",
+      "Nova aba Notificações: interruptores de som de mensagem e de chamada",
+      "Silenciar notificações de um servidor, canal ou conversa direta específicos, pelo menu (⋯ ou ≡) dele",
       "Novo modelo de supressão de ruído do microfone, mais robusto pra separar sua voz de ruído de teclado e fundo",
       "Melhorias na interface e navegação",
       "Novo logo em teste",
