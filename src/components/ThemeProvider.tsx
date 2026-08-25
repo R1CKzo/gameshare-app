@@ -52,7 +52,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
-    document.documentElement.toggleAttribute("data-glass", glass);
+    if (glass) document.documentElement.setAttribute("data-glass", "true");
+    else document.documentElement.removeAttribute("data-glass");
   }, [glass]);
 
   function setTheme(next: Theme) {
