@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useUnread } from "@/components/notifications/UnreadContext";
+import { GameShareMark } from "@/components/GameShareMark";
 import { getLastChannel } from "@/lib/lastChannel";
 
 type ServerSummary = {
@@ -89,17 +90,7 @@ export function ServerRail({
         title="Novidades"
         className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 2v4" />
-          <path d="M12 18v4" />
-          <path d="M4.9 4.9l2.8 2.8" />
-          <path d="M16.3 16.3l2.8 2.8" />
-          <path d="M2 12h4" />
-          <path d="M18 12h4" />
-          <path d="M4.9 19.1l2.8-2.8" />
-          <path d="M16.3 7.7l2.8-2.8" />
-        </svg>
+        <GameShareMark size={24} className="text-white" />
       </Link>
 
       <div className="relative">

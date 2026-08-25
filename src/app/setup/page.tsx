@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { GameShareMark } from "@/components/GameShareMark";
 import { apiUrl } from "@/lib/apiUrl";
 
 export default function SetupPage() {
@@ -54,17 +55,7 @@ export default function SetupPage() {
       <div className="relative w-full max-w-md rounded-[20px] border border-overlay-strong bg-surface p-10 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
         <div className="mb-5 flex justify-center">
           <div className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 2v4" />
-              <path d="M12 18v4" />
-              <path d="M4.9 4.9l2.8 2.8" />
-              <path d="M16.3 16.3l2.8 2.8" />
-              <path d="M2 12h4" />
-              <path d="M18 12h4" />
-              <path d="M4.9 19.1l2.8-2.8" />
-              <path d="M16.3 7.7l2.8-2.8" />
-            </svg>
+            <GameShareMark size={26} className="text-white" />
           </div>
         </div>
 

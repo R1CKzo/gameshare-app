@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { GameShareMark } from "@/components/GameShareMark";
 import { isBetaEnabled } from "@/lib/beta";
 import { isDesktopApp } from "@/lib/desktop";
 
@@ -34,17 +35,7 @@ export function DesktopTitleBar() {
       className="flex h-9 shrink-0 select-none items-center gap-2 bg-rail px-3 text-xs font-bold text-dim"
       style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 2v4" />
-        <path d="M12 18v4" />
-        <path d="M4.9 4.9l2.8 2.8" />
-        <path d="M16.3 16.3l2.8 2.8" />
-        <path d="M2 12h4" />
-        <path d="M18 12h4" />
-        <path d="M4.9 19.1l2.8-2.8" />
-        <path d="M16.3 7.7l2.8-2.8" />
-      </svg>
+      <GameShareMark size={16} />
       GameShare
     </div>
   );

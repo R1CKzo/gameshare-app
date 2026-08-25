@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 import { DesktopDownloadLink } from "@/components/DesktopDownloadLink";
+import { GameShareMark } from "@/components/GameShareMark";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { PasswordSignInForm } from "@/components/PasswordSignInForm";
 import { authOptions } from "@/lib/auth";
@@ -44,17 +45,7 @@ function LandingPage({ callbackUrl, error }: { callbackUrl?: string; error?: str
 
       <div className="relative flex flex-col items-center text-center">
         <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 2v4" />
-            <path d="M12 18v4" />
-            <path d="M4.9 4.9l2.8 2.8" />
-            <path d="M16.3 16.3l2.8 2.8" />
-            <path d="M2 12h4" />
-            <path d="M18 12h4" />
-            <path d="M4.9 19.1l2.8-2.8" />
-            <path d="M16.3 7.7l2.8-2.8" />
-          </svg>
+          <GameShareMark size={28} className="text-white" />
         </div>
 
         <h1 className="font-display text-3xl font-bold">
