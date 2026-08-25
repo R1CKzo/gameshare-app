@@ -11,9 +11,11 @@ export const metadata: Metadata = {
 
 // Aplica o tema salvo (se for "light") ANTES da hidratacao — sem isso,
 // quem escolheu claro veria um flash de escuro (o padrao) toda vez que o
-// app carrega, ate o React montar e o ThemeProvider corrigir. Roda direto
-// no <head>, bloqueante de proposito, pra terminar antes da primeira
-// pintura da pagina.
+// app carrega, ate o React montar e o ThemeProvider corrigir. Tambem
+// aplica as escolhas de Acessibilidade (tamanho do texto, reduzir
+// movimento, alto contraste — ver AccessibilityProvider.tsx) pelo mesmo
+// motivo. Roda direto no <head>, bloqueante de proposito, pra terminar
+// antes da primeira pintura da pagina.
 //
 // Tambem liga os atributos dos dois recursos em beta de interface (ver
 // project state): "data-beta-ui" pra barra de rolagem customizada
@@ -29,6 +31,10 @@ const THEME_INIT_SCRIPT = `
     var t = localStorage.getItem("gameshare-theme");
     if (t === "light") document.documentElement.setAttribute("data-theme", "light");
     if (localStorage.getItem("gameshare-glass") === "true") document.documentElement.setAttribute("data-glass", "true");
+    var textSize = localStorage.getItem("gameshare-text-size");
+    if (textSize === "small" || textSize === "large") document.documentElement.setAttribute("data-text-size", textSize);
+    if (localStorage.getItem("gameshare-reduce-motion") === "true") document.documentElement.setAttribute("data-reduce-motion", "true");
+    if (localStorage.getItem("gameshare-high-contrast") === "true") document.documentElement.setAttribute("data-high-contrast", "true");
   } catch (e) {}
   try {
     var betaOn = localStorage.getItem("gameshare-allow-beta") === "true";

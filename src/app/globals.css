@@ -143,6 +143,55 @@ html[data-glass="true"][data-theme="light"] body {
   background-attachment: fixed;
 }
 
+/* Tamanho do texto -- Acessibilidade nas Configuracoes (ver
+   AccessibilityProvider.tsx). Os tamanhos de fonte do Tailwind (text-xs,
+   text-sm, ...) sao todos em rem, entao reescalar o tamanho base do
+   documento escala o app inteiro de uma vez, sem precisar tocar em
+   nenhuma classe espalhada pelo codigo. "Normal" nao seta nada -- o
+   navegador ja usa 16px por padrao. */
+html[data-text-size="small"] {
+  font-size: 14px;
+}
+html[data-text-size="large"] {
+  font-size: 18px;
+}
+
+/* Reduzir movimento -- Acessibilidade nas Configuracoes. Faz manualmente o
+   que o app ja respeita via prefers-reduced-motion (ver @media mais
+   abaixo) -- as duas formas convivem, o que vier primeiro (SO ou esse
+   interruptor) ja resolve. Zera a duracao de toda transicao/animacao do
+   app de uma vez (medidor de volume do microfone, pulso da chamada ativa,
+   esqueletos de carregamento, hovers) em vez de cacar cada uma
+   individualmente. */
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Alto contraste -- Acessibilidade nas Configuracoes. Mesma receita do
+   Liquid Glass: redefine as MESMAS variaveis de cor que o tema
+   escuro/claro ja usam, so que bordas e texto apagado ("muted"/"dim")
+   ficam bem mais fortes contra o fundo. Um bloco por tema, porque o
+   "muted" do tema claro (~4.4:1 contra o fundo) fica abaixo do minimo
+   recomendado pra texto pequeno (4.5:1) -- os valores aqui sobem isso pra
+   ~8-10:1 nos dois temas. */
+html[data-high-contrast="true"]:not([data-theme="light"]) {
+  --color-border: #5b6478;
+  --color-muted: #b4bac7;
+  --color-dim: #9aa1b0;
+  --color-overlay-strong: rgba(255, 255, 255, 0.22);
+}
+html[data-high-contrast="true"][data-theme="light"] {
+  --color-border: #97a0b0;
+  --color-muted: #454b57;
+  --color-dim: #5b616e;
+  --color-overlay-strong: rgba(0, 0, 0, 0.22);
+}
+
 /* Slider (<input type="range">) com o mesmo visual em qualquer lugar —
    trilho fino arredondado com a parte "preenchida" em roxo e uma bolinha
    branca, igual o iOS ja desenha sozinho. Sem isso cada navegador/SO

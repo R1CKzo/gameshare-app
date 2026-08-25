@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useAccessibility, type TextSize } from "@/components/AccessibilityProvider";
 import { useTheme } from "@/components/ThemeProvider";
 import {
   DEFAULT_AUDIO_SETTINGS,
@@ -86,14 +87,54 @@ export function SettingsButton() {
 // modal de sempre, sem duplicar nenhuma logica de formulario. Atras do
 // interruptor de beta de proposito -- e uma mudanca grande de visual, so
 // pra quem escolheu testar recursos em teste.
+type TabKey =
+  | "perfil"
+  | "seguranca"
+  | "beta"
+  | "audio"
+  | "aparencia"
+  | "acessibilidade"
+  | "idioma"
+  | "batepapo"
+  | "notificacoes"
+  | "avancado"
+  | "bug";
+
 function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<"perfil" | "audio" | "seguranca" | "beta" | "bug">("perfil");
-  const tabs = ["perfil", "audio", "seguranca", ...(isDesktopApp() ? (["beta"] as const) : []), "bug"] as const;
-  const labels: Record<(typeof tabs)[number], string> = {
+  const [tab, setTab] = useState<TabKey>("perfil");
+
+  // Mesmos 3 grupos do Discord (menos "Navegador" e "Icone do aplicativo",
+  // que nao fazem sentido aqui — o GameShare nao tem navegador embutido
+  // nem icone customizavel). "Idioma", "Bate-papo", "Notificacoes" e
+  // "Avancado" ainda sao só placeholder (ver ComingSoonTab) — a ideia é
+  // deixar toda a navegação pronta primeiro, e preencher categoria por
+  // categoria depois.
+  const groups: { label: string; tabs: TabKey[] }[] = [
+    {
+      label: "Configurações do usuário",
+      tabs: ["perfil", "seguranca", ...(isDesktopApp() ? (["beta"] as const) : [])],
+    },
+    {
+      label: "Config. do aplicativo",
+      tabs: ["audio", "aparencia", "acessibilidade", "idioma", "batepapo", "notificacoes", "avancado"],
+    },
+    {
+      label: "Suporte",
+      tabs: ["bug"],
+    },
+  ];
+
+  const labels: Record<TabKey, string> = {
     perfil: "Minha Conta",
-    audio: "Voz",
     seguranca: "Privacidade e Segurança",
     beta: "Beta",
+    audio: "Voz",
+    aparencia: "Aparência",
+    acessibilidade: "Acessibilidade",
+    idioma: "Idioma",
+    batepapo: "Bate-papo",
+    notificacoes: "Notificações",
+    avancado: "Avançado",
     bug: "Reportar um Problema",
   };
 
@@ -111,19 +152,23 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
         className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-overlay bg-surface px-3 pb-2 pt-[calc(0.5rem_+_var(--titlebar-h,0px))] md:w-[218px] md:flex-col md:justify-start md:overflow-y-auto md:overflow-x-hidden md:border-b-0 md:px-2 md:py-[60px] md:pl-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-1 hidden px-2.5 text-xs font-bold uppercase tracking-wide text-dim md:block">
-          Configurações do usuário
-        </div>
-        {tabs.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-2 text-left text-[15px] font-medium transition ${
-              tab === t ? "bg-elevated text-foreground" : "text-muted hover:bg-elevated-hover hover:text-foreground-secondary"
-            }`}
-          >
-            {labels[t]}
-          </button>
+        {groups.map((group) => (
+          <div key={group.label} className="contents md:mt-5 md:block md:first:mt-0">
+            <div className="mb-1 hidden px-2.5 text-xs font-bold uppercase tracking-wide text-dim md:block">
+              {group.label}
+            </div>
+            {group.tabs.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-2 text-left text-[15px] font-medium transition ${
+                  tab === t ? "bg-elevated text-foreground" : "text-muted hover:bg-elevated-hover hover:text-foreground-secondary"
+                }`}
+              >
+                {labels[t]}
+              </button>
+            ))}
+          </div>
         ))}
       </div>
 
@@ -132,12 +177,33 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
           <h2 className="mb-6 font-display text-xl font-bold">{labels[tab]}</h2>
           {tab === "perfil" ? (
             <ProfileTab />
-          ) : tab === "audio" ? (
-            <AudioTab />
           ) : tab === "seguranca" ? (
             <SegurancaTab />
           ) : tab === "beta" ? (
             <BetaTab />
+          ) : tab === "audio" ? (
+            <AudioTab />
+          ) : tab === "aparencia" ? (
+            <AparenciaTab />
+          ) : tab === "acessibilidade" ? (
+            <AcessibilidadeTab />
+          ) : tab === "idioma" ? (
+            <ComingSoonTab
+              title="Mais idiomas em breve"
+              description='Por enquanto o GameShare só fala português (Brasil). Suporte a outros idiomas está nos planos.'
+            />
+          ) : tab === "batepapo" ? (
+            <ComingSoonTab
+              title="Em breve"
+              description="Configurações de bate-papo (emojis, GIFs, formatação de mensagens) ainda estão a caminho."
+            />
+          ) : tab === "notificacoes" ? (
+            <ComingSoonTab
+              title="Em breve"
+              description="Controle fino de notificações (sons, quem pode te mencionar, silenciar canais) ainda está a caminho."
+            />
+          ) : tab === "avancado" ? (
+            <ComingSoonTab title="Em breve" description="Opções avançadas ainda estão a caminho." />
           ) : (
             <BugReportTab onClose={onClose} />
           )}
@@ -223,7 +289,6 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 
 function ProfileTab() {
   const { data: session, update } = useSession();
-  const { theme, setTheme, glass, setGlass } = useTheme();
   const router = useRouter();
   const [nickname, setNickname] = useState(session?.user?.nickname ?? "");
   const [image, setImage] = useState<string | null>(session?.user?.image ?? null);
@@ -290,59 +355,6 @@ function ProfileTab() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <label className="mb-2 block text-xs font-bold tracking-wide text-muted">APARÊNCIA</label>
-        <div className="flex gap-1.5">
-          <button
-            type="button"
-            onClick={() => setTheme("dark")}
-            className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
-              theme === "dark" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
-            }`}
-          >
-            <MoonIcon className="mx-auto mb-1" />
-            Escuro
-          </button>
-          <button
-            type="button"
-            onClick={() => setTheme("light")}
-            className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
-              theme === "light" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
-            }`}
-          >
-            <SunIcon className="mx-auto mb-1" />
-            Claro
-          </button>
-        </div>
-      </div>
-
-      {isBetaEnabled() && (
-        <div>
-          <label className="mb-2 block text-xs font-bold tracking-wide text-muted">INTERFACE</label>
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => setGlass(false)}
-              className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
-                !glass ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
-              }`}
-            >
-              Padrão
-            </button>
-            <button
-              type="button"
-              onClick={() => setGlass(true)}
-              className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
-                glass ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
-              }`}
-            >
-              Liquid Glass
-            </button>
-          </div>
-          <p className="mt-1.5 text-xs text-dim">Painéis translúcidos e desfocados. Recurso em teste.</p>
-        </div>
-      )}
-
       <div className="flex items-center gap-4">
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -395,6 +407,126 @@ function ProfileTab() {
       >
         {saving ? "Salvando..." : "Salvar alterações"}
       </button>
+    </div>
+  );
+}
+
+function AparenciaTab() {
+  const { theme, setTheme, glass, setGlass } = useTheme();
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <label className="mb-2 block text-xs font-bold tracking-wide text-muted">APARÊNCIA</label>
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => setTheme("dark")}
+            className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+              theme === "dark" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
+            }`}
+          >
+            <MoonIcon className="mx-auto mb-1" />
+            Escuro
+          </button>
+          <button
+            type="button"
+            onClick={() => setTheme("light")}
+            className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+              theme === "light" ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
+            }`}
+          >
+            <SunIcon className="mx-auto mb-1" />
+            Claro
+          </button>
+        </div>
+      </div>
+
+      {isBetaEnabled() && (
+        <div>
+          <label className="mb-2 block text-xs font-bold tracking-wide text-muted">INTERFACE</label>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setGlass(false)}
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+                !glass ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
+              }`}
+            >
+              Padrão
+            </button>
+            <button
+              type="button"
+              onClick={() => setGlass(true)}
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+                glass ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
+              }`}
+            >
+              Liquid Glass
+            </button>
+          </div>
+          <p className="mt-1.5 text-xs text-dim">Painéis translúcidos e desfocados. Recurso em teste.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const TEXT_SIZES: { value: TextSize; label: string }[] = [
+  { value: "small", label: "Pequeno" },
+  { value: "normal", label: "Normal" },
+  { value: "large", label: "Grande" },
+];
+
+function AcessibilidadeTab() {
+  const { textSize, setTextSize, reduceMotion, setReduceMotion, highContrast, setHighContrast } = useAccessibility();
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <label className="mb-2 block text-xs font-bold tracking-wide text-muted">TAMANHO DO TEXTO</label>
+        <div className="flex gap-1.5">
+          {TEXT_SIZES.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              onClick={() => setTextSize(s.value)}
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
+                textSize === s.value ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted hover:text-foreground-secondary"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-xs text-dim">Deixa o texto do app inteiro maior ou menor.</p>
+      </div>
+
+      <ToggleRow
+        label="Reduzir movimento"
+        description="Desliga animações e transições do app, mesmo se o seu sistema não pedir isso."
+        checked={reduceMotion}
+        onChange={setReduceMotion}
+      />
+
+      <ToggleRow
+        label="Alto contraste"
+        description="Deixa bordas e textos apagados mais fortes, mais fácil de enxergar."
+        checked={highContrast}
+        onChange={setHighContrast}
+      />
+    </div>
+  );
+}
+
+function ComingSoonTab({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-xl bg-elevated/60 px-6 py-14 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
+        <ClockIcon />
+      </div>
+      <p className="text-sm font-bold text-foreground">{title}</p>
+      <p className="max-w-[320px] text-xs text-dim">{description}</p>
     </div>
   );
 }
@@ -1012,6 +1144,15 @@ function SunIcon({ className = "" }: { className?: string }) {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 3" />
     </svg>
   );
 }
