@@ -43,90 +43,118 @@ export function UserPill({
   }, []);
 
   return (
-    <div className="flex shrink-0 flex-col border-t border-overlay bg-black/20">
-      <div className="flex h-16 shrink-0 items-center gap-2.5 px-3">
-      <StatusMenu status={effectiveStatus}>
-        {user.image ? (
-          <Image
-            src={user.image}
-            alt=""
-            width={36}
-            height={36}
-            // O otimizador de imagem do Next busca a URL pelo proprio
-            // servidor, sem os cookies do navegador — /api/me/avatar exige
-            // sessao (ver src/lib/avatarUrl.ts), entao sem isso ele leva
-            // 401 e a foto quebra. unoptimized faz o navegador buscar
-            // direto, com a sessao de verdade. priority evita o lazy-load
-            // padrao (fica sempre visivel na tela, nao precisa esperar
-            // entrar em cena pra carregar).
-            unoptimized
-            priority
-            className="rounded-full ring-1 ring-overlay-strong"
-          />
-        ) : (
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary font-display text-[13px] font-bold ring-1 ring-overlay-strong">
-            {label.slice(0, 2).toUpperCase()}
+    <div className="shrink-0 border-t border-overlay bg-black/20 p-2">
+      <div className="flex items-center gap-2 rounded-xl bg-elevated/70 px-2 py-1.5">
+        <StatusMenu status={effectiveStatus}>
+          {user.image ? (
+            <Image
+              src={user.image}
+              alt=""
+              width={32}
+              height={32}
+              // O otimizador de imagem do Next busca a URL pelo proprio
+              // servidor, sem os cookies do navegador — /api/me/avatar exige
+              // sessao (ver src/lib/avatarUrl.ts), entao sem isso ele leva
+              // 401 e a foto quebra. unoptimized faz o navegador buscar
+              // direto, com a sessao de verdade. priority evita o lazy-load
+              // padrao (fica sempre visivel na tela, nao precisa esperar
+              // entrar em cena pra carregar).
+              unoptimized
+              priority
+              className="rounded-full ring-1 ring-overlay-strong"
+            />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-display text-[12px] font-bold ring-1 ring-overlay-strong">
+              {label.slice(0, 2).toUpperCase()}
+            </div>
+          )}
+        </StatusMenu>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <div title={label} className="truncate text-[13px] font-bold leading-tight text-foreground">
+              {label}
+            </div>
+            {isBeta && (
+              <span className="shrink-0 rounded bg-accent px-1 py-px text-[9px] font-bold leading-tight text-background">
+                BETA
+              </span>
+            )}
+          </div>
+          <div className="truncate text-[11px] font-medium leading-tight text-muted">#{user.userTag}</div>
+        </div>
+
+        {/* So aparece com uma chamada ativa (em qualquer tela do app, nao
+            so na propria tela do canal/DM -- ver ActiveCallProvider) --
+            controla mic/fone/desligar direto daqui, igual o Discord, sem
+            precisar voltar pra tela da chamada. */}
+        {target && (
+          <div className="flex shrink-0 items-center gap-0.5">
+            <PillIconButton
+              onClick={toggleMute}
+              label={isMuted ? "Ativar microfone" : "Mutar microfone"}
+              active={isMuted}
+            >
+              {isMuted ? <MicOffIcon /> : <MicIcon />}
+            </PillIconButton>
+            <PillIconButton
+              onClick={toggleDeafen}
+              label={isDeafened ? "Voltar a ouvir a chamada" : "Silenciar chamada (não ouvir ninguém)"}
+              active={isDeafened}
+            >
+              {isDeafened ? <HeadphoneOffIcon /> : <HeadphoneIcon />}
+            </PillIconButton>
+            <PillIconButton onClick={() => leave()} label="Sair da chamada" active danger>
+              <PhoneOffIcon />
+            </PillIconButton>
           </div>
         )}
-      </StatusMenu>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <div title={label} className="truncate text-[13.5px] font-bold leading-tight text-foreground">
-            {label}
+        {/* Config/mais ficam escondidos durante uma chamada -- com os 3
+            botoes de chamada + nome + avatar, nao sobra espaco pros dois
+            juntos na barra lateral estreita (252px) sem cortar o nome. */}
+        {!target && (
+          <div className="flex shrink-0 items-center gap-0.5">
+            <SettingsButton />
+            <MoreMenu isAdmin={session?.user?.isAdmin ?? false} serverId={serverId} isServerOwner={isServerOwner} />
           </div>
-          {isBeta && (
-            <span className="shrink-0 rounded bg-accent px-1 py-px text-[9px] font-bold leading-tight text-background">
-              BETA
-            </span>
-          )}
-        </div>
-        <div className="truncate text-[11px] font-medium leading-tight text-muted">#{user.userTag}</div>
+        )}
       </div>
-
-      <div className="flex shrink-0 items-center gap-0.5">
-        <SettingsButton />
-        <MoreMenu isAdmin={session?.user?.isAdmin ?? false} serverId={serverId} isServerOwner={isServerOwner} />
-      </div>
-      </div>
-
-      {/* So aparece com uma chamada ativa (em qualquer tela do app, nao so
-          na propria tela do canal/DM -- ver ActiveCallProvider) -- controla
-          mic/fone/desligar direto daqui, igual o Discord, sem precisar
-          voltar pra tela da chamada. */}
-      {target && (
-        <div className="flex items-center justify-center gap-1.5 border-t border-overlay/60 px-3 py-2">
-          <button
-            onClick={toggleMute}
-            aria-label={isMuted ? "Ativar microfone" : "Mutar microfone"}
-            title={isMuted ? "Ativar microfone" : "Mutar microfone"}
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition ${
-              isMuted ? "bg-danger/15 text-danger" : "text-muted hover:bg-elevated-hover hover:text-foreground"
-            }`}
-          >
-            {isMuted ? <MicOffIcon /> : <MicIcon />}
-          </button>
-          <button
-            onClick={toggleDeafen}
-            aria-label={isDeafened ? "Voltar a ouvir a chamada" : "Silenciar chamada (não ouvir ninguém)"}
-            title={isDeafened ? "Voltar a ouvir a chamada" : "Silenciar chamada (não ouvir ninguém)"}
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition ${
-              isDeafened ? "bg-danger/15 text-danger" : "text-muted hover:bg-elevated-hover hover:text-foreground"
-            }`}
-          >
-            {isDeafened ? <HeadphoneOffIcon /> : <HeadphoneIcon />}
-          </button>
-          <button
-            onClick={() => leave()}
-            aria-label="Sair da chamada"
-            title="Sair da chamada"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-danger/15 hover:text-danger"
-          >
-            <PhoneOffIcon />
-          </button>
-        </div>
-      )}
     </div>
+  );
+}
+
+// Botao circular compacto pros controles de chamada dentro do pill --
+// mesma altura/estilo do gear/kebab ao lado, so redondo em vez de
+// quadrado (mais "moderno e arredondado", igual o Discord).
+function PillIconButton({
+  onClick,
+  label,
+  active,
+  danger,
+  children,
+}: {
+  onClick: () => void;
+  label: string;
+  active?: boolean;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${
+        active
+          ? danger
+            ? "text-danger hover:bg-danger/15"
+            : "bg-danger/15 text-danger"
+          : "text-muted hover:bg-elevated-hover hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
