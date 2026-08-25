@@ -100,10 +100,6 @@ export function DMChatView({
     activeCall.join({ kind: "dm", dmChannelId, apiBase, name: otherUser.nickname ?? "Alguém" }, currentUserId);
   }
 
-  function leaveCall() {
-    activeCall.leave();
-  }
-
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     const el = draftRef.current;
@@ -193,7 +189,7 @@ export function DMChatView({
               sharingUserId={sharingUserId}
             />
           </div>
-          <CallControlBar isMuted={activeCall.isMuted} onToggleMute={activeCall.toggleMute} onDisconnect={leaveCall} />
+          <CallControlBar />
         </div>
       )}
 

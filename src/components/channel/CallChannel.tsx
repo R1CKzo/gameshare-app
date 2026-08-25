@@ -112,10 +112,6 @@ export function CallChannel({
     activeCall.join({ kind: "channel", channelId, serverId, apiBase: apiUrl(`/api/channels/${channelId}`), name: channelName }, currentUserId);
   }
 
-  function leaveRoom() {
-    activeCall.leave();
-  }
-
   function handleKick(userId: string) {
     fetch(apiUrl(`/api/channels/${channelId}/kick`), {
       method: "POST",
@@ -192,7 +188,7 @@ export function CallChannel({
             canKick={canKick}
             onKick={handleKick}
           />
-          <CallControlBar isMuted={activeCall.isMuted} onToggleMute={activeCall.toggleMute} onDisconnect={leaveRoom} />
+          <CallControlBar />
         </>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-5 px-4">
