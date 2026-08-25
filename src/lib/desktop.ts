@@ -54,6 +54,12 @@ type GameshareDesktopBridge = {
   // no boot, se a janela nasce sem moldura nativa (ver DesktopTitleBar.tsx
   // e createWindow em main.js). So faz efeito depois de reiniciar o app.
   syncBetaTitlebarFlag?: (enabled: boolean) => void;
+  // Aceleracao de hardware (ver AvancadoTab em SettingsButton.tsx) -- so
+  // faz efeito depois de reiniciar o app, mesmo motivo do titlebar acima.
+  syncHardwareAccel?: (enabled: boolean) => void;
+  // Limpa so o cache HTTP do app (ver AvancadoTab) -- nao mexe em
+  // localStorage/cookies.
+  clearCache?: () => Promise<boolean>;
   // Controles da janela desenhados na propria pagina (ver
   // DesktopTitleBar.tsx) -- so tem efeito de verdade quando a janela nasceu
   // sem moldura nativa (ver createWindow em main.js).
@@ -186,6 +192,20 @@ export function downloadAndInstallPatch(): Promise<PatchInstallResult> {
 export function syncBetaTitlebarFlag(enabled: boolean): void {
   if (typeof window === "undefined") return;
   window.gameshareDesktop?.syncBetaTitlebarFlag?.(enabled);
+}
+
+// No-op no navegador comum ou em instalacao antiga demais pra ter esse
+// metodo no preload.
+export function syncHardwareAccel(enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  window.gameshareDesktop?.syncHardwareAccel?.(enabled);
+}
+
+// false no navegador comum (nao tem cache nenhum do Electron pra limpar)
+// ou em instalacao antiga demais pra ter esse metodo no preload.
+export function clearCache(): Promise<boolean> {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.clearCache) return Promise.resolve(false);
+  return window.gameshareDesktop.clearCache();
 }
 
 // Controles da janela desenhados na propria pagina (ver

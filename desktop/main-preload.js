@@ -72,6 +72,17 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     // DesktopTitleBar.tsx). So faz efeito depois de reiniciar o app.
     syncBetaTitlebarFlag: (enabled) => ipcRenderer.send("beta:sync-titlebar-flag", enabled),
 
+    // Aceleracao de hardware (Avancado nas Configuracoes) -- mesmo
+    // espelhamento em arquivo do beta acima, porque so da pra ligar/
+    // desligar antes do Electron iniciar de verdade. So faz efeito depois
+    // de reiniciar o app.
+    syncHardwareAccel: (enabled) => ipcRenderer.send("hardware-accel:sync", enabled),
+
+    // Limpar cache (Avancado nas Configuracoes) -- so o cache HTTP, nao
+    // mexe em localStorage/cookies (nao desconecta nem apaga configuracao
+    // nenhuma).
+    clearCache: () => ipcRenderer.invoke("desktop:clear-cache"),
+
     // Controles da janela desenhados na propria pagina (ver
     // DesktopTitleBar.tsx) -- so tem efeito de verdade quando a janela
     // nasceu sem moldura nativa (ver createWindow em main.js).

@@ -11,6 +11,7 @@ const {
   nativeImage,
   protocol,
   safeStorage,
+  session,
 } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
@@ -26,6 +27,27 @@ log.transports.file.level = "info";
 autoUpdater.logger = log;
 
 const APP_URL = "https://gameshare-app.vercel.app";
+
+// Aceleracao de hardware (GPU) -- Avancado nas Configuracoes. So da pra
+// ligar/desligar ANTES do app terminar de iniciar (Electron nao deixa
+// mudar depois), entao guarda a escolha num arquivo (mesmo truque da
+// barra de titulo em beta, ver readBetaTitlebarFlag mais abaixo) e le ele
+// aqui em cima, antes de qualquer outra coisa do Electron rodar. Padrao e
+// ligado (mesmo comportamento normal do Electron) -- so desativa se a
+// pessoa desligou explicitamente (por exemplo, tela riscando/travando).
+function getHardwareAccelFlagPath() {
+  return path.join(app.getPath("userData"), "hardware-accel.json");
+}
+function readHardwareAccelEnabled() {
+  try {
+    return JSON.parse(fs.readFileSync(getHardwareAccelFlagPath(), "utf-8")).enabled !== false;
+  } catch {
+    return true;
+  }
+}
+if (!readHardwareAccelEnabled()) {
+  app.disableHardwareAcceleration();
+}
 
 // Janela de teste da interface embutida (ver plano de app nativo, Fase 2)
 // — nunca liga sozinha: so em dev com a flag GAMESHARE_DEBUG_UI=1, ou num
@@ -253,6 +275,27 @@ ipcMain.on("beta:sync-titlebar-flag", (_event, enabled) => {
     fs.writeFileSync(getBetaTitlebarFlagPath(), JSON.stringify({ enabled: enabled === true }));
   } catch (err) {
     log.error("[beta] falha ao salvar preferencia de barra de titulo", err);
+  }
+});
+
+ipcMain.on("hardware-accel:sync", (_event, enabled) => {
+  try {
+    fs.writeFileSync(getHardwareAccelFlagPath(), JSON.stringify({ enabled: enabled === true }));
+  } catch (err) {
+    log.error("[hardware-accel] falha ao salvar preferencia", err);
+  }
+});
+
+// Limpa so o cache HTTP (imagens, respostas de API guardadas) -- nao
+// mexe em localStorage/cookies, entao nao desconecta nem apaga nenhuma
+// configuracao da pessoa.
+ipcMain.handle("desktop:clear-cache", async () => {
+  try {
+    await session.defaultSession.clearCache();
+    return true;
+  } catch (err) {
+    log.error("[desktop] falha ao limpar cache", err);
+    return false;
   }
 });
 

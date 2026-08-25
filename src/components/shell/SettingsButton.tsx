@@ -18,7 +18,7 @@ import {
 } from "@/lib/audioSettings";
 import { apiUrl } from "@/lib/apiUrl";
 import { BETA_STORAGE_KEY, isBetaEnabled } from "@/lib/beta";
-import { isDesktopApp, restartAppOrReload, syncBetaTitlebarFlag } from "@/lib/desktop";
+import { clearCache, isDesktopApp, restartAppOrReload, syncBetaTitlebarFlag, syncHardwareAccel } from "@/lib/desktop";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 const AVATAR_SIZE = 256;
@@ -203,7 +203,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
               description="Controle fino de notificações (sons, quem pode te mencionar, silenciar canais) ainda está a caminho."
             />
           ) : tab === "avancado" ? (
-            <ComingSoonTab title="Em breve" description="Opções avançadas ainda estão a caminho." />
+            <AvancadoTab />
           ) : (
             <BugReportTab onClose={onClose} />
           )}
@@ -515,6 +515,86 @@ function AcessibilidadeTab() {
         checked={highContrast}
         onChange={setHighContrast}
       />
+    </div>
+  );
+}
+
+function AvancadoTab() {
+  const desktop = isDesktopApp();
+  const [hardwareAccel, setHardwareAccelState] = useState(true);
+  const [needsRestart, setNeedsRestart] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [cleared, setCleared] = useState(false);
+
+  useEffect(() => {
+    setHardwareAccelState(localStorage.getItem("gameshare-hardware-accel") !== "false");
+  }, []);
+
+  function handleToggleHardwareAccel(v: boolean) {
+    setHardwareAccelState(v);
+    try {
+      localStorage.setItem("gameshare-hardware-accel", String(v));
+    } catch {
+      // modo privado ou storage cheio — a escolha so nao sobrevive a um
+      // recarregamento, sem quebrar nada
+    }
+    syncHardwareAccel(v);
+    setNeedsRestart(true);
+  }
+
+  async function handleClearCache() {
+    setClearing(true);
+    setCleared(false);
+    await clearCache();
+    setClearing(false);
+    setCleared(true);
+    setTimeout(() => setCleared(false), 2500);
+  }
+
+  if (!desktop) {
+    return (
+      <ComingSoonTab
+        title="Só no app de desktop"
+        description="As opções avançadas de hoje só valem pra quem usa o GameShare instalado no Windows."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <ToggleRow
+        label="Aceleração de hardware"
+        description="Usa a placa de vídeo pra desenhar a interface. Desligue se a tela ficar riscada, travando ou piscando."
+        checked={hardwareAccel}
+        onChange={handleToggleHardwareAccel}
+      />
+
+      {needsRestart && (
+        <div className="rounded-xl bg-elevated/60 p-3.5">
+          <p className="text-sm text-foreground">Reinicie o app pra aplicar essa mudança.</p>
+          <button
+            onClick={restartAppOrReload}
+            className="mt-2 rounded-md bg-primary px-3 py-1.5 text-sm font-bold text-white"
+          >
+            Reiniciar agora
+          </button>
+        </div>
+      )}
+
+      <div className="rounded-xl bg-elevated/60 p-3.5">
+        <div className="text-sm font-bold text-foreground">Limpar cache</div>
+        <div className="mt-0.5 text-xs text-dim">
+          Apaga arquivos temporários guardados pelo app (imagens, páginas). Não mexe nas suas configurações nem te
+          desconecta.
+        </div>
+        <button
+          onClick={handleClearCache}
+          disabled={clearing}
+          className="mt-3 rounded-md bg-elevated px-3 py-1.5 text-sm font-bold text-foreground transition hover:bg-elevated-hover disabled:opacity-50"
+        >
+          {clearing ? "Limpando..." : cleared ? "Cache limpo!" : "Limpar agora"}
+        </button>
+      </div>
     </div>
   );
 }
