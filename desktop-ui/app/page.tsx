@@ -20,7 +20,7 @@ import { apiUrl } from "@/lib/apiUrl";
 // useSessionError, que so existe aqui.
 import { signIn, SessionProvider, useSession, useSessionError } from "../shims/next-auth-react";
 
-type ServerSummary = { id: string; name: string };
+type ServerSummary = { id: string; name: string; image: string | null };
 
 // Unica pagina de verdade do desktop-ui (ver next.config.js/Electron
 // main.js): o build estatico nao suporta rota dinamica pra id que nao se
@@ -70,7 +70,7 @@ type MemberSummary = {
 };
 type ChannelShell = {
   servers: ServerSummary[];
-  server: { id: string; name: string; inviteCode: string; ownerId: string };
+  server: { id: string; name: string; image: string | null; inviteCode: string; ownerId: string };
   channels: ChannelSummary[];
   channel: ChannelSummary;
   members: MemberSummary[];
@@ -169,6 +169,7 @@ function ServerRoute({
       servers={shell.servers}
       currentServerId={shell.server.id}
       serverName={shell.server.name}
+      serverImage={shell.server.image}
       inviteCode={shell.server.inviteCode}
       channels={shell.channels}
       currentChannelId={shell.channel.id}
@@ -186,6 +187,7 @@ function ServerRoute({
           serverId={shell.server.id}
           currentUserId={userId}
           initialLive={{ isLive: shell.channel.isLive, broadcaster: shell.channel.broadcaster }}
+          canKick={shell.permissions.canKick}
         />
       )}
     </AppShell>

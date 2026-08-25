@@ -30,7 +30,7 @@ export default async function DMPage({ params }: { params: { dmChannelId: string
     prisma.server.findMany({
       where: { members: { some: { userId: session.user.id } } },
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true },
+      select: { id: true, name: true, image: true },
     }),
   ]);
 

@@ -30,6 +30,7 @@ export async function GET(
           select: {
             id: true,
             name: true,
+            image: true,
             inviteCode: true,
             ownerId: true,
             channels: {
@@ -52,7 +53,7 @@ export async function GET(
     prisma.server.findMany({
       where: { members: { some: { userId: session.user.id } } },
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true },
+      select: { id: true, name: true, image: true },
     }),
     prisma.serverMember.findMany({
       where: { serverId: params.serverId },
@@ -90,6 +91,7 @@ export async function GET(
       server: {
         id: membership.server.id,
         name: membership.server.name,
+        image: membership.server.image,
         inviteCode: membership.server.inviteCode,
         ownerId: membership.server.ownerId,
       },

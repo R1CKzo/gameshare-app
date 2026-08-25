@@ -10,7 +10,7 @@ import { MobileUIContext } from "@/components/shell/MobileUIContext";
 import { ServerRail } from "@/components/shell/ServerRail";
 import { setLastChannel } from "@/lib/lastChannel";
 
-type ServerSummary = { id: string; name: string };
+type ServerSummary = { id: string; name: string; image: string | null };
 type ChannelSummary = {
   id: string;
   name: string;
@@ -36,6 +36,7 @@ export function AppShell({
   servers,
   currentServerId,
   serverName,
+  serverImage,
   inviteCode,
   channels,
   currentChannelId,
@@ -48,6 +49,7 @@ export function AppShell({
   servers: ServerSummary[];
   currentServerId: string;
   serverName: string;
+  serverImage: string | null;
   inviteCode: string;
   channels: ChannelSummary[];
   currentChannelId: string;
@@ -100,6 +102,7 @@ export function AppShell({
           <ChannelSidebar
             serverId={currentServerId}
             serverName={serverName}
+            serverImage={serverImage}
             inviteCode={inviteCode}
             channels={channels}
             currentChannelId={currentChannelId}

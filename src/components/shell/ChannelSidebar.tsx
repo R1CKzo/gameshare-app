@@ -54,6 +54,7 @@ const VOICE_PRESENCE_POLL_MS = 10000;
 export function ChannelSidebar({
   serverId,
   serverName,
+  serverImage,
   inviteCode,
   channels,
   currentChannelId,
@@ -64,6 +65,7 @@ export function ChannelSidebar({
 }: {
   serverId: string;
   serverName: string;
+  serverImage: string | null;
   inviteCode: string;
   channels: ChannelSummary[];
   currentChannelId: string;
@@ -153,7 +155,14 @@ export function ChannelSidebar({
         <span className="truncate font-bold">{serverName}</span>
         <div className="flex items-center gap-1">
           {canManageServer && (
-            <ServerSettingsButton serverId={serverId} ownerId={ownerId} members={members} permissions={permissions} />
+            <ServerSettingsButton
+              serverId={serverId}
+              serverName={serverName}
+              serverImage={serverImage}
+              ownerId={ownerId}
+              members={members}
+              permissions={permissions}
+            />
           )}
           <InviteButton inviteCode={inviteCode} />
         </div>

@@ -31,6 +31,7 @@ export default async function ChannelPage({
           select: {
             id: true,
             name: true,
+            image: true,
             inviteCode: true,
             ownerId: true,
             channels: {
@@ -53,7 +54,7 @@ export default async function ChannelPage({
     prisma.server.findMany({
       where: { members: { some: { userId: session.user.id } } },
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true },
+      select: { id: true, name: true, image: true },
     }),
     prisma.serverMember.findMany({
       where: { serverId: params.serverId },
@@ -94,6 +95,7 @@ export default async function ChannelPage({
       servers={servers}
       currentServerId={membership.server.id}
       serverName={membership.server.name}
+      serverImage={membership.server.image}
       inviteCode={membership.server.inviteCode}
       channels={channelsForSidebar}
       currentChannelId={channel.id}

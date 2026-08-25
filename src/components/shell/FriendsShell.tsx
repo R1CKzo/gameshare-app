@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { MobileUIContext } from "@/components/shell/MobileUIContext";
 import { ServerRail } from "@/components/shell/ServerRail";
 
-type ServerSummary = { id: string; name: string };
+type ServerSummary = { id: string; name: string; image: string | null };
 
 // Mesma mecanica de painel responsivo do AppShell (usado nos servidores),
 // so que sem lista de membros do lado direito — Amigos/DMs nao tem isso.

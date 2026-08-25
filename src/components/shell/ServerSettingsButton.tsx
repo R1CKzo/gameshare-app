@@ -2,10 +2,38 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { apiUrl } from "@/lib/apiUrl";
+
+const NAME_MAX = 40;
+const SERVER_IMAGE_SIZE = 256;
+
+// Mesmo redimensionamento de src/components/shell/SettingsButton.tsx
+// (foto de perfil) — duplicado em vez de compartilhar pra nao arriscar
+// mexer num fluxo que ja funciona.
+async function resizeImageToDataUrl(file: File, maxBytes = 180_000): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = SERVER_IMAGE_SIZE;
+  canvas.height = SERVER_IMAGE_SIZE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas indisponível.");
+
+  const side = Math.min(bitmap.width, bitmap.height);
+  const sx = (bitmap.width - side) / 2;
+  const sy = (bitmap.height - side) / 2;
+  ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, SERVER_IMAGE_SIZE, SERVER_IMAGE_SIZE);
+
+  let quality = 0.9;
+  let dataUrl = canvas.toDataURL("image/jpeg", quality);
+  while (dataUrl.length > maxBytes && quality > 0.3) {
+    quality -= 0.15;
+    dataUrl = canvas.toDataURL("image/jpeg", quality);
+  }
+  return dataUrl;
+}
 
 type RoleSummary = {
   id: string;
@@ -41,11 +69,15 @@ const ROLE_COLORS = ["#ef4444", "#f97316", "#facc15", "#22c55e", "#22d3ee", "#7c
 
 export function ServerSettingsButton({
   serverId,
+  serverName,
+  serverImage,
   ownerId,
   members,
   permissions,
 }: {
   serverId: string;
+  serverName: string;
+  serverImage: string | null;
   ownerId: string;
   members: MemberSummary[];
   permissions: ServerPermissions;
@@ -63,6 +95,8 @@ export function ServerSettingsButton({
       {open && (
         <ServerSettingsModal
           serverId={serverId}
+          serverName={serverName}
+          serverImage={serverImage}
           ownerId={ownerId}
           members={members}
           permissions={permissions}
@@ -75,19 +109,27 @@ export function ServerSettingsButton({
 
 function ServerSettingsModal({
   serverId,
+  serverName,
+  serverImage,
   ownerId,
   members,
   permissions,
   onClose,
 }: {
   serverId: string;
+  serverName: string;
+  serverImage: string | null;
   ownerId: string;
   members: MemberSummary[];
   permissions: ServerPermissions;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"membros" | "cargos">("membros");
-  const tabs = permissions.canManageRoles ? (["membros", "cargos"] as const) : (["membros"] as const);
+  const [tab, setTab] = useState<"geral" | "membros" | "cargos">(permissions.isOwner ? "geral" : "membros");
+  const tabs = [
+    ...(permissions.isOwner ? (["geral"] as const) : []),
+    "membros" as const,
+    ...(permissions.canManageRoles ? (["cargos"] as const) : []),
+  ];
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
@@ -116,14 +158,16 @@ function ServerSettingsModal({
                   tab === t ? "bg-elevated text-foreground" : "text-muted hover:text-foreground-secondary"
                 }`}
               >
-                {t === "membros" ? "Membros" : "Cargos"}
+                {t === "geral" ? "Geral" : t === "membros" ? "Membros" : "Cargos"}
               </button>
             ))}
           </div>
         )}
 
         <div className="overflow-y-auto p-5">
-          {tab === "membros" ? (
+          {tab === "geral" ? (
+            <GeralTab serverId={serverId} serverName={serverName} serverImage={serverImage} />
+          ) : tab === "membros" ? (
             <MembrosTab serverId={serverId} ownerId={ownerId} members={members} permissions={permissions} />
           ) : (
             <CargosTab serverId={serverId} permissions={permissions} />
@@ -132,6 +176,108 @@ function ServerSettingsModal({
       </div>
     </div>,
     document.body,
+  );
+}
+
+function GeralTab({
+  serverId,
+  serverName,
+  serverImage,
+}: {
+  serverId: string;
+  serverName: string;
+  serverImage: string | null;
+}) {
+  const router = useRouter();
+  const [name, setName] = useState(serverName);
+  const [image, setImage] = useState<string | null>(serverImage);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const nameValid = name.trim().length > 0 && name.trim().length <= NAME_MAX;
+  const changed = name.trim() !== serverName || (image !== null && image !== serverImage);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      setImage(dataUrl);
+    } catch {
+      setError("Não foi possível processar essa imagem.");
+    }
+  }
+
+  async function handleSave() {
+    if (!nameValid) {
+      setError(`Nome inválido. Use até ${NAME_MAX} caracteres.`);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const body: { name?: string; image?: string } = {};
+      if (name.trim() !== serverName) body.name = name.trim();
+      if (image && image !== serverImage) body.image = image;
+      if (Object.keys(body).length === 0) return;
+
+      const res = await fetch(apiUrl(`/api/servers/${serverId}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Não foi possível salvar.");
+        return;
+      }
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-primary transition hover:opacity-80"
+          title="Trocar imagem do servidor"
+        >
+          {image ? (
+            <Image src={image} alt="" fill sizes="64px" className="object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center font-display text-lg font-bold">
+              {(name || "?").slice(0, 2).toUpperCase()}
+            </div>
+          )}
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+        <div className="min-w-0 flex-1">
+          <label className="mb-1 block text-xs font-bold tracking-wide text-muted">NOME DO SERVIDOR</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={NAME_MAX}
+            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm font-semibold outline-none focus:border-primary"
+          />
+        </div>
+      </div>
+
+      {error && <p className="text-xs text-danger">{error}</p>}
+
+      <button
+        onClick={handleSave}
+        disabled={saving || !changed || !nameValid}
+        className="h-10 w-full rounded-lg bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+      >
+        {saving ? "Salvando..." : "Salvar"}
+      </button>
+    </div>
   );
 }
 

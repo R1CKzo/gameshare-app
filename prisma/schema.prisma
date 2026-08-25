@@ -204,6 +204,7 @@ model BugReport {
 model Server {
   id         String   @id @default(uuid())
   name       String
+  image      String?
   inviteCode String   @unique
   createdAt  DateTime @default(now())
 
