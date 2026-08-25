@@ -44,7 +44,10 @@ export const changelog: ChangelogEntry[] = [
       "Donos de servidor podem alterar nome e imagem do servidor",
       "Atualizações de correções de segurança",
     ],
-    bugsFixed: ["Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair"],
+    bugsFixed: [
+      "Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair",
+      "Ser removido de um servidor (ou ele ser excluído) enquanto você estava nele podia travar numa tela sem saída",
+    ],
   },
   {
     version: "1.0.12",

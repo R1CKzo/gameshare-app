@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
 
+import { DeadEndScreen } from "@/components/DeadEndScreen";
 import { DMChatView } from "@/components/dm/DMChatView";
 import { DMSidebar } from "@/components/shell/DMSidebar";
 import { FriendsShell } from "@/components/shell/FriendsShell";
@@ -63,11 +64,9 @@ export default async function DMPage({ params }: { params: { dmChannelId: string
 
 function NotFoundScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
-      <div>
-        <h1 className="font-display text-xl font-bold">Conversa não encontrada</h1>
-        <p className="mt-2 text-sm text-muted">Ela pode ter sido apagada, ou você não faz parte dela.</p>
-      </div>
-    </div>
+    <DeadEndScreen
+      title="Conversa não encontrada"
+      description="Ela pode ter sido apagada, ou você não faz parte dela."
+    />
   );
 }

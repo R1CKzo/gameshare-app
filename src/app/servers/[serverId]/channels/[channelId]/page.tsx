@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CallChannel } from "@/components/channel/CallChannel";
 import { TextChannelView } from "@/components/channel/TextChannelView";
+import { DeadEndScreen } from "@/components/DeadEndScreen";
 import { AppShell } from "@/components/shell/AppShell";
 import { authOptions } from "@/lib/auth";
 import { PRESENCE_WINDOW_MS } from "@/lib/callLimits";
@@ -122,13 +123,9 @@ export default async function ChannelPage({
 
 function NotAMemberScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
-      <div>
-        <h1 className="font-display text-xl font-bold">Você não é membro desse servidor</h1>
-        <p className="mt-2 text-sm text-muted">
-          Peça pra quem te chamou o link de convite (algo como /invite/xxxxxxxx) em vez do link do canal.
-        </p>
-      </div>
-    </div>
+    <DeadEndScreen
+      title="Você não é membro desse servidor"
+      description="Pode ser um link de canal de um servidor que você nunca participou, ou você foi removido dele (ou ele foi excluído)."
+    />
   );
 }

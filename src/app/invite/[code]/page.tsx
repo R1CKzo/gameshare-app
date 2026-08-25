@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
+import { DeadEndScreen } from "@/components/DeadEndScreen";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -18,14 +19,7 @@ export default async function InvitePage({ params }: { params: { code: string } 
   });
 
   if (!server) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
-        <div>
-          <h1 className="font-display text-xl font-bold">Convite inválido</h1>
-          <p className="mt-2 text-sm text-muted">Esse código de convite não existe ou expirou.</p>
-        </div>
-      </div>
-    );
+    return <DeadEndScreen title="Convite inválido" description="Esse código de convite não existe ou expirou." />;
   }
 
   const ban = await prisma.serverBan.findUnique({
@@ -34,12 +28,7 @@ export default async function InvitePage({ params }: { params: { code: string } 
   });
   if (ban) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
-        <div>
-          <h1 className="font-display text-xl font-bold">Você foi banido desse servidor</h1>
-          <p className="mt-2 text-sm text-muted">Não é possível entrar por esse convite.</p>
-        </div>
-      </div>
+      <DeadEndScreen title="Você foi banido desse servidor" description="Não é possível entrar por esse convite." />
     );
   }
 
