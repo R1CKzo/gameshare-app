@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useActiveCall } from "@/components/call/ActiveCallProvider";
 import { SignalIcon } from "@/components/call/SignalIcon";
@@ -50,35 +50,14 @@ export function ParticipantGrid({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-5">
       {sharer && showBroadcast && sharerVideoStream && (
-        <div className="relative flex-1 overflow-hidden rounded-2xl border-2 border-accent bg-black">
-          <ScreenView stream={sharerVideoStream} />
-          <div className="absolute left-2 top-2 flex max-w-[calc(100%-16px)] items-center gap-2 truncate rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold backdrop-blur sm:left-4 sm:top-4 sm:px-3.5 sm:py-2">
-            <ShareIcon />
-            <span className="truncate">
-              {isSharerSelf ? "Você está compartilhando a tela" : `${sharer.nickname ?? "Alguém"} está compartilhando a tela`}
-            </span>
-          </div>
-          {!isSharerSelf && betaEnabled && (
-            <div className="absolute right-2 top-2 flex items-center gap-2 rounded-full bg-black/60 px-2.5 py-1.5 backdrop-blur sm:right-4 sm:top-4">
-              <VolumeIcon />
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={sharerVolume}
-                onChange={(e) => setVolumeFor(sharer.id, Number(e.target.value))}
-                aria-label="Volume da transmissão"
-                className="w-16 accent-accent sm:w-20"
-              />
-              <button
-                onClick={leaveBroadcast}
-                className="whitespace-nowrap rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-white/20"
-              >
-                Sair da transmissão
-              </button>
-            </div>
-          )}
-        </div>
+        <BroadcastPreview
+          stream={sharerVideoStream}
+          label={isSharerSelf ? "Você está compartilhando a tela" : `${sharer.nickname ?? "Alguém"} está compartilhando a tela`}
+          showBroadcastControls={!isSharerSelf && betaEnabled}
+          volume={sharerVolume}
+          onVolumeChange={(v) => setVolumeFor(sharer.id, v)}
+          onLeave={leaveBroadcast}
+        />
       )}
 
       {sharer && !showBroadcast && (
@@ -132,6 +111,137 @@ function ScreenView({ stream }: { stream: MediaStream }) {
     if (videoRef.current) videoRef.current.srcObject = stream;
   }, [stream]);
   return <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-contain" />;
+}
+
+// Tempo parado do mouse ate os controles (volume, sair da transmissao,
+// tela cheia) sumirem sozinhos -- mesmo padrao de qualquer player de
+// video (YouTube, etc), pra nao ficar poluindo a tela durante a
+// transmissao.
+const CONTROLS_IDLE_MS = 3000;
+
+// Video grande de quem esta compartilhando, com botao de tela cheia
+// sempre disponivel e, so pra quem nao e o proprio compartilhador com
+// beta ligado, volume da transmissao + "Sair da transmissao" -- os
+// controles da direita somem depois de alguns segundos com o mouse
+// parado e voltam no primeiro movimento.
+function BroadcastPreview({
+  stream,
+  label,
+  showBroadcastControls,
+  volume,
+  onVolumeChange,
+  onLeave,
+}: {
+  stream: MediaStream;
+  label: string;
+  showBroadcastControls: boolean;
+  volume: number;
+  onVolumeChange: (volume: number) => void;
+  onLeave: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    function onFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  function wakeControls() {
+    setControlsVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setControlsVisible(false), CONTROLS_IDLE_MS);
+  }
+
+  useEffect(() => {
+    wakeControls();
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement === containerRef.current) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      containerRef.current?.requestFullscreen().catch(() => {});
+    }
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={wakeControls}
+      className="relative flex-1 overflow-hidden rounded-2xl border-2 border-accent bg-black"
+    >
+      <ScreenView stream={stream} />
+      <div className="absolute left-2 top-2 flex max-w-[calc(100%-16px)] items-center gap-2 truncate rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold backdrop-blur sm:left-4 sm:top-4 sm:px-3.5 sm:py-2">
+        <ShareIcon />
+        <span className="truncate">{label}</span>
+      </div>
+      <div
+        className={`absolute right-2 top-2 flex items-center gap-2 rounded-full bg-black/60 px-2.5 py-1.5 backdrop-blur transition-opacity duration-300 sm:right-4 sm:top-4 ${
+          controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        {showBroadcastControls && (
+          <>
+            <VolumeIcon />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={volume}
+              onChange={(e) => onVolumeChange(Number(e.target.value))}
+              aria-label="Volume da transmissão"
+              className="w-16 accent-accent sm:w-20"
+            />
+            <button
+              onClick={onLeave}
+              className="whitespace-nowrap rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-white/20"
+            >
+              Sair da transmissão
+            </button>
+          </>
+        )}
+        <button
+          onClick={toggleFullscreen}
+          aria-label={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+        >
+          {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FullscreenIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+      <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+      <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+      <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+    </svg>
+  );
+}
+
+function ExitFullscreenIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+      <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
+      <path d="M3 16h3a2 2 0 0 1 2 2v3" />
+      <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+    </svg>
+  );
 }
 
 type TileSize = { avatar: string; pad: string };
