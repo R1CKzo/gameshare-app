@@ -30,8 +30,9 @@ type ActiveCallContextValue = {
   remoteStreams: Map<string, RemotePeerTracks>;
   isMuted: boolean;
   // "Silenciar geral": para de tocar a voz e a transmissao de todo mundo
-  // pra mim, sem sair da call nem mexer no meu proprio microfone (ver
-  // ActiveCallAudioSink). So local -- ninguem mais sabe que estou surdo.
+  // pra mim (ver ActiveCallAudioSink), sem sair da call. Igual o Discord,
+  // tambem muta o microfone de verdade ao ativar -- os outros participantes
+  // passam a ver voce como mudo tambem (ver toggleDeafen).
   isDeafened: boolean;
   toggleDeafen: () => void;
   isSharingScreen: boolean;
@@ -86,14 +87,27 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
   const [volumes, setVolumes] = useState<Map<string, number>>(new Map());
   const [isDeafened, setIsDeafened] = useState(false);
 
-  const toggleDeafen = useCallback(() => setIsDeafened((v) => !v), []);
-
   const mesh = useVoiceMesh({
     apiBase: target?.apiBase ?? "",
     currentUserId: currentUserId ?? "",
     enabled: target !== null,
     present,
   });
+
+  // Igual o Discord: ativar "silenciar geral" tambem muta o microfone de
+  // verdade (nao so um efeito visual -- por isso os outros participantes
+  // passam a ver voce como mudo tambem, do jeito que ja acontece com
+  // qualquer mutado normal). Desativar NAO desmuta sozinho -- fica mudo
+  // ate a pessoa desmutar na mao, pra ninguem comecar a falar sem querer
+  // logo que volta a ouvir a call.
+  const toggleDeafen = useCallback(() => {
+    setIsDeafened((prev) => {
+      const next = !prev;
+      if (next && !mesh.isMuted) mesh.toggleMute();
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mesh.isMuted, mesh.toggleMute]);
 
   useEffect(() => {
     if (mesh.micError) setCallError(mesh.micError);
