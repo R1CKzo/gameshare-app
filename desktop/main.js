@@ -704,41 +704,56 @@ async function fetchWithRetry(url, attempts = 3) {
   throw lastErr;
 }
 
+// Mensagem de erro curta e util (nao so "deu errado") -- sem isso, rede
+// bloqueada, disco cheio, antivirus barrando o arquivo e um site fora do
+// ar mostravam exatamente o mesmo aviso genérico pra pessoa, impossivel de
+// diferenciar sem abrir o log.
+function describeErr(err) {
+  if (!err) return "";
+  if (err.code) return ` (${err.code})`;
+  if (err.message) return ` (${err.message.slice(0, 80)})`;
+  return "";
+}
+
 async function downloadAndInstallPatch() {
-  try {
-    const patch = await checkForPatch();
-    if (!patch.available) {
-      return { ok: false, error: "Nenhuma correção disponível." };
-    }
-
-    let res;
-    try {
-      res = await fetchWithRetry(patch.downloadUrl);
-    } catch (err) {
-      log.error("[patch] falha ao baixar depois de repetir", err);
-      return { ok: false, error: "Não foi possível baixar a atualização. Tente de novo mais tarde." };
-    }
-
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const dest = path.join(app.getPath("temp"), "GameShare-Patch-Setup.exe");
-    fs.writeFileSync(dest, buffer);
-
-    return await new Promise((resolve) => {
-      const child = spawn(dest, [], { detached: true, stdio: "ignore" });
-      child.once("error", (err) => {
-        log.error("[patch] instalador nao abriu", err);
-        resolve({ ok: false, error: "Não foi possível abrir o instalador. Tente de novo mais tarde." });
-      });
-      child.once("spawn", () => {
-        child.unref();
-        setTimeout(() => app.quit(), 500);
-        resolve({ ok: true });
-      });
-    });
-  } catch (err) {
-    log.error("[patch] erro ao baixar/instalar", err);
-    return { ok: false, error: "Não foi possível baixar a atualização. Tente de novo mais tarde." };
+  const patch = await checkForPatch().catch((err) => {
+    log.error("[patch] falha ao checar atualizacao antes de instalar", err);
+    return { available: false };
+  });
+  if (!patch.available) {
+    return { ok: false, error: "Nenhuma correção disponível." };
   }
+
+  let res;
+  try {
+    res = await fetchWithRetry(patch.downloadUrl);
+  } catch (err) {
+    log.error("[patch] falha ao baixar depois de repetir", err);
+    return { ok: false, error: `Não foi possível baixar a atualização.${describeErr(err)} Tente de novo mais tarde.` };
+  }
+
+  let dest;
+  try {
+    const buffer = Buffer.from(await res.arrayBuffer());
+    dest = path.join(app.getPath("temp"), "GameShare-Patch-Setup.exe");
+    fs.writeFileSync(dest, buffer);
+  } catch (err) {
+    log.error("[patch] falha ao salvar o instalador em disco", err);
+    return { ok: false, error: `Não foi possível salvar a atualização no disco.${describeErr(err)} Tente de novo mais tarde.` };
+  }
+
+  return await new Promise((resolve) => {
+    const child = spawn(dest, [], { detached: true, stdio: "ignore" });
+    child.once("error", (err) => {
+      log.error("[patch] instalador nao abriu", err);
+      resolve({ ok: false, error: `Não foi possível abrir o instalador.${describeErr(err)} Tente de novo mais tarde.` });
+    });
+    child.once("spawn", () => {
+      child.unref();
+      setTimeout(() => app.quit(), 500);
+      resolve({ ok: true });
+    });
+  });
 }
 
 ipcMain.handle("patch:download-and-install", () => downloadAndInstallPatch());
