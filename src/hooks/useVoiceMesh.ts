@@ -1,5 +1,6 @@
 import type { MediaConnection, default as Peer } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { RnnoiseWorkletNode as RnnoiseWorkletNodeType } from "@sapphi-red/web-noise-suppressor";
 
 import { getMicConstraints, loadAudioSettings, sensitivityToGateThreshold } from "@/lib/audioSettings";
 import {
@@ -24,9 +25,54 @@ import { playMuteSound } from "@/lib/sound";
 // liberacao calibrados errado (convergiam em menos de 1ms), o que gerava
 // estalos audiveis toda vez que o gate abria/fechava — exatamente o "audio
 // repetindo" que apareceu nos testes reais.
-async function createNoiseGate(audioContext: AudioContext, micStream: MediaStream, threshold: number) {
+// Modelo de rede neural (RNNoise, via @sapphi-red/web-noise-suppressor) pra
+// separar voz de ruido de fundo melhor que a supressao nativa do navegador
+// -- essa era a reclamacao real que motivou o modelo novo: barulho de
+// teclado passava direto pela supressao padrao. Roda antes do gate, no
+// mesmo AudioWorklet, sem bloquear a thread principal do React. O pacote
+// (que declara "class X extends AudioWorkletNode" direto no import, um
+// global que so existe no navegador) e importado de forma dinamica -- um
+// import estatico normal quebra o build, porque o Next tenta prerenderizar
+// paginas estaticas no Node, onde AudioWorkletNode nao existe. O binario
+// wasm (uns 150KB) so vale baixar quando alguem de fato escolhe esse
+// modelo (recurso beta) -- as promises ficam cacheadas no modulo pra nao
+// rebaixar de novo a cada vez que entra numa chamada.
+let rnnoiseModulePromise: Promise<typeof import("@sapphi-red/web-noise-suppressor")> | null = null;
+function loadRnnoiseModule() {
+  if (!rnnoiseModulePromise) {
+    rnnoiseModulePromise = import("@sapphi-red/web-noise-suppressor");
+  }
+  return rnnoiseModulePromise;
+}
+
+let rnnoiseWasmPromise: Promise<ArrayBuffer> | null = null;
+async function loadRnnoiseWasm(): Promise<ArrayBuffer> {
+  if (!rnnoiseWasmPromise) {
+    const { loadRnnoise } = await loadRnnoiseModule();
+    rnnoiseWasmPromise = loadRnnoise({ url: "/rnnoise.wasm", simdUrl: "/rnnoise_simd.wasm" });
+  }
+  return rnnoiseWasmPromise;
+}
+
+async function createMicPipeline(
+  audioContext: AudioContext,
+  micStream: MediaStream,
+  threshold: number,
+  useRnnoise: boolean,
+) {
   await audioContext.audioWorklet.addModule("/noise-gate-worklet.js");
   const source = audioContext.createMediaStreamSource(micStream);
+
+  // RNNoise (se escolhido) entra ANTES do gate: limpa o ruido continuo
+  // (teclado, ventilador) primeiro, so depois o gate decide se o volume
+  // resultante e alto o bastante pra passar.
+  let rnnoiseNode: RnnoiseWorkletNodeType | null = null;
+  if (useRnnoise) {
+    await audioContext.audioWorklet.addModule("/rnnoise-worklet.js");
+    const [{ RnnoiseWorkletNode }, wasmBinary] = await Promise.all([loadRnnoiseModule(), loadRnnoiseWasm()]);
+    rnnoiseNode = new RnnoiseWorkletNode(audioContext, { maxChannels: 1, wasmBinary });
+  }
+
   const gateNode = new AudioWorkletNode(audioContext, "noise-gate-processor", {
     processorOptions: { threshold },
   });
@@ -41,9 +87,14 @@ async function createNoiseGate(audioContext: AudioContext, micStream: MediaStrea
   destination.channelCountMode = "explicit";
   destination.channelInterpretation = "speakers";
 
-  source.connect(gateNode);
+  if (rnnoiseNode) {
+    source.connect(rnnoiseNode);
+    rnnoiseNode.connect(gateNode);
+  } else {
+    source.connect(gateNode);
+  }
   gateNode.connect(destination);
-  return { track: destination.stream.getAudioTracks()[0], node: gateNode, source };
+  return { track: destination.stream.getAudioTracks()[0], node: gateNode, source, rnnoiseNode };
 }
 
 export type ConnectionQuality = "good" | "medium" | "bad";
@@ -411,9 +462,13 @@ export function useVoiceMesh({
           return;
         }
 
-        const audioContext = new AudioContext();
+        // RNNoise assume taxa de amostragem de 48kHz -- forcar isso aqui
+        // garante que o modelo processa direito mesmo em maquinas cujo
+        // dispositivo de audio padrao roda em outra taxa.
+        const audioContext = new AudioContext({ sampleRate: 48000 });
         const threshold = sensitivityToGateThreshold(settings.sensitivity);
-        const gate = await createNoiseGate(audioContext, rawStream, threshold);
+        const useRnnoise = settings.noiseSuppression && settings.noiseSuppressionModel === "rnnoise";
+        const gate = await createMicPipeline(audioContext, rawStream, threshold, useRnnoise);
         if (cancelled) {
           rawStream.getTracks().forEach((t) => t.stop());
           audioContext.close().catch(() => {});

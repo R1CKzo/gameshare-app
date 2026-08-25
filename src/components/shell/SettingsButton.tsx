@@ -465,7 +465,13 @@ function AudioTab() {
       audioContext?.close().catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.deviceId, settings.noiseSuppression, settings.echoCancellation, settings.autoGainControl]);
+  }, [
+    settings.deviceId,
+    settings.noiseSuppression,
+    settings.noiseSuppressionModel,
+    settings.echoCancellation,
+    settings.autoGainControl,
+  ]);
 
   const threshold = sensitivityToGateThreshold(settings.sensitivity);
   const levelPct = Math.min(100, (level / METER_REFERENCE_RMS) * 100);
@@ -545,6 +551,39 @@ function AudioTab() {
         checked={settings.noiseSuppression}
         onChange={(v) => update({ noiseSuppression: v })}
       />
+      {settings.noiseSuppression && isBetaEnabled() && (
+        <div className="rounded-xl bg-elevated/60 p-3.5">
+          <div className="text-sm font-bold text-foreground">Modelo de supressão de ruído</div>
+          <div className="mt-0.5 text-xs text-dim">
+            "Avançado" usa um modelo treinado pra reconhecer voz — separa melhor de ruído de teclado e afins do que o
+            padrão, mas gasta um pouco mais de processamento.
+          </div>
+          <div className="mt-3 flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => update({ noiseSuppressionModel: "browser" })}
+              className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold transition ${
+                settings.noiseSuppressionModel === "browser"
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-border text-muted hover:text-foreground-secondary"
+              }`}
+            >
+              Padrão
+            </button>
+            <button
+              type="button"
+              onClick={() => update({ noiseSuppressionModel: "rnnoise" })}
+              className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold transition ${
+                settings.noiseSuppressionModel === "rnnoise"
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-border text-muted hover:text-foreground-secondary"
+              }`}
+            >
+              Avançado (beta)
+            </button>
+          </div>
+        </div>
+      )}
       <ToggleRow
         label="Cancelamento de eco"
         description="Evita que sua própria voz volte pelo alto-falante de quem está ouvindo."

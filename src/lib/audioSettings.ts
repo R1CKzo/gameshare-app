@@ -4,6 +4,14 @@
 // pessoa entra numa chamada.
 export type AudioSettings = {
   noiseSuppression: boolean;
+  // Qual mecanismo faz a supressao quando noiseSuppression esta ligado.
+  // "browser": supressao nativa do navegador (constraint do getUserMedia,
+  // comportamento de sempre). "rnnoise": modelo de rede neural (RNNoise,
+  // via @sapphi-red/web-noise-suppressor) que roda por cima da faixa do
+  // microfone, mais robusto pra separar voz de ruido de teclado/fundo —
+  // recurso em teste, so aparece pra quem tem "Permitir versoes beta"
+  // ligado (ver isBetaEnabled em beta.ts e AudioTab em SettingsButton.tsx).
+  noiseSuppressionModel: "browser" | "rnnoise";
   echoCancellation: boolean;
   autoGainControl: boolean;
   deviceId: string | null;
@@ -16,6 +24,7 @@ const STORAGE_KEY = "gameshare:audioSettings";
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   noiseSuppression: true,
+  noiseSuppressionModel: "browser",
   echoCancellation: true,
   autoGainControl: true,
   deviceId: null,
@@ -30,6 +39,8 @@ export function loadAudioSettings(): AudioSettings {
     const parsed = JSON.parse(raw);
     return {
       noiseSuppression: parsed.noiseSuppression ?? DEFAULT_AUDIO_SETTINGS.noiseSuppression,
+      noiseSuppressionModel:
+        parsed.noiseSuppressionModel === "rnnoise" ? "rnnoise" : DEFAULT_AUDIO_SETTINGS.noiseSuppressionModel,
       echoCancellation: parsed.echoCancellation ?? DEFAULT_AUDIO_SETTINGS.echoCancellation,
       autoGainControl: parsed.autoGainControl ?? DEFAULT_AUDIO_SETTINGS.autoGainControl,
       deviceId: typeof parsed.deviceId === "string" ? parsed.deviceId : DEFAULT_AUDIO_SETTINGS.deviceId,
@@ -47,7 +58,11 @@ export function saveAudioSettings(settings: AudioSettings) {
 
 export function getMicConstraints(settings: AudioSettings): MediaTrackConstraints {
   return {
-    noiseSuppression: settings.noiseSuppression,
+    // Quando o modelo e "rnnoise", a supressao nativa do navegador fica
+    // desligada aqui — o RNNoise processa a faixa depois (ver
+    // createMicPipeline em useVoiceMesh.ts), e rodar os dois juntos so
+    // arrisca artefato sem ganho real.
+    noiseSuppression: settings.noiseSuppression && settings.noiseSuppressionModel === "browser",
     echoCancellation: settings.echoCancellation,
     autoGainControl: settings.autoGainControl,
     ...(settings.deviceId ? { deviceId: { exact: settings.deviceId } } : {}),
