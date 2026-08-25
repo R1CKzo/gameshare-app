@@ -68,13 +68,20 @@ export async function createPeer(id?: string): Promise<Peer> {
 // e quem esta compartilhando consegue responder com as faixas de verdade.
 export function createReceiveOnlyStream(): MediaStream {
   const videoTrack = createBlankVideoTrack();
-
-  const audioContext = new AudioContext();
-  const destination = audioContext.createMediaStreamDestination();
-  const audioTrack = destination.stream.getAudioTracks()[0];
-
+  const audioTrack = createSilentAudioTrack();
   const tracks = [videoTrack, audioTrack].filter(Boolean) as MediaStreamTrack[];
   return new MediaStream(tracks);
+}
+
+// Faixa de audio "muda" (silencio puro) — mesma ideia da faixa de video em
+// branco acima, so que pra audio: reserva o espaco na conexao desde o
+// inicio (troca depois via replaceTrack, sem renegociar) pra quem nao
+// esta compartilhando nada ainda, ou pra transmissao de tela quando
+// ninguem esta compartilhando (ver useVoiceMesh.ts).
+export function createSilentAudioTrack(): MediaStreamTrack {
+  const audioContext = new AudioContext();
+  const destination = audioContext.createMediaStreamDestination();
+  return destination.stream.getAudioTracks()[0];
 }
 
 // Faixa de video "em branco" (2x2 preto). Usada como placeholder de video

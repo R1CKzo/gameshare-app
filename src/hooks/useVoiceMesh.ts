@@ -2,8 +2,16 @@ import type { MediaConnection, default as Peer } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getMicConstraints, loadAudioSettings, sensitivityToGateThreshold } from "@/lib/audioSettings";
-import { onSystemAudioChunk, parseWindowHandle, startAppAudio, stopAppAudio } from "@/lib/desktop";
-import { createBlankVideoTrack, createPeer } from "@/lib/peer";
+import { isBetaEnabled } from "@/lib/beta";
+import {
+  onSystemAudioChunk,
+  parseWindowHandle,
+  startAppAudio,
+  startSystemAudioExcludingSelf,
+  stopAppAudio,
+  stopSystemAudioExcludingSelf,
+} from "@/lib/desktop";
+import { createBlankVideoTrack, createPeer, createSilentAudioTrack } from "@/lib/peer";
 import { playMuteSound } from "@/lib/sound";
 
 // Gate de ruido: deixa a faixa do microfone passar direto quando o volume
@@ -52,6 +60,20 @@ export type PresentUser = {
   // abaixo) — chega pronto do servidor pra todo mundo que ve essa pessoa,
   // dentro da chamada ou so espiando a barra lateral sem ter entrado.
   connectionQuality: ConnectionQuality;
+};
+
+// Voz do microfone, audio da transmissao (tela/app compartilhado) e video
+// vem em 3 faixas SEPARADAS por pessoa (antes, mic e transmissao vinham
+// misturados numa faixa so) -- assim quem esta ouvindo pode controlar o
+// volume da transmissao (ou parar de assistir) sem afetar a voz de
+// ninguem na call. Qualquer uma pode ser null: video sempre existe uma
+// vez a conexao aberta (mesmo que "em branco", ver createBlankVideoTrack),
+// broadcastTrack so carrega audio de verdade enquanto aquela pessoa
+// estiver compartilhando com som.
+export type RemotePeerTracks = {
+  micTrack: MediaStreamTrack | null;
+  broadcastTrack: MediaStreamTrack | null;
+  videoTrack: MediaStreamTrack | null;
 };
 
 const QUALITY_POLL_MS = 3000;
@@ -161,12 +183,49 @@ async function captureAppAudio(
   };
 }
 
+// Audio da TELA INTEIRA: gemea de captureAppAudio acima, so que captura
+// tudo que esta tocando no sistema, menos o proprio processo do GameShare
+// (modo "exclude" da API de process-loopback do Windows — ver
+// loopback_helper.cpp) em vez de um app especifico. Como e o proprio
+// GameShare quem toca a voz dos outros participantes da call, excluir o
+// proprio processo ja exclui essas vozes automaticamente, sem precisar de
+// nenhum filtro extra.
+async function captureSystemAudio(
+  audioContext: AudioContext,
+): Promise<{ track: MediaStreamTrack; cleanup: () => void } | null> {
+  const result = await startSystemAudioExcludingSelf();
+  if (!result.ok) return null;
+
+  await audioContext.audioWorklet.addModule("/pcm-injector-worklet.js");
+  const workletNode = new AudioWorkletNode(audioContext, "pcm-injector-processor", {
+    numberOfInputs: 0,
+    numberOfOutputs: 1,
+    outputChannelCount: [2],
+  });
+  const destination = audioContext.createMediaStreamDestination();
+  workletNode.connect(destination);
+
+  const unsubscribe = onSystemAudioChunk((chunk) => {
+    workletNode.port.postMessage(chunk, [chunk]);
+  });
+
+  return {
+    track: destination.stream.getAudioTracks()[0],
+    cleanup: () => {
+      unsubscribe();
+      stopSystemAudioExcludingSelf();
+      workletNode.disconnect();
+    },
+  };
+}
+
 // Malha de voz: cada participante presente na sala mantem uma conexao de
-// midia PeerJS direta com todo mundo (audio do microfone sempre, + video
-// "em branco" reservando espaco pra, quando alguem ligar o compartilhamento
-// de tela, trocar so a faixa de video via replaceTrack — sem renegociar
-// nada). Pra nunca duplicar a conexao entre duas pessoas, quem tem o
-// userId menor (ordem alfabetica) e sempre quem liga.
+// midia PeerJS direta com todo mundo, com 3 faixas reservadas desde o
+// inicio -- audio do microfone (nunca trocada), video "em branco" e audio
+// de transmissao "mudo" (ambos trocados via replaceTrack quando alguem
+// compartilha a tela, sem precisar renegociar nada). Pra nunca duplicar a
+// conexao entre duas pessoas, quem tem o userId menor (ordem alfabetica)
+// e sempre quem liga.
 export function useVoiceMesh({
   apiBase,
   currentUserId,
@@ -183,15 +242,20 @@ export function useVoiceMesh({
   present: PresentUser[];
 }) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, RemotePeerTracks>>(new Map());
   const [isMuted, setIsMuted] = useState(false);
   const [isSharingScreen, setIsSharingScreen] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
 
   const peerRef = useRef<Peer | null>(null);
-  const micTrackRef = useRef<MediaStreamTrack | null>(null); // faixa de mic ja processada pelo gate de ruido
+  const micTrackRef = useRef<MediaStreamTrack | null>(null); // faixa de mic ja processada pelo gate de ruido -- nunca trocada por replaceTrack
   const videoTrackRef = useRef<MediaStreamTrack | null>(null);
-  const audioTrackRef = useRef<MediaStreamTrack | null>(null); // faixa de audio atual enviada (mic puro ou mic+sistema misturado)
+  const broadcastTrackRef = useRef<MediaStreamTrack | null>(null); // audio da transmissao (tela/app) -- "mudo" ate alguem compartilhar com som
+  // outgoingStreamRef guarda as 3 faixas de VERDADE (mic, video, transmissao)
+  // -- e o que semeia peer.call() pra gente nova entrando na sala. localStream
+  // (exposto pro React) fica so com mic+video: nada na UI local precisa ouvir
+  // a propria transmissao de volta, e incluir teria risco de confundir o
+  // detector de "esta falando" (useSpeakingDetector) com o som do jogo/app.
   const outgoingStreamRef = useRef<MediaStream | null>(null);
   const micProcessingRef = useRef<{ audioContext: AudioContext; rawStream: MediaStream } | null>(null);
   const connectionsRef = useRef<Map<string, MediaConnection>>(new Map()); // peerId -> conexao
@@ -229,10 +293,26 @@ export function useVoiceMesh({
 
   function registerConnection(peerId: string, call: MediaConnection) {
     connectionsRef.current.set(peerId, call);
-    call.on("stream", (stream) => {
+    call.on("stream", () => {
       streamedPeerIdsRef.current.add(peerId);
       connectionStartedAtRef.current.set(peerId, Date.now());
-      setRemoteStreams((prev) => new Map(prev).set(peerId, stream));
+      // Le direto dos receivers da conexao (nao do MediaStream que o
+      // evento entrega) -- a ordem das faixas dentro de um MediaStream nao
+      // e garantida pelo navegador, mas a ordem dos receivers reflete a
+      // ordem das "m-lines" negociadas (a mesma ordem que construimos o
+      // stream de saida: mic, video, transmissao — ver setup() abaixo) e
+      // e estavel a vida toda da conexao, mesmo depois de varias trocas
+      // de faixa via replaceTrack.
+      const receivers = call.peerConnection?.getReceivers() ?? [];
+      const audioReceivers = receivers.filter((r) => r.track?.kind === "audio");
+      const videoReceiver = receivers.find((r) => r.track?.kind === "video");
+      setRemoteStreams((prev) =>
+        new Map(prev).set(peerId, {
+          micTrack: audioReceivers[0]?.track ?? null,
+          broadcastTrack: audioReceivers[1]?.track ?? null,
+          videoTrack: videoReceiver?.track ?? null,
+        }),
+      );
     });
     // So diagnostico: se uma chamada nunca disparar "stream" nem "error"
     // (trava na negociacao ICE em silencio, o caso que o timeout de
@@ -291,14 +371,21 @@ export function useVoiceMesh({
 
         const micTrack = gate.track;
         micTrackRef.current = micTrack;
-        audioTrackRef.current = micTrack;
 
         const videoTrack = createBlankVideoTrack();
         videoTrackRef.current = videoTrack;
 
-        const outgoing = new MediaStream([micTrack, videoTrack]);
+        const broadcastTrack = createSilentAudioTrack();
+        broadcastTrackRef.current = broadcastTrack;
+
+        // Ordem fixa [mic, video, transmissao] -- e o que registerConnection()
+        // usa pra saber qual receiver e qual do lado de quem recebe (ver
+        // comentario la). outgoingStreamRef fica com as 3 faixas de verdade
+        // (semeia peer.call() pra gente entrando depois); localStream (React)
+        // fica so com mic+video, ver comentario no useRef acima.
+        const outgoing = new MediaStream([micTrack, videoTrack, broadcastTrack]);
         outgoingStreamRef.current = outgoing;
-        setLocalStream(outgoing);
+        setLocalStream(new MediaStream([micTrack, videoTrack]));
 
         const peer = await createPeer();
         if (cancelled) {
@@ -372,7 +459,7 @@ export function useVoiceMesh({
       outgoingStreamRef.current = null;
       micTrackRef.current = null;
       videoTrackRef.current = null;
-      audioTrackRef.current = null;
+      broadcastTrackRef.current = null;
       if (micProcessingRef.current) {
         micProcessingRef.current.rawStream.getTracks().forEach((t) => t.stop());
         micProcessingRef.current.audioContext.close().catch(() => {});
@@ -566,31 +653,50 @@ export function useVoiceMesh({
     writeAbortRef.current?.abort();
   }
 
-  function replaceOutgoingTracks(video: MediaStreamTrack, audio: MediaStreamTrack) {
+  // outgoingStreamRef (as 3 faixas de verdade que alimentam peer.call() pra
+  // gente nova) e localStream (so mic+video, exposto pro React -- ver
+  // comentario na declaracao de outgoingStreamRef acima) precisam ficar em
+  // sincronia toda vez que qualquer uma das 3 faixas troca.
+  function syncOutgoingStream() {
+    if (!outgoingStreamRef.current || !micTrackRef.current || !videoTrackRef.current || !broadcastTrackRef.current) {
+      return;
+    }
+    outgoingStreamRef.current.getTracks().forEach((t) => outgoingStreamRef.current!.removeTrack(t));
+    outgoingStreamRef.current.addTrack(micTrackRef.current);
+    outgoingStreamRef.current.addTrack(videoTrackRef.current);
+    outgoingStreamRef.current.addTrack(broadcastTrackRef.current);
+    setLocalStream(new MediaStream([micTrackRef.current, videoTrackRef.current]));
+  }
+
+  function replaceVideoTrack(video: MediaStreamTrack) {
     connectionsRef.current.forEach((call) => {
-      const pc = call.peerConnection;
-      if (!pc) return;
-      pc.getSenders().forEach((sender) => {
-        if (sender.track?.kind === "video") sender.replaceTrack(video).catch(() => {});
-        if (sender.track?.kind === "audio") sender.replaceTrack(audio).catch(() => {});
-      });
+      const sender = call.peerConnection?.getSenders().find((s) => s.track?.kind === "video");
+      sender?.replaceTrack(video).catch(() => {});
     });
     videoTrackRef.current = video;
-    audioTrackRef.current = audio;
-    if (outgoingStreamRef.current) {
-      outgoingStreamRef.current.getTracks().forEach((t) => outgoingStreamRef.current!.removeTrack(t));
-      outgoingStreamRef.current.addTrack(audio);
-      outgoingStreamRef.current.addTrack(video);
-      setLocalStream(new MediaStream(outgoingStreamRef.current.getTracks()));
-    }
+    syncOutgoingStream();
+  }
+
+  // So mexe no SEGUNDO sender de audio de cada conexao. O primeiro
+  // (indice 0) e sempre o microfone -- a ordem reflete a mesma ordem que o
+  // stream de saida foi montado em setup() (mic, video, transmissao) e e
+  // estavel pela vida toda da conexao (ver mesmo raciocinio no comentario
+  // de registerConnection, do lado de quem recebe). O sender do
+  // microfone nunca e tocado aqui: compartilhar tela nao deve silenciar
+  // nem trocar a voz de ninguem na call.
+  function replaceBroadcastAudioTrack(audio: MediaStreamTrack) {
+    connectionsRef.current.forEach((call) => {
+      const audioSenders = call.peerConnection?.getSenders().filter((s) => s.track?.kind === "audio") ?? [];
+      audioSenders[1]?.replaceTrack(audio).catch(() => {});
+    });
+    broadcastTrackRef.current = audio;
+    syncOutgoingStream();
   }
 
   const stopScreenShare = useCallback(() => {
     if (!shareMixRef.current) return;
-    const blankVideo = createBlankVideoTrack();
-    if (micTrackRef.current) {
-      replaceOutgoingTracks(blankVideo, micTrackRef.current);
-    }
+    replaceVideoTrack(createBlankVideoTrack());
+    replaceBroadcastAudioTrack(createSilentAudioTrack());
     shareMixRef.current.nativeAudioCleanup?.();
     shareMixRef.current.audioContext.close().catch(() => {});
     shareMixRef.current.displayStream.getTracks().forEach((t) => t.stop());
@@ -610,31 +716,31 @@ export function useVoiceMesh({
       const displayVideoTrack = displayStream.getVideoTracks()[0];
 
       audioContext = new AudioContext();
-      const destination = audioContext.createMediaStreamDestination();
-      // Forca mono na saida: a faixa de audio original (so o mic, antes de
-      // compartilhar) e mono. Se o audio do app aqui embaixo for estereo, a
-      // destination sem essas linhas vira estereo tambem — e trocar a
-      // contagem de canais de uma faixa de audio no meio de uma chamada ja
-      // conectada (via replaceTrack) faz quem esta recebendo simplesmente
-      // parar de decodificar o audio, sem erro nenhum visivel. Era esse o
-      // "audio do compartilhamento nao chega pra quem esta assistindo".
-      destination.channelCount = 1;
-      destination.channelCountMode = "explicit";
-      destination.channelInterpretation = "speakers";
-      audioContext.createMediaStreamSource(new MediaStream([micTrackRef.current])).connect(destination);
-      if (options.sourceType === "window") {
-        const appAudio = await captureAppAudio(audioContext, options.sourceId);
-        if (appAudio) {
-          audioContext.createMediaStreamSource(new MediaStream([appAudio.track])).connect(destination);
-          nativeAudioCleanup = appAudio.cleanup;
-        }
-      }
-      const mixedAudioTrack = destination.stream.getAudioTracks()[0];
+      // Tela inteira usa captureSystemAudio (tudo, menos o proprio
+      // GameShare -- ja exclui a voz de todo mundo na call de graca, sem
+      // filtro extra nenhum) -- SO se "Permitir versoes beta" estiver
+      // ligado (ver isBetaEnabled em src/lib/beta.ts): e a parte nova
+      // dessa mudanca, entao fica de fora por padrao pra quem nao pediu
+      // pra testar. Janela/app especifico usa o captureAppAudio que ja
+      // existia desde a v1.0.6 (so aquele processo) -- esse continua
+      // igual pra todo mundo, nao e novo. O microfone NAO entra mais aqui
+      // -- a faixa de transmissao e 100% separada da voz. Se a captura de
+      // audio falhar (ou nao for liberada), segue so com video (faixa de
+      // transmissao muda), do mesmo jeito automatico e sem erro pro
+      // usuario que ja acontecia antes.
+      const capture =
+        options.sourceType === "screen"
+          ? isBetaEnabled()
+            ? await captureSystemAudio(audioContext)
+            : null
+          : await captureAppAudio(audioContext, options.sourceId);
+      if (capture) nativeAudioCleanup = capture.cleanup;
 
       shareMixRef.current = { audioContext, displayStream, nativeAudioCleanup };
       displayVideoTrack.addEventListener("ended", stopScreenShare);
 
-      replaceOutgoingTracks(displayVideoTrack, mixedAudioTrack);
+      replaceVideoTrack(displayVideoTrack);
+      replaceBroadcastAudioTrack(capture?.track ?? createSilentAudioTrack());
       setIsSharingScreen(true);
 
       const res = await fetch(`${apiBase}/start`, { method: "POST" });
