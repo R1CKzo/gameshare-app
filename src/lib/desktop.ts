@@ -28,7 +28,12 @@ type GameshareDesktopBridge = {
   stopSystemAudioExcludingSelf: () => void;
   startAppAudio: (hwnd: number) => Promise<StartSystemAudioResult>;
   stopAppAudio: () => void;
-  onSystemAudioChunk: (callback: (chunk: ArrayBuffer) => void) => () => void;
+  // Cada pedaco de PCM cruza o IPC do Electron duas vezes (processo
+  // principal -> preload -> mundo principal via contextBridge) -- em
+  // todas as travessias, um Buffer do Node vira um Uint8Array puro do
+  // outro lado, nunca um ArrayBuffer (ver o comentario em useVoiceMesh.ts
+  // onde isso e consumido).
+  onSystemAudioChunk: (callback: (chunk: Uint8Array) => void) => () => void;
   setUnreadBadge: (hasUnread: boolean) => void;
   // So existe na janela do app de desktop EMBUTIDO (ver desktop-ui/), que
   // roda numa origem diferente da API e por isso usa token em vez de
@@ -102,7 +107,7 @@ export function stopAppAudio(): void {
   window.gameshareDesktop?.stopAppAudio();
 }
 
-export function onSystemAudioChunk(callback: (chunk: ArrayBuffer) => void): () => void {
+export function onSystemAudioChunk(callback: (chunk: Uint8Array) => void): () => void {
   if (typeof window === "undefined" || !window.gameshareDesktop) return () => {};
   return window.gameshareDesktop.onSystemAudioChunk(callback);
 }

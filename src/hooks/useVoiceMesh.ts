@@ -170,7 +170,14 @@ async function captureAppAudio(
   workletNode.connect(destination);
 
   const unsubscribe = onSystemAudioChunk((chunk) => {
-    workletNode.port.postMessage(chunk, [chunk]);
+    // "chunk" chega como Uint8Array (o Buffer do Node vira isso ao cruzar
+    // o IPC do Electron duas vezes -- main -> preload -> mundo principal
+    // via contextBridge) -- so o ArrayBuffer por baixo e "transferivel"
+    // pro postMessage; mandar o proprio Uint8Array na lista de
+    // transferencia lanca DataCloneError toda vez, silenciosamente (o
+    // worklet nunca recebia nenhum audio de verdade, so silencio).
+    const buffer = chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength);
+    workletNode.port.postMessage(buffer, [buffer]);
   });
 
   return {
@@ -206,7 +213,14 @@ async function captureSystemAudio(
   workletNode.connect(destination);
 
   const unsubscribe = onSystemAudioChunk((chunk) => {
-    workletNode.port.postMessage(chunk, [chunk]);
+    // "chunk" chega como Uint8Array (o Buffer do Node vira isso ao cruzar
+    // o IPC do Electron duas vezes -- main -> preload -> mundo principal
+    // via contextBridge) -- so o ArrayBuffer por baixo e "transferivel"
+    // pro postMessage; mandar o proprio Uint8Array na lista de
+    // transferencia lanca DataCloneError toda vez, silenciosamente (o
+    // worklet nunca recebia nenhum audio de verdade, so silencio).
+    const buffer = chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength);
+    workletNode.port.postMessage(buffer, [buffer]);
   });
 
   return {
