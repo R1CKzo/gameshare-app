@@ -33,6 +33,7 @@ export const changelog: ChangelogEntry[] = [
       "Botão de silenciar geral (ícone de fone cortado): para de ouvir a chamada inteira sem sair dela — igual o Discord, também muta seu microfone, e os dois avisos aparecem pra quem mais estiver na sala",
       "Quem pode expulsar membros do servidor agora também pode remover alguém de uma chamada específica (passe o mouse no avatar da pessoa)",
       "Transmissão de tela otimizada pra consumir menos desempenho do jogo durante o compartilhamento",
+      "Melhorias na interface",
     ],
     bugsFixed: [
       "Áudio da transmissão (tela inteira ou app específico) não chegava pra quem estava assistindo",
