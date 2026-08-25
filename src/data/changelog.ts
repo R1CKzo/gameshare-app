@@ -27,16 +27,13 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
-    date: "2026-08-25",
-    title: "Edição de servidor",
-    items: ["Donos de servidor podem alterar nome e imagem do servidor."],
-    bugsFixed: [],
-  },
-  {
     version: "1.0.13",
     date: "2026-08-25",
     title: "Melhorias no sistema de beta",
-    items: ["Sistema de patch para correções adicionais atualizados"],
+    items: [
+      "Sistema de patch para correções adicionais atualizados",
+      "Donos de servidor podem alterar nome e imagem do servidor",
+    ],
     bugsFixed: [],
   },
   {
