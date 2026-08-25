@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 export function CloseNovidadesButton() {
   const router = useRouter();
 
+  // Sempre manda pra "/" (que decide sozinha pra onde ir: ultimo servidor,
+  // /setup, etc.) em vez de router.back() — depender da pilha de historico
+  // do navegador podia devolver pra propria /novidades (ex: quando a
+  // pessoa chegou aqui via redirecionamento automatico) e prender a pessoa
+  // num loop de fechar-reabrir.
   function close() {
-    if (window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
+    router.replace("/");
   }
 
   return (

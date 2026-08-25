@@ -7,6 +7,13 @@
 // desktop/main.js) — a maioria das atualizações é só no site/servidor e não
 // tem instalador novo, então fica sem selo de versão, só a data.
 export type ChangelogEntry = {
+  // Identificador estavel da entrada — depois de publicado (feito deploy),
+  // NUNCA MUDE esse valor, mesmo editando titulo/data/items depois (foi
+  // exatamente essa mudanca, em 2026-08-25, que quebrou o redirecionamento
+  // pra quem ja tinha visto a versao antiga do texto: mudar o titulo mudava
+  // a chave, deixando "lastSeenChangelogKey" de quem ja tinha visto orfa
+  // pra sempre, presa num loop voltando pra /novidades. Ver changelogKey).
+  id: string;
   version?: string;
   date: string; // YYYY-MM-DD
   title: string;
@@ -18,27 +25,30 @@ export type ChangelogEntry = {
   betaFeatures?: string[];
 };
 
-// Identifica uma entrada de forma estavel mesmo sem versao numerada (varias
-// entradas podem cair no mesmo dia) — usado pra saber se a pessoa ja viu a
-// mais recente e decidir se leva ela pra /novidades sozinho ao abrir o app.
+// Identifica uma entrada de forma estavel — usado pra saber se a pessoa ja
+// viu a mais recente e decidir se leva ela pra /novidades sozinho ao abrir
+// o app. So usa "id" (nunca titulo/data direto), pra editar o texto de uma
+// entrada depois de publicada nao orfanizar quem ja viu ela.
 export function changelogKey(entry: ChangelogEntry): string {
-  return `${entry.date}::${entry.title}`;
+  return entry.id;
 }
 
 export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.13",
     date: "2026-08-25",
+    id: "2026-08-25::Melhorias no sistema de beta",
     title: "Melhorias no sistema de beta",
     items: [
       "Sistema de patch para correções adicionais atualizados",
       "Donos de servidor podem alterar nome e imagem do servidor",
     ],
-    bugsFixed: [],
+    bugsFixed: ["Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair"],
   },
   {
     version: "1.0.12",
     date: "2026-08-25",
+    id: "2026-08-25::Áudio da transmissão, silenciar geral e expulsar da chamada",
     title: "Áudio da transmissão, silenciar geral e expulsar da chamada",
     items: [
       "O áudio da transmissão que estava em beta na versão 1.0.11 agora é oficial pra todo mundo: tela inteira leva o som do sistema junto, cada pessoa controla o volume do que está assistindo, e dá pra entrar ou sair da transmissão sem sair da chamada",
@@ -56,6 +66,7 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.11",
     date: "2026-08-24",
+    id: "2026-08-24::Programa beta",
     title: "Programa beta",
     items: [
       "Programa beta: nova aba \"Beta\" nas Configurações — ative pra liberar acesso a recursos que ainda estão em teste, antes de virarem oficiais pra todo mundo",
@@ -68,6 +79,7 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.10",
     date: "2026-08-24",
+    id: "2026-08-24::Correção na bandeja do sistema",
     title: "Correção na bandeja do sistema",
     items: [],
     bugsFixed: [
@@ -77,6 +89,7 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.8",
     date: "2026-08-23",
+    id: "2026-08-23::Notificações completas",
     title: "Notificações completas",
     items: [
       "Mensagem nova numa conversa direta também acende o aviso no ícone de Amigos, não só pedido de amizade",
@@ -110,6 +123,7 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.7",
     date: "2026-08-23",
+    id: "2026-08-23::App roda em segundo plano",
     title: "App roda em segundo plano",
     items: [
       "No app de desktop, fechar a janela (o X) não encerra mais o GameShare — ele minimiza pra bandeja do sistema e continua rodando em segundo plano, com a chamada de voz e as notificações ativas",
@@ -121,6 +135,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-08-23",
+    id: "2026-08-23::Notificações em tempo real",
     title: "Notificações em tempo real",
     items: [
       "Indicador de mensagem não lida nos servidores, nos canais de texto e nas conversas diretas",
@@ -136,6 +151,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-08-23",
+    id: "2026-08-23::Cargos, permissões e login por email",
     title: "Cargos, permissões e login por email",
     items: [
       "Sair de um servidor, e o dono pode excluir o servidor",
@@ -156,6 +172,7 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.6",
     date: "2026-08-22",
+    id: "2026-08-22::Áudio automático por app",
     title: "Áudio automático por app",
     items: [
       "Compartilhar a tela inteira nunca leva áudio do sistema — só o vídeo, sem risco de eco",
@@ -169,6 +186,7 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.5",
     date: "2026-08-22",
+    id: "2026-08-22::Áudio do sistema sem eco",
     title: "Áudio do sistema sem eco",
     items: [
       "Nova opção \"Tudo, menos a chamada\": grava jogos, música e vídeo normalmente, mas exclui só a própria chamada de voz",
@@ -179,6 +197,7 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.4",
     date: "2026-08-22",
+    id: "2026-08-22::Compartilhamento de tela nativo",
     title: "Compartilhamento de tela nativo",
     items: [
       "Compartilhamento de tela agora roda por dentro do próprio app de desktop, sem depender do navegador",
@@ -189,6 +208,7 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.3",
     date: "2026-08-22",
+    id: "2026-08-22::Amigos, mensagens diretas e chamadas privadas",
     title: "Amigos, mensagens diretas e chamadas privadas",
     items: [
       "Sistema de amigos: mandar e aceitar pedido por Nick#Tag",
@@ -205,12 +225,14 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.2",
     date: "2026-08-22",
+    id: "2026-08-22::Atualização automática mais confiável",
     title: "Atualização automática mais confiável",
     items: ["Atualização automática do app de desktop agora é visível e monitorável, com verificação periódica"],
   },
   {
     version: "1.0.1",
     date: "2026-08-22",
+    id: "2026-08-22::Login corrigido no app de desktop",
     title: "Login corrigido no app de desktop",
     bugsFixed: ["Login com Google no app de desktop (passou a abrir o navegador do sistema, já que o Google bloqueia login dentro do app)"],
     items: [],
@@ -218,11 +240,13 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "1.0.0",
     date: "2026-08-22",
+    id: "2026-08-22::Lançamento do app de desktop",
     title: "Lançamento do app de desktop",
     items: ["Cliente de Windows instalável, com a mesma interface do site, e atualização automática"],
   },
   {
     date: "2026-08-22",
+    id: "2026-08-22::Chamada de voz e chat de texto",
     title: "Chamada de voz e chat de texto",
     items: [
       "Chamada de voz real entre todo mundo na sala, com barra de controle: mutar, compartilhar tela, desligar",
@@ -243,6 +267,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-08-21",
+    id: "2026-08-21::Primeira versão do GameShare",
     title: "Primeira versão do GameShare",
     items: [
       "Login com Google",
