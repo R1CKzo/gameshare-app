@@ -42,11 +42,9 @@ export const changelog: ChangelogEntry[] = [
     items: [
       "Sistema de patch para correções adicionais atualizados",
       "Donos de servidor podem alterar nome e imagem do servidor",
-    ],
-    bugsFixed: [
-      "Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair",
       "Atualizações de correções de segurança",
     ],
+    bugsFixed: ["Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair"],
   },
   {
     version: "1.0.12",
