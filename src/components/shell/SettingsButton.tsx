@@ -18,6 +18,7 @@ import {
 } from "@/lib/audioSettings";
 import { apiUrl } from "@/lib/apiUrl";
 import { BETA_STORAGE_KEY, isBetaEnabled } from "@/lib/beta";
+import { SEND_WITH_CTRL_ENTER_KEY } from "@/lib/chatSettings";
 import { clearCache, isDesktopApp, restartAppOrReload, syncBetaTitlebarFlag, syncHardwareAccel } from "@/lib/desktop";
 import { SOUND_CALLS_KEY, SOUND_MESSAGES_KEY } from "@/lib/sound";
 
@@ -194,10 +195,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
               description='Por enquanto o GameShare só fala português (Brasil). Suporte a outros idiomas está nos planos.'
             />
           ) : tab === "batepapo" ? (
-            <ComingSoonTab
-              title="Em breve"
-              description="Configurações de bate-papo (emojis, GIFs, formatação de mensagens) ainda estão a caminho."
-            />
+            <BatePapoTab />
           ) : tab === "notificacoes" ? (
             <NotificacoesTab />
           ) : tab === "avancado" ? (
@@ -512,6 +510,35 @@ function AcessibilidadeTab() {
         description="Deixa bordas e textos apagados mais fortes, mais fácil de enxergar."
         checked={highContrast}
         onChange={setHighContrast}
+      />
+    </div>
+  );
+}
+
+function BatePapoTab() {
+  const [ctrlEnter, setCtrlEnterState] = useState(false);
+
+  useEffect(() => {
+    setCtrlEnterState(localStorage.getItem(SEND_WITH_CTRL_ENTER_KEY) === "true");
+  }, []);
+
+  function handleToggle(v: boolean) {
+    setCtrlEnterState(v);
+    try {
+      localStorage.setItem(SEND_WITH_CTRL_ENTER_KEY, String(v));
+    } catch {
+      // modo privado ou storage cheio — a escolha so nao sobrevive a um
+      // recarregamento, sem quebrar nada
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <ToggleRow
+        label="Enviar com Ctrl+Enter"
+        description='Enter passa a só quebrar linha; Ctrl+Enter (ou Cmd+Enter no Mac) envia a mensagem.'
+        checked={ctrlEnter}
+        onChange={handleToggle}
       />
     </div>
   );

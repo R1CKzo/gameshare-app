@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 
+import { MessageAttachment } from "@/components/channel/MessageAttachment";
 import type { ChatMessage, MessageAuthor } from "@/hooks/useChatMessages";
+import { formatMessageContent } from "@/lib/messageFormatting";
 
 // Mensagens seguidas da mesma pessoa em menos de 5 minutos ficam agrupadas
 // num so bloco (um avatar/nome so), como no Discord.
@@ -59,9 +61,21 @@ function MessageGroup({ group, isSelf }: { group: MessageGroupData; isSelf: bool
           <span className="text-[11px] text-dim">{formatTime(messages[0].createdAt)}</span>
         </div>
         {messages.map((message) => (
-          <p key={message.id} className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground-secondary">
-            {message.content}
-          </p>
+          <div key={message.id}>
+            {message.content && (
+              <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground-secondary">
+                {formatMessageContent(message.content)}
+              </p>
+            )}
+            {message.attachmentUrl && (
+              <MessageAttachment
+                url={message.attachmentUrl}
+                type={message.attachmentType ?? "file"}
+                name={message.attachmentName ?? "arquivo"}
+                size={message.attachmentSize ?? 0}
+              />
+            )}
+          </div>
         ))}
       </div>
     </div>

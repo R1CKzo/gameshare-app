@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
+import { type AttachmentKind, maxBytesForKind } from "@/lib/attachmentLimits";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NEW_MESSAGE_EVENT, pusherServer, dmChannelPusherName } from "@/lib/pusher";
@@ -12,8 +13,20 @@ const messageSelect = {
   id: true,
   content: true,
   createdAt: true,
+  attachmentUrl: true,
+  attachmentType: true,
+  attachmentName: true,
+  attachmentSize: true,
   user: { select: { id: true, nickname: true, userTag: true, image: true } },
 } as const;
+
+function isTrustedBlobUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname.endsWith(".public.blob.vercel-storage.com");
+  } catch {
+    return false;
+  }
+}
 
 async function requireParticipant(userId: string, dmChannelId: string) {
   const participant = await prisma.dMParticipant.findUnique({
@@ -82,15 +95,41 @@ export async function POST(request: Request, { params }: { params: { dmChannelId
 
   const body = await request.json().catch(() => ({}));
   const content = typeof body?.content === "string" ? body.content.trim() : "";
-  if (!content) {
+  const attachmentUrl = typeof body?.attachmentUrl === "string" ? body.attachmentUrl : null;
+  const attachmentType = typeof body?.attachmentType === "string" ? body.attachmentType : null;
+  const attachmentName = typeof body?.attachmentName === "string" ? body.attachmentName.slice(0, 255) : null;
+  const attachmentSize = typeof body?.attachmentSize === "number" ? body.attachmentSize : null;
+
+  if (!content && !attachmentUrl) {
     return NextResponse.json({ error: "Mensagem vazia." }, { status: 400 });
   }
   if (content.length > MAX_CONTENT_LENGTH) {
     return NextResponse.json({ error: "Mensagem muito longa." }, { status: 400 });
   }
 
+  let attachmentData: {
+    attachmentUrl?: string;
+    attachmentType?: string;
+    attachmentName?: string;
+    attachmentSize?: number;
+  } = {};
+  if (attachmentUrl) {
+    const kind = attachmentType as AttachmentKind;
+    const validKind = kind === "image" || kind === "video" || kind === "file";
+    if (
+      !validKind ||
+      !isTrustedBlobUrl(attachmentUrl) ||
+      !attachmentName ||
+      !attachmentSize ||
+      attachmentSize > maxBytesForKind(kind)
+    ) {
+      return NextResponse.json({ error: "Anexo inválido." }, { status: 400 });
+    }
+    attachmentData = { attachmentUrl, attachmentType, attachmentName, attachmentSize };
+  }
+
   const message = await prisma.dMMessage.create({
-    data: { dmChannelId: params.dmChannelId, userId: session.user.id, content },
+    data: { dmChannelId: params.dmChannelId, userId: session.user.id, content, ...attachmentData },
     select: messageSelect,
   });
 

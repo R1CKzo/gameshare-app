@@ -4,14 +4,18 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { type LiveState, useActiveCall } from "@/components/call/ActiveCallProvider";
+import { AttachmentPreview } from "@/components/channel/AttachmentPreview";
 import { CallControlBar } from "@/components/channel/CallControlBar";
 import { MessageList } from "@/components/channel/MessageList";
 import { ParticipantGrid } from "@/components/channel/ParticipantGrid";
 import { HamburgerIcon, useMobileUI } from "@/components/shell/MobileUIContext";
+import { useAttachmentUpload } from "@/hooks/useAttachmentUpload";
 import { useChatMessages } from "@/hooks/useChatMessages";
 import { useStickyScroll } from "@/hooks/useStickyScroll";
 import { type PresentUser } from "@/hooks/useVoiceMesh";
 import { apiUrl } from "@/lib/apiUrl";
+import { ALL_ALLOWED_TYPES } from "@/lib/attachmentLimits";
+import { sendsOnPlainEnter } from "@/lib/chatSettings";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, dmChannelPusherName } from "@/lib/pusherShared";
 
@@ -53,6 +57,8 @@ export function DMChatView({
   const chat = useChatMessages({ apiBase, pusherChannelName: dmChannelPusherName(dmChannelId) });
   const { scrollRef, handleScroll, stickToBottom } = useStickyScroll(chat.messages);
   const draftRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { attachment, selectFile, clear: clearAttachment } = useAttachmentUpload();
 
   useEffect(() => {
     if (clearedOrphanRef.current || isActive) return;
@@ -100,22 +106,38 @@ export function DMChatView({
     activeCall.join({ kind: "dm", dmChannelId, apiBase, name: otherUser.nickname ?? "Alguém" }, currentUserId);
   }
 
+  function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) selectFile(file);
+  }
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     const el = draftRef.current;
     const content = el?.value.trim() ?? "";
-    if (!content || chat.sending) return;
+    const attachmentReady = attachment?.status === "done";
+    if ((!content && !attachmentReady) || chat.sending) return;
     if (el) el.value = "";
     stickToBottom();
-    const ok = await chat.sendMessage(content);
-    if (!ok && el) el.value = content;
+    const ok = await chat.sendMessage(
+      content,
+      attachmentReady
+        ? { url: attachment.blobUrl!, type: attachment.kind, name: attachment.file.name, size: attachment.file.size }
+        : undefined,
+    );
+    if (ok) {
+      clearAttachment();
+    } else if (el) {
+      el.value = content;
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend(e);
-    }
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (!sendsOnPlainEnter() && !(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    handleSend(e);
   }
 
   const label = `${otherUser.nickname ?? "Alguém"}${otherUser.userTag ? "#" + otherUser.userTag : ""}`;
@@ -242,7 +264,23 @@ export function DMChatView({
       {chat.error && <div className="px-3 pb-1 text-xs text-danger sm:px-5">{chat.error}</div>}
 
       <form onSubmit={handleSend} className="px-3 pb-5 sm:px-6">
+        {attachment && <AttachmentPreview attachment={attachment} onRemove={clearAttachment} />}
         <div className="flex items-end gap-3 rounded-xl bg-elevated px-3.5 py-2.5">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ALL_ALLOWED_TYPES.join(",")}
+            onChange={handleFileSelected}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Anexar arquivo"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground"
+          >
+            <AttachIcon />
+          </button>
           <textarea
             ref={draftRef}
             onKeyDown={handleKeyDown}
@@ -264,5 +302,13 @@ export function DMChatView({
         </div>
       </form>
     </>
+  );
+}
+
+function AttachIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </svg>
   );
 }

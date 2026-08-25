@@ -328,6 +328,15 @@ model Message {
   content   String   @db.Text
   createdAt DateTime @default(now())
 
+  // Anexo opcional (foto/video/arquivo) -- um por mensagem por enquanto,
+  // por isso colunas simples em vez de tabela separada. attachmentType e
+  // "image" | "video" | "file", validado nas rotas de envio (ver
+  // src/lib/attachmentLimits.ts) -- nunca confia so no que o cliente manda.
+  attachmentUrl  String?
+  attachmentType String?
+  attachmentName String?
+  attachmentSize Int?
+
   channelId String
   channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
@@ -478,6 +487,12 @@ model DMMessage {
   id        String   @id @default(uuid())
   content   String   @db.Text
   createdAt DateTime @default(now())
+
+  // Mesma logica do anexo em Message.
+  attachmentUrl  String?
+  attachmentType String?
+  attachmentName String?
+  attachmentSize Int?
 
   dmChannelId String
   dmChannel   DMChannel @relation(fields: [dmChannelId], references: [id], onDelete: Cascade)

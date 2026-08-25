@@ -6,7 +6,17 @@ import { getPusherClient } from "@/lib/pusherClient";
 import { NEW_MESSAGE_EVENT } from "@/lib/pusherShared";
 
 export type MessageAuthor = { id: string; nickname: string | null; userTag: string | null; image: string | null };
-export type ChatMessage = { id: string; content: string; createdAt: string; user: MessageAuthor };
+export type ChatMessage = {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: MessageAuthor;
+  attachmentUrl: string | null;
+  attachmentType: string | null;
+  attachmentName: string | null;
+  attachmentSize: number | null;
+};
+export type PendingAttachment = { url: string; type: string; name: string; size: number };
 
 // Toda a logica de historico + tempo real de um chat (canal de servidor
 // ou DM, a unica diferenca e o prefixo da API e o nome do canal do
@@ -111,14 +121,24 @@ export function useChatMessages({ apiBase, pusherChannelName }: { apiBase: strin
   }, [apiBase, messages, loadingMore]);
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, attachment?: PendingAttachment) => {
       setSending(true);
       setError(null);
       try {
         const res = await fetch(`${apiBase}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({
+            content,
+            ...(attachment
+              ? {
+                  attachmentUrl: attachment.url,
+                  attachmentType: attachment.type,
+                  attachmentName: attachment.name,
+                  attachmentSize: attachment.size,
+                }
+              : {}),
+          }),
         });
         const data = await res.json();
         if (!res.ok) {
