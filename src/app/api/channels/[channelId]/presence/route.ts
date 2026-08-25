@@ -77,6 +77,7 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const peerId: string | undefined = typeof body?.peerId === "string" ? body.peerId : undefined;
   const isMuted: boolean | undefined = typeof body?.isMuted === "boolean" ? body.isMuted : undefined;
+  const isDeafened: boolean | undefined = typeof body?.isDeafened === "boolean" ? body.isDeafened : undefined;
   const connectionQuality = VALID_QUALITY.includes(body?.connectionQuality) ? body.connectionQuality : undefined;
 
   // Um heartbeat sem peerId manda update:{peerId: undefined} — o Prisma
@@ -84,9 +85,10 @@ export async function POST(
   // pula a query de UPDATE (e o updatedAt do @updatedAt nunca bate). Por
   // isso o updatedAt vai explicito aqui: todo heartbeat tem que "contar"
   // mesmo quando so esta renovando a presenca, sem peerId novo. Mesma logica
-  // pro isMuted e connectionQuality — o client manda na hora quando muda
-  // (ver useVoiceMesh), e todo heartbeat periodico normal tambem reenvia o
-  // valor atual, pra ficar consistente mesmo se aquele POST imediato falhar.
+  // pro isMuted, isDeafened e connectionQuality — o client manda na hora
+  // quando muda (ver useVoiceMesh/ActiveCallProvider), e todo heartbeat
+  // periodico normal tambem reenvia o valor atual, pra ficar consistente
+  // mesmo se aquele POST imediato falhar.
   await prisma.channelPresence.upsert({
     where: { channelId_userId: { channelId: params.channelId, userId: session.user.id } },
     create: {
@@ -94,12 +96,14 @@ export async function POST(
       userId: session.user.id,
       peerId,
       isMuted: isMuted ?? false,
+      isDeafened: isDeafened ?? false,
       ...(connectionQuality ? { connectionQuality } : {}),
     },
     update: {
       updatedAt: new Date(),
       ...(peerId !== undefined ? { peerId } : {}),
       ...(isMuted !== undefined ? { isMuted } : {}),
+      ...(isDeafened !== undefined ? { isDeafened } : {}),
       ...(connectionQuality ? { connectionQuality } : {}),
     },
   });

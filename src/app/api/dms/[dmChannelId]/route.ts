@@ -28,6 +28,7 @@ export async function GET(_request: Request, { params }: { params: { dmChannelId
         select: {
           peerId: true,
           isMuted: true,
+          isDeafened: true,
           connectionQuality: true,
           user: { select: { id: true, nickname: true, userTag: true, image: true } },
         },
@@ -47,6 +48,7 @@ export async function GET(_request: Request, { params }: { params: { dmChannelId
       ...p.user,
       peerId: p.peerId,
       isMuted: p.isMuted,
+      isDeafened: p.isDeafened,
       connectionQuality: p.connectionQuality.toLowerCase(),
     })),
   });

@@ -31,6 +31,7 @@ export async function GET(
         select: {
           peerId: true,
           isMuted: true,
+          isDeafened: true,
           connectionQuality: true,
           user: { select: { id: true, nickname: true, userTag: true, image: true } },
         },
@@ -61,6 +62,7 @@ export async function GET(
       ...p.user,
       peerId: p.peerId,
       isMuted: p.isMuted,
+      isDeafened: p.isDeafened,
       connectionQuality: p.connectionQuality.toLowerCase(),
     })),
   });

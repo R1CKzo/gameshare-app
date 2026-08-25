@@ -365,6 +365,7 @@ model ChannelPresence {
 
   peerId            String?           @unique
   isMuted           Boolean           @default(false)
+  isDeafened        Boolean           @default(false)
   connectionQuality ConnectionQuality @default(GOOD)
 
   channelId String
@@ -484,6 +485,7 @@ model DMPresence {
 
   peerId            String?           @unique
   isMuted           Boolean           @default(false)
+  isDeafened        Boolean           @default(false)
   connectionQuality ConnectionQuality @default(GOOD)
 
   dmChannelId String

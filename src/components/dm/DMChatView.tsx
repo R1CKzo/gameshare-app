@@ -181,6 +181,7 @@ export function DMChatView({
                         image: null,
                         peerId: null,
                         isMuted: false,
+                        isDeafened: false,
                         connectionQuality: "good" as const,
                       },
                     ]

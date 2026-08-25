@@ -42,6 +42,7 @@ type VoicePresentUser = {
   userTag: string | null;
   image: string | null;
   isMuted: boolean;
+  isDeafened: boolean;
   connectionQuality: ConnectionQuality;
 };
 
@@ -338,6 +339,13 @@ function VoicePresenceRow({ user }: { user: VoicePresentUser }) {
           <path d="M1 1l22 22" />
           <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
           <path d="M17 16.95A7 7 0 0 1 5 12v-2M19 10v2a7 7 0 0 1-.11 1.23" />
+        </svg>
+      )}
+      {user.isDeafened && (
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+          <path d="M2 2l20 20" />
         </svg>
       )}
     </div>

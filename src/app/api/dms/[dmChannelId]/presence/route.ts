@@ -30,6 +30,7 @@ export async function POST(request: Request, { params }: { params: { dmChannelId
   const body = await request.json().catch(() => ({}));
   const peerId: string | undefined = typeof body?.peerId === "string" ? body.peerId : undefined;
   const isMuted: boolean | undefined = typeof body?.isMuted === "boolean" ? body.isMuted : undefined;
+  const isDeafened: boolean | undefined = typeof body?.isDeafened === "boolean" ? body.isDeafened : undefined;
   const connectionQuality = VALID_QUALITY.includes(body?.connectionQuality) ? body.connectionQuality : undefined;
 
   await prisma.dMPresence.upsert({
@@ -39,12 +40,14 @@ export async function POST(request: Request, { params }: { params: { dmChannelId
       userId: session.user.id,
       peerId,
       isMuted: isMuted ?? false,
+      isDeafened: isDeafened ?? false,
       ...(connectionQuality ? { connectionQuality } : {}),
     },
     update: {
       updatedAt: new Date(),
       ...(peerId !== undefined ? { peerId } : {}),
       ...(isMuted !== undefined ? { isMuted } : {}),
+      ...(isDeafened !== undefined ? { isDeafened } : {}),
       ...(connectionQuality ? { connectionQuality } : {}),
     },
   });

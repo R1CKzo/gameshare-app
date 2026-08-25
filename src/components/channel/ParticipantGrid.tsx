@@ -29,7 +29,7 @@ export function ParticipantGrid({
   canKick?: boolean;
   onKick?: (userId: string) => void;
 }) {
-  const { isWatchingBroadcast, joinBroadcast, leaveBroadcast, getVolumeFor, setVolumeFor } = useActiveCall();
+  const { isWatchingBroadcast, joinBroadcast, leaveBroadcast, getVolumeFor, setVolumeFor, isDeafened } = useActiveCall();
 
   const sharer = sharingUserId ? present.find((u) => u.id === sharingUserId) : null;
   const isSharerSelf = !!sharer && sharer.id === currentUserId;
@@ -90,6 +90,7 @@ export function ParticipantGrid({
               localStream={isSelf ? localStream : null}
               micTrack={isSelf ? null : tracks?.micTrack ?? null}
               muted={isSelf ? isMuted : user.isMuted}
+              deafened={isSelf ? isDeafened : user.isDeafened}
               size={tileSize(present.length, !!sharer)}
               onKick={canKick && !isSelf && onKick ? () => onKick(user.id) : undefined}
             />
@@ -268,6 +269,7 @@ function ParticipantTile({
   localStream,
   micTrack,
   muted,
+  deafened,
   size,
   onKick,
 }: {
@@ -277,6 +279,7 @@ function ParticipantTile({
   localStream: MediaStream | null;
   micTrack: MediaStreamTrack | null;
   muted: boolean;
+  deafened: boolean;
   size: TileSize;
   onKick?: () => void;
 }) {
@@ -316,6 +319,7 @@ function ParticipantTile({
       <SignalIcon quality={user.connectionQuality} />
       <div className="flex max-w-full items-center gap-1 px-2 text-xs font-semibold text-foreground-secondary">
         {muted && <MutedIcon />}
+        {deafened && <DeafenedIcon />}
         <span className="truncate">{isSelf ? "Você" : label}</span>
       </div>
     </div>
@@ -372,6 +376,19 @@ function MutedIcon() {
       <path d="M1 1l22 22" />
       <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
       <path d="M17 16.95A7 7 0 0 1 5 12v-2M19 10v2a7 7 0 0 1-.11 1.23" />
+    </svg>
+  );
+}
+
+// Igual o Discord: quando alguem esta com "silenciar geral" ligado, esse
+// icone aparece JUNTO com o de mudo (ver deafened && muted no
+// toggleDeafen de ActiveCallProvider -- ativar um sempre ativa o outro).
+function DeafenedIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+      <path d="M2 2l20 20" />
     </svg>
   );
 }

@@ -100,14 +100,27 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
   // qualquer mutado normal). Desativar NAO desmuta sozinho -- fica mudo
   // ate a pessoa desmutar na mao, pra ninguem comecar a falar sem querer
   // logo que volta a ouvir a call.
+  const isDeafenedRef = useRef(false); // espelha isDeafened pro heartbeat abaixo ler sem closure velha
   const toggleDeafen = useCallback(() => {
     setIsDeafened((prev) => {
       const next = !prev;
+      isDeafenedRef.current = next;
       if (next && !mesh.isMuted) mesh.toggleMute();
+      // Avisa na hora (nao espera o proximo heartbeat periodico, que pode
+      // demorar ate HEARTBEAT_MS) -- mesma logica do toggleMute em
+      // useVoiceMesh, pra quem esta vendo de fora perceber quase na hora.
+      const peerId = mesh.getPeerId();
+      if (target) {
+        fetch(`${target.apiBase}/presence`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...(peerId ? { peerId } : {}), isDeafened: next }),
+        }).catch(() => {});
+      }
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mesh.isMuted, mesh.toggleMute]);
+  }, [mesh.isMuted, mesh.toggleMute, mesh.getPeerId, target]);
 
   useEffect(() => {
     if (mesh.micError) setCallError(mesh.micError);
@@ -192,15 +205,17 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     // exatamente essa corrida quando alguem reentrava rapido.
     function beat() {
       const peerId = mesh.getPeerId();
-      // isMuted e connectionQuality vao em toda batida (nao so quando
-      // mudam) pra ficar consistente mesmo se um POST imediato falhar por
-      // qualquer motivo — mesma logica de resiliencia do peerId acima.
+      // isMuted, isDeafened e connectionQuality vao em toda batida (nao so
+      // quando mudam) pra ficar consistente mesmo se um POST imediato
+      // falhar por qualquer motivo — mesma logica de resiliencia do peerId
+      // acima.
       fetch(`${apiBase}/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...(peerId ? { peerId } : {}),
           isMuted: mesh.getIsMuted(),
+          isDeafened: isDeafenedRef.current,
           connectionQuality: mesh.getConnectionQuality().toUpperCase(),
         }),
         signal: controller.signal,
@@ -252,6 +267,7 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     // qualquer erro antigo do jeito que sempre fez.
     setCallError(reason ?? null);
     setIsDeafened(false);
+    isDeafenedRef.current = false;
     playLeaveCallSound();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesh.isSharingScreen, mesh.abortPendingWrites, target]);

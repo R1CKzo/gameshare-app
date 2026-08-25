@@ -23,28 +23,20 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
-    date: "2026-08-25",
-    title: "Silenciar geral e expulsar da chamada",
-    items: [
-      "Botão de silenciar geral (ícone de fone cortado): para de ouvir a chamada inteira sem sair dela nem mexer no seu microfone",
-      "Quem pode expulsar membros do servidor agora também pode remover alguém de uma chamada específica (passe o mouse no avatar da pessoa)",
-      "Transmissão de tela otimizada pra consumir menos desempenho do jogo durante o compartilhamento",
-    ],
-    bugsFixed: [
-      "Sinal de conexão (verde/amarelo/vermelho) acendia errado com várias pessoas na chamada, mesmo com a internet boa",
-    ],
-  },
-  {
     version: "1.0.12",
     date: "2026-08-25",
-    title: "Áudio da transmissão e tela cheia",
+    title: "Áudio da transmissão, silenciar geral e expulsar da chamada",
     items: [
       "Compartilhar a tela inteira agora leva o som do sistema junto (sem pegar a voz de ninguém na chamada)",
       "Cada pessoa controla o volume do que está assistindo, e pode entrar ou sair da transmissão sem sair da chamada",
       "Botão de tela cheia no vídeo de quem está compartilhando",
+      "Botão de silenciar geral (ícone de fone cortado): para de ouvir a chamada inteira sem sair dela — igual o Discord, também muta seu microfone, e os dois avisos aparecem pra quem mais estiver na sala",
+      "Quem pode expulsar membros do servidor agora também pode remover alguém de uma chamada específica (passe o mouse no avatar da pessoa)",
+      "Transmissão de tela otimizada pra consumir menos desempenho do jogo durante o compartilhamento",
     ],
     bugsFixed: [
       "Áudio da transmissão (tela inteira ou app específico) não chegava pra quem estava assistindo",
+      "Sinal de conexão (verde/amarelo/vermelho) acendia errado com várias pessoas na chamada, mesmo com a internet boa",
     ],
   },
   {

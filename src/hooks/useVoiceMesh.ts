@@ -55,6 +55,7 @@ export type PresentUser = {
   image: string | null;
   peerId: string | null;
   isMuted: boolean;
+  isDeafened: boolean;
   // Auto-relatado pelo proprio dono da presenca (ver getConnectionQuality
   // abaixo) — chega pronto do servidor pra todo mundo que ve essa pessoa,
   // dentro da chamada ou so espiando a barra lateral sem ter entrado.
