@@ -8,6 +8,7 @@ import { usePresence } from "@/components/notifications/PresenceProvider";
 import { MoreMenu } from "@/components/shell/MoreMenu";
 import { SettingsButton } from "@/components/shell/SettingsButton";
 import { StatusMenu } from "@/components/shell/StatusMenu";
+import { isBetaEnabled } from "@/lib/beta";
 import { getAppVersion } from "@/lib/desktop";
 
 export function UserPill({
@@ -23,11 +24,17 @@ export function UserPill({
   const { effectiveStatus } = usePresence();
   const label = user.nickname ?? "Alguem";
 
-  // So preenche fora do navegador (ver getAppVersion) -- mostra o selo
-  // "BETA" quando a build instalada veio do programa beta (ver
-  // SettingsButton.tsx), pra nunca esquecer que nao e a versao estavel.
+  // Mostra o selo "BETA" quando a build instalada veio do programa beta
+  // (versao do instalador do desktop) OU quando o interruptor "Permitir
+  // versoes beta" (Configuracoes > Beta) esta ligado nesse navegador --
+  // esse segundo caso libera funcoes novas so do site (ver isBetaEnabled),
+  // sem precisar de instalador nenhum, entao precisa do proprio aviso.
   const [isBeta, setIsBeta] = useState(false);
   useEffect(() => {
+    if (isBetaEnabled()) {
+      setIsBeta(true);
+      return;
+    }
     getAppVersion().then((version) => setIsBeta(version.includes("beta")));
   }, []);
 

@@ -16,11 +16,11 @@ import {
   type AudioSettings,
 } from "@/lib/audioSettings";
 import { apiUrl } from "@/lib/apiUrl";
+import { BETA_STORAGE_KEY } from "@/lib/beta";
 import { checkBetaBuild, downloadAndInstallBeta, isDesktopApp, type BetaCheckResult } from "@/lib/desktop";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 const AVATAR_SIZE = 256;
-const BETA_STORAGE_KEY = "gameshare-allow-beta";
 
 // Redimensiona a foto pro navegador nunca mandar um arquivo gigante — vira
 // um quadrado de 256x256 em JPEG, com a qualidade reduzida ate caber num
@@ -529,7 +529,7 @@ function BetaTab() {
     <div className="space-y-4">
       <ToggleRow
         label="Permitir versões beta"
-        description="Mostra aqui quando tiver uma versão de teste disponível pra baixar."
+        description="Mostra aqui quando tiver uma versão de teste disponível pra baixar, e libera funções novas do site que ainda estão em teste."
         checked={allowed}
         onChange={handleToggle}
       />

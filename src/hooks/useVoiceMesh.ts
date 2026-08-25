@@ -2,6 +2,7 @@ import type { MediaConnection, default as Peer } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getMicConstraints, loadAudioSettings, sensitivityToGateThreshold } from "@/lib/audioSettings";
+import { isBetaEnabled } from "@/lib/beta";
 import {
   onSystemAudioChunk,
   parseWindowHandle,
@@ -717,15 +718,21 @@ export function useVoiceMesh({
       audioContext = new AudioContext();
       // Tela inteira usa captureSystemAudio (tudo, menos o proprio
       // GameShare -- ja exclui a voz de todo mundo na call de graca, sem
-      // filtro extra nenhum); janela/app especifico usa o captureAppAudio
-      // que ja existia (so aquele processo). O microfone NAO entra mais
-      // aqui -- a faixa de transmissao e 100% separada da voz (ver
-      // RemotePeerTracks la em cima). Se a captura de audio falhar, segue
-      // so com video (faixa de transmissao muda), do mesmo jeito
-      // automatico e sem erro pro usuario que ja acontecia antes.
+      // filtro extra nenhum) -- SO se "Permitir versoes beta" estiver
+      // ligado (ver isBetaEnabled em src/lib/beta.ts): e a parte nova
+      // dessa mudanca, entao fica de fora por padrao pra quem nao pediu
+      // pra testar. Janela/app especifico usa o captureAppAudio que ja
+      // existia desde a v1.0.6 (so aquele processo) -- esse continua
+      // igual pra todo mundo, nao e novo. O microfone NAO entra mais aqui
+      // -- a faixa de transmissao e 100% separada da voz. Se a captura de
+      // audio falhar (ou nao for liberada), segue so com video (faixa de
+      // transmissao muda), do mesmo jeito automatico e sem erro pro
+      // usuario que ja acontecia antes.
       const capture =
         options.sourceType === "screen"
-          ? await captureSystemAudio(audioContext)
+          ? isBetaEnabled()
+            ? await captureSystemAudio(audioContext)
+            : null
           : await captureAppAudio(audioContext, options.sourceId);
       if (capture) nativeAudioCleanup = capture.cleanup;
 

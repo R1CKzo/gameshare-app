@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { type PresentUser, type RemotePeerTracks, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { isBetaEnabled } from "@/lib/beta";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, dmChannelPusherName, textChannelPusherName } from "@/lib/pusherShared";
 import { playJoinCallSound, playLeaveCallSound } from "@/lib/sound";
@@ -93,12 +94,16 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
 
   const sharingUserId = mesh.isSharingScreen ? currentUserId : live.isLive ? live.broadcaster?.id ?? null : null;
 
-  // Cada transmissao nova (troca de compartilhador, ou ninguem mais
-  // compartilhando) pede "entrar" de novo -- sem isso, quem tivesse
-  // entrado numa transmissao continuaria ouvindo/vendo a PROXIMA pessoa a
-  // compartilhar sem ter escolhido isso.
+  // "Entrar/sair da transmissao" so existe pra quem ligou "Permitir
+  // versoes beta" (ver isBetaEnabled) -- quem nao ligou continua vendo e
+  // ouvindo qualquer transmissao automaticamente, do jeito que sempre foi
+  // (ParticipantGrid tambem esconde o botao e o controle de volume nesse
+  // caso). Cada transmissao nova (troca de compartilhador, ou ninguem mais
+  // compartilhando) pede "entrar" de novo pra quem esta em beta -- sem
+  // isso, quem tivesse entrado numa transmissao continuaria ouvindo/vendo
+  // a PROXIMA pessoa a compartilhar sem ter escolhido isso.
   useEffect(() => {
-    setIsWatchingBroadcast(false);
+    setIsWatchingBroadcast(!isBetaEnabled());
   }, [sharingUserId]);
 
   const joinBroadcast = useCallback(() => setIsWatchingBroadcast(true), []);
