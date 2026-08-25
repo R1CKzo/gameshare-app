@@ -673,9 +673,24 @@ ipcMain.handle("patch:check", () => checkForPatch());
 // confirmar que o instalador realmente abriu, nunca antes -- ver o
 // historico dessa exata logica pra correcao do bug "fechava sem instalar
 // nada").
-async function downloadAndInstallPatch(downloadUrl) {
+//
+// De proposito NAO recebe a URL de fora (nem do IPC, nem da renderer) --
+// sempre busca ela de novo aqui dentro, chamando checkForPatch() sozinho.
+// Essa janela carrega o site de verdade (loadURL(APP_URL)), entao
+// qualquer script rodando la (em tese, um XSS futuro no site) conseguiria
+// chamar essa ponte diretamente -- se ela aceitasse uma URL vinda de fora,
+// isso baixaria e executaria QUALQUER .exe que quisesse, sem nenhuma
+// validacao. Derivando a URL aqui dentro (sempre da API do GitHub, sempre
+// desse repositorio), a pior coisa que um script malicioso consegue fazer
+// e disparar a instalacao de uma correcao de verdade, nunca de algo
+// arbitrario.
+async function downloadAndInstallPatch() {
   try {
-    const res = await fetch(downloadUrl);
+    const patch = await checkForPatch();
+    if (!patch.available) {
+      return { ok: false, error: "Nenhuma correção disponível." };
+    }
+    const res = await fetch(patch.downloadUrl);
     if (!res.ok) {
       log.error("[patch] falha ao baixar, HTTP", res.status);
       return { ok: false, error: "Não foi possível baixar a atualização. Tente de novo mais tarde." };
@@ -703,7 +718,7 @@ async function downloadAndInstallPatch(downloadUrl) {
   }
 }
 
-ipcMain.handle("patch:download-and-install", (_event, downloadUrl) => downloadAndInstallPatch(downloadUrl));
+ipcMain.handle("patch:download-and-install", () => downloadAndInstallPatch());
 
 function notify(title, body) {
   if (!Notification.isSupported()) return;

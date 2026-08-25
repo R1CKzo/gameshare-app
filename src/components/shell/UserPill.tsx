@@ -75,7 +75,7 @@ export function UserPill({
     if (!patchDownloadUrl || installingPatch) return;
     setInstallingPatch(true);
     setPatchError(null);
-    const result = await downloadAndInstallPatch(patchDownloadUrl);
+    const result = await downloadAndInstallPatch();
     if (!result.ok) {
       setPatchError(result.error);
       setInstallingPatch(false);

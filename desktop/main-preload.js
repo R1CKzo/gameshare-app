@@ -64,6 +64,6 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     // build nova pra MESMA versao instalada e, se a pessoa confirmar,
     // baixa e abre o instalador.
     checkForPatch: () => ipcRenderer.invoke("patch:check"),
-    downloadAndInstallPatch: (downloadUrl) => ipcRenderer.invoke("patch:download-and-install", downloadUrl),
+    downloadAndInstallPatch: () => ipcRenderer.invoke("patch:download-and-install"),
   });
 }

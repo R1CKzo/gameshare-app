@@ -49,7 +49,7 @@ type GameshareDesktopBridge = {
   // se saiu uma build nova pra MESMA versao instalada e baixa/instala se
   // a pessoa confirmar.
   checkForPatch?: () => Promise<PatchCheckResult>;
-  downloadAndInstallPatch?: (downloadUrl: string) => Promise<PatchInstallResult>;
+  downloadAndInstallPatch?: () => Promise<PatchInstallResult>;
 };
 
 declare global {
@@ -158,9 +158,13 @@ export function checkForPatch(): Promise<PatchCheckResult> {
   return window.gameshareDesktop.checkForPatch();
 }
 
-export function downloadAndInstallPatch(downloadUrl: string): Promise<PatchInstallResult> {
+// De proposito nao recebe nem repassa a URL de baixar -- o processo
+// principal do Electron sempre deriva ela de novo sozinho (ver
+// downloadAndInstallPatch em desktop/main.js) em vez de confiar numa URL
+// vinda daqui (que rodaria dentro da propria pagina do site).
+export function downloadAndInstallPatch(): Promise<PatchInstallResult> {
   if (typeof window === "undefined" || !window.gameshareDesktop?.downloadAndInstallPatch) {
     return Promise.resolve({ ok: false, error: "Não foi possível baixar a atualização agora." });
   }
-  return window.gameshareDesktop.downloadAndInstallPatch(downloadUrl);
+  return window.gameshareDesktop.downloadAndInstallPatch();
 }
