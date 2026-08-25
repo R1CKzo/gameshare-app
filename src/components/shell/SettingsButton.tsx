@@ -149,7 +149,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
   return createPortal(
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background md:flex-row" onClick={onClose}>
       <div
-        className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-overlay bg-surface px-3 pb-2 pt-[calc(0.5rem_+_var(--titlebar-h,0px))] md:w-[218px] md:flex-col md:justify-start md:overflow-y-auto md:overflow-x-hidden md:border-b-0 md:px-2 md:py-[60px] md:pl-4"
+        className="grid shrink-0 grid-cols-2 gap-1 border-b border-overlay bg-surface px-3 pb-3 pt-[calc(0.5rem_+_var(--titlebar-h,0px))] md:flex md:w-[218px] md:flex-col md:justify-start md:gap-0.5 md:overflow-y-auto md:overflow-x-hidden md:border-b-0 md:px-2 md:py-[60px] md:pl-4"
         onClick={(e) => e.stopPropagation()}
       >
         {groups.map((group) => (
@@ -161,7 +161,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-2 text-left text-[15px] font-medium transition ${
+                className={`rounded-md px-2.5 py-2 text-left text-[15px] font-medium leading-tight transition ${
                   tab === t ? "bg-elevated text-foreground" : "text-muted hover:bg-elevated-hover hover:text-foreground-secondary"
                 }`}
               >
