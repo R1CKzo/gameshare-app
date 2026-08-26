@@ -315,6 +315,51 @@ ipcMain.on("window:toggle-maximize", () => {
 ipcMain.on("window:close", () => mainWindow?.close());
 ipcMain.handle("window:is-maximized", () => mainWindow?.isMaximized() ?? false);
 
+// Prazo pra pagina inicial terminar de carregar antes de desistir e tentar
+// de novo -- cobre o caso de a rede estar lenta/instavel bem na hora que o
+// app abre (ex: acabou de sair do modo espera, Wi-Fi ainda reconectando).
+// Sem esse timeout, o Chromium podia ficar esperando pra sempre por uma
+// resposta que nunca chega (sem nunca disparar "did-fail-load"), deixando
+// so o fundo escuro parado na tela, processo vivo mas sem fazer nada -- o
+// "tela preta e 0% de CPU/RAM, so resolvia matando o processo e abrindo de
+// novo" reportado em bug real.
+const INITIAL_LOAD_TIMEOUT_MS = 15000;
+const INITIAL_LOAD_RETRY_DELAY_MS = 2000;
+
+function setupMainWindowLoad(win) {
+  let stallTimer = null;
+
+  function armStallTimer() {
+    clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => {
+      log.warn("[main-window] carregamento travado, tentando de novo...");
+      win.webContents.stop();
+      retry();
+    }, INITIAL_LOAD_TIMEOUT_MS);
+  }
+
+  function retry() {
+    setTimeout(() => {
+      if (win.isDestroyed()) return;
+      win.loadURL(APP_URL);
+      armStallTimer();
+    }, INITIAL_LOAD_RETRY_DELAY_MS);
+  }
+
+  win.webContents.on("did-finish-load", () => clearTimeout(stallTimer));
+  win.webContents.on("did-fail-load", (_event, errorCode) => {
+    // -3 = ERR_ABORTED -- disparado pelo proprio win.webContents.stop() ali
+    // em cima quando o timeout de travado age, nao e uma falha de verdade.
+    if (errorCode === -3) return;
+    clearTimeout(stallTimer);
+    log.warn("[main-window] falha ao carregar (código", errorCode, "), tentando de novo...");
+    retry();
+  });
+
+  win.loadURL(APP_URL);
+  armStallTimer();
+}
+
 function createWindow() {
   const customTitlebar = readBetaTitlebarFlag();
 
@@ -339,7 +384,7 @@ function createWindow() {
   });
 
   mainWindow.webContents.setUserAgent(DESKTOP_CHROME_UA);
-  mainWindow.loadURL(APP_URL);
+  setupMainWindowLoad(mainWindow);
 
   // Avisa a pagina quando o estado maximizado muda por qualquer via que nao
   // seja o botao dela mesma (atalho de teclado, arrastar pra borda da

@@ -76,6 +76,9 @@ export const changelog: ChangelogEntry[] = [
       "Trocar de anexo antes do envio anterior terminar podia misturar o arquivo errado na mensagem (beta)",
       "Enviar uma mensagem enquanto o anexo ainda estava subindo descartava o anexo sem avisar (beta)",
       "Silenciar um servidor, canal ou conversa não apagava o aviso de não lida que já estava aceso ali (beta)",
+      "Configurações ficava inacessível durante uma chamada de voz",
+      "Tela de quem está compartilhando podia piscar ou sumir por um instante toda vez que alguém entrava, saía ou mutava na chamada",
+      "App de desktop podia abrir com tela preta e travado (sem usar CPU) se a rede estivesse instável bem na hora de iniciar",
     ],
   },
   {

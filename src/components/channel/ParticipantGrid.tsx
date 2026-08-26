@@ -38,12 +38,21 @@ export function ParticipantGrid({
   // próprio compartilhador sempre vê a própria tela, sem precisar disso.
   const showBroadcast = !!sharer && (isSharerSelf || isWatchingBroadcast);
 
+  // Depende so da FAIXA de video em si (nao do objeto "sharer", que e
+  // recriado a cada poll de presenca -- ~12s, ou a cada evento de entrar/
+  // sair/mutar de QUALQUER pessoa na call, mesmo sem mudar nada pra quem
+  // esta compartilhando). Antes disso, o MediaStream era reconstruido nesses
+  // momentos mesmo com a faixa por dentro sendo a mesma, e o <video> (que
+  // reatribui srcObject toda vez que o objeto stream muda -- ver ScreenView
+  // abaixo) piscava/sumia por um instante -- o "as vezes a tela some"
+  // reportado em bug real.
+  const sharerVideoTrack = sharerTracks?.videoTrack ?? null;
+  const hasSharer = !!sharer;
   const sharerVideoStream = useMemo(() => {
-    if (!sharer) return null;
+    if (!hasSharer) return null;
     if (isSharerSelf) return localStream;
-    const track = sharerTracks?.videoTrack ?? null;
-    return track ? new MediaStream([track]) : null;
-  }, [sharer, isSharerSelf, localStream, sharerTracks]);
+    return sharerVideoTrack ? new MediaStream([sharerVideoTrack]) : null;
+  }, [hasSharer, isSharerSelf, localStream, sharerVideoTrack]);
 
   const sharerVolume = sharer && !isSharerSelf ? getVolumeFor(sharer.id) : 100;
 
