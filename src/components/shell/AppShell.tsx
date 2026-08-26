@@ -83,7 +83,9 @@ export function AppShell({
         toggleMembers: () => setMembersOpen((v) => !v),
       }}
     >
-      <div className="page-fade-in relative flex h-[calc(100dvh_-_var(--titlebar-h,0px))] w-screen overflow-hidden bg-main">
+      <div
+        className={`relative flex h-[calc(100dvh_-_var(--titlebar-h,0px))] w-screen overflow-hidden bg-main ${isBetaEnabled() ? "gs-anim-slide-up" : "page-fade-in"}`}
+      >
         {(sidebarOpen || membersOpen) && (
           <div
             onClick={() => {
