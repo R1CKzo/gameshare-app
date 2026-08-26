@@ -79,6 +79,7 @@ export const changelog: ChangelogEntry[] = [
       "Configurações ficava inacessível durante uma chamada de voz",
       "Tela de quem está compartilhando podia piscar ou sumir por um instante toda vez que alguém entrava, saía ou mutava na chamada",
       "App de desktop podia abrir com tela preta e travado (sem usar CPU) se a rede estivesse instável bem na hora de iniciar",
+      "Foto de perfil customizada era reenviada inteira em toda consulta de mensagens, membros e presença de chamada, gastando mais dados do que deveria",
     ],
   },
   {
