@@ -6,6 +6,7 @@ import { DMChatView } from "@/components/dm/DMChatView";
 import { DMSidebar } from "@/components/shell/DMSidebar";
 import { FriendsShell } from "@/components/shell/FriendsShell";
 import { authOptions } from "@/lib/auth";
+import { publicServerImage, publicUserImage } from "@/lib/avatarUrl";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -36,15 +37,16 @@ export default async function DMPage({ params }: { params: { dmChannelId: string
   ]);
 
   const isParticipant = dmChannel?.participants.some((p) => p.user.id === session.user.id) ?? false;
-  const otherUser = dmChannel?.participants.map((p) => p.user).find((u) => u.id !== session.user.id);
+  const otherUserRaw = dmChannel?.participants.map((p) => p.user).find((u) => u.id !== session.user.id);
 
-  if (!dmChannel || !isParticipant || !otherUser) {
+  if (!dmChannel || !isParticipant || !otherUserRaw) {
     return <NotFoundScreen />;
   }
+  const otherUser = { ...otherUserRaw, image: publicUserImage(otherUserRaw.id, otherUserRaw.image) };
 
   return (
     <FriendsShell
-      servers={servers}
+      servers={servers.map((s) => ({ ...s, image: publicServerImage(s.id, s.image) }))}
       sidebar={
         <DMSidebar
           user={{ nickname: session.user.nickname, userTag: session.user.userTag, image: session.user.image ?? null }}

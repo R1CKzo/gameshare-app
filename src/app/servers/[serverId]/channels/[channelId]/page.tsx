@@ -6,6 +6,7 @@ import { TextChannelView } from "@/components/channel/TextChannelView";
 import { DeadEndScreen } from "@/components/DeadEndScreen";
 import { AppShell } from "@/components/shell/AppShell";
 import { authOptions } from "@/lib/auth";
+import { publicServerImage, publicUserImage } from "@/lib/avatarUrl";
 import { PRESENCE_WINDOW_MS } from "@/lib/callLimits";
 import { prisma } from "@/lib/prisma";
 
@@ -93,14 +94,14 @@ export default async function ChannelPage({
 
   return (
     <AppShell
-      servers={servers}
+      servers={servers.map((s) => ({ ...s, image: publicServerImage(s.id, s.image) }))}
       currentServerId={membership.server.id}
       serverName={membership.server.name}
-      serverImage={membership.server.image}
+      serverImage={publicServerImage(membership.server.id, membership.server.image)}
       inviteCode={membership.server.inviteCode}
       channels={channelsForSidebar}
       currentChannelId={channel.id}
-      members={members.map((m) => ({ ...m.user, roleId: m.roleId, role: m.role }))}
+      members={members.map((m) => ({ ...m.user, image: publicUserImage(m.user.id, m.user.image), roleId: m.roleId, role: m.role }))}
       ownerId={membership.server.ownerId}
       permissions={permissions}
       user={{ nickname: session.user.nickname, userTag: session.user.userTag, image: session.user.image ?? null }}

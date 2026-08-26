@@ -5,6 +5,7 @@ import { FriendsView } from "@/components/friends/FriendsView";
 import { DMSidebar } from "@/components/shell/DMSidebar";
 import { FriendsShell } from "@/components/shell/FriendsShell";
 import { authOptions } from "@/lib/auth";
+import { publicServerImage } from "@/lib/avatarUrl";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +14,12 @@ export default async function FriendsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) notFound();
 
-  const servers = await prisma.server.findMany({
+  const rows = await prisma.server.findMany({
     where: { members: { some: { userId: session.user.id } } },
     orderBy: { createdAt: "asc" },
     select: { id: true, name: true, image: true },
   });
+  const servers = rows.map((s) => ({ ...s, image: publicServerImage(s.id, s.image) }));
 
   return (
     <FriendsShell
