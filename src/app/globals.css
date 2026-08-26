@@ -325,3 +325,61 @@ html[data-beta-ui="true"] *::-webkit-scrollbar-corner {
     animation: none;
   }
 }
+
+/* Animações de entrada (beta -- classes só aplicadas quando
+   isBetaEnabled() nos componentes que as usam) pra modais, menus e outros
+   elementos que hoje só aparecem/somem sem transição nenhuma. Só ENTRADA de
+   proposito, sem animação de saída: o React desmonta esses elementos na
+   hora (sem delay nenhum programado pra isso), e criar esse atraso só pra
+   poder animar a saída adicionava complexidade grande pra um ganho
+   pequeno -- mesma escolha já feita no page-fade-in acima, que também só
+   anima a entrada. Zeradas tanto por prefers-reduced-motion quanto pelo
+   interruptor manual de "reduzir movimento" (ver a regra
+   [data-reduce-motion="true"] no topo desse arquivo, que já cobre
+   qualquer animação/transição do app inteiro, essa incluída). */
+@keyframes gs-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes gs-scale-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes gs-slide-up-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gs-anim-fade {
+  animation: gs-fade-in 160ms ease-out;
+}
+.gs-anim-scale {
+  animation: gs-scale-fade-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gs-anim-slide-up {
+  animation: gs-slide-up-fade-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs-anim-fade,
+  .gs-anim-scale,
+  .gs-anim-slide-up {
+    animation: none;
+  }
+}

@@ -8,6 +8,7 @@ import { ChannelSidebar } from "@/components/shell/ChannelSidebar";
 import { MemberList } from "@/components/shell/MemberList";
 import { MobileUIContext } from "@/components/shell/MobileUIContext";
 import { ServerRail } from "@/components/shell/ServerRail";
+import { isBetaEnabled } from "@/lib/beta";
 import { setLastChannel } from "@/lib/lastChannel";
 
 type ServerSummary = { id: string; name: string; image: string | null };
@@ -89,7 +90,7 @@ export function AppShell({
               setSidebarOpen(false);
               setMembersOpen(false);
             }}
-            className="fixed inset-0 z-40 bg-black/60 md:hidden"
+            className={`fixed inset-0 z-40 bg-black/60 md:hidden ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
           />
         )}
 

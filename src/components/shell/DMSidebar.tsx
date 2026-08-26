@@ -10,6 +10,7 @@ import { StatusDot } from "@/components/shell/StatusDot";
 import { UserPill } from "@/components/shell/UserPill";
 import { useFloatingMenu } from "@/hooks/useFloatingMenu";
 import { apiUrl } from "@/lib/apiUrl";
+import { isBetaEnabled } from "@/lib/beta";
 import { deriveStatus, type RawStatus } from "@/lib/presence";
 
 type DMUser = {
@@ -180,7 +181,7 @@ function DMActionsMenu({ dmChannelId }: { dmChannelId: string }) {
           <div
             ref={menuRef}
             style={{ top: position.top, left: position.left, width: 200 }}
-            className="fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className={`fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)] ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
           >
             <button
               onClick={() => {

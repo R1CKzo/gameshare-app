@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { useUnread } from "@/components/notifications/UnreadContext";
 import { useFloatingMenu } from "@/hooks/useFloatingMenu";
 import { apiUrl } from "@/lib/apiUrl";
+import { isBetaEnabled } from "@/lib/beta";
 import { isDesktopApp } from "@/lib/desktop";
 
 const MENU_WIDTH = 220;
@@ -70,7 +71,7 @@ export function MoreMenu({
           <div
             ref={menuRef}
             style={{ top: position.top, left: position.left, width: MENU_WIDTH, transform: "translateY(-100%)" }}
-            className="fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className={`fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)] ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
           >
             <Link
               href="/novidades"

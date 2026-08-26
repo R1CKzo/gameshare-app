@@ -149,7 +149,10 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background md:flex-row" onClick={onClose}>
+    <div
+      className={`fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background md:flex-row ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
+      onClick={onClose}
+    >
       <div
         className="flex max-h-[45vh] shrink-0 flex-col gap-0.5 overflow-y-auto border-b border-overlay bg-surface px-3 pb-3 pt-[calc(0.5rem_+_var(--titlebar-h,0px))] md:max-h-none md:w-[218px] md:justify-start md:overflow-x-hidden md:border-b-0 md:px-2 md:py-[60px] md:pl-4"
         onClick={(e) => e.stopPropagation()}
@@ -175,7 +178,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="mx-auto max-w-[600px] px-5 py-8 md:px-10 md:py-[60px]">
+        <div key={tab} className={`mx-auto max-w-[600px] px-5 py-8 md:px-10 md:py-[60px] ${isBetaEnabled() ? "gs-anim-fade" : ""}`}>
           <h2 className="mb-6 font-display text-xl font-bold">{labels[tab]}</h2>
           {tab === "perfil" ? (
             <ProfileTab />
@@ -225,11 +228,16 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<"perfil" | "aparencia" | "audio" | "seguranca" | "beta" | "bug">("perfil");
   const tabs = (["perfil", "aparencia", "audio", "seguranca", ...(isDesktopApp() ? (["beta"] as const) : []), "bug"] as const);
 
+  const beta = isBetaEnabled();
+
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
+    <div
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 ${beta ? "gs-anim-fade" : ""}`}
+      onClick={onClose}
+    >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-overlay-strong bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+        className={`flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-overlay-strong bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.5)] ${beta ? "gs-anim-scale" : ""}`}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-overlay px-5 py-4">
           <h2 className="font-display text-lg font-bold">Configurações</h2>
@@ -266,7 +274,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        <div className="overflow-y-auto p-5">
+        <div key={tab} className={`overflow-y-auto p-5 ${beta ? "gs-anim-fade" : ""}`}>
           {tab === "perfil" ? (
             <ProfileTab />
           ) : tab === "aparencia" ? (

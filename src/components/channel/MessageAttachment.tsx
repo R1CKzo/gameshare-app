@@ -1,4 +1,5 @@
 import { formatBytes } from "@/lib/attachmentLimits";
+import { isBetaEnabled } from "@/lib/beta";
 
 // Imagem/video/arquivo anexado numa mensagem. Imagem usa <img> comum (nao
 // next/image) de proposito -- as dimensoes do arquivo enviado sao
@@ -15,13 +16,15 @@ export function MessageAttachment({
   name: string;
   size: number;
 }) {
+  const enter = isBetaEnabled() ? "gs-anim-fade" : "";
+
   if (type === "image") {
     return (
       <a
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-1.5 block max-w-xs overflow-hidden rounded-lg border border-overlay"
+        className={`mt-1.5 block max-w-xs overflow-hidden rounded-lg border border-overlay ${enter}`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={url} alt={name} className="max-h-72 w-auto object-contain" />
@@ -30,7 +33,7 @@ export function MessageAttachment({
   }
 
   if (type === "video") {
-    return <video controls src={url} className="mt-1.5 max-h-72 max-w-xs rounded-lg border border-overlay" />;
+    return <video controls src={url} className={`mt-1.5 max-h-72 max-w-xs rounded-lg border border-overlay ${enter}`} />;
   }
 
   return (
@@ -39,7 +42,7 @@ export function MessageAttachment({
       download={name}
       target="_blank"
       rel="noopener noreferrer"
-      className="mt-1.5 flex max-w-xs items-center gap-2.5 rounded-lg bg-elevated px-3 py-2.5 text-sm transition hover:bg-elevated-hover"
+      className={`mt-1.5 flex max-w-xs items-center gap-2.5 rounded-lg bg-elevated px-3 py-2.5 text-sm transition hover:bg-elevated-hover ${enter}`}
     >
       <FileIcon />
       <span className="min-w-0 flex-1 truncate font-semibold text-foreground">{name}</span>

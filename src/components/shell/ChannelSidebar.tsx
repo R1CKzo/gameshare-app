@@ -511,7 +511,7 @@ function ChannelCreateButton({ onCreate }: { onCreate: (name: string) => Promise
             ref={popoverRef}
             onSubmit={submit}
             style={{ top: position.top, left: position.left, width: 232 }}
-            className="fixed z-[100] space-y-2 rounded-xl border border-overlay-strong bg-elevated p-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className={`fixed z-[100] space-y-2 rounded-xl border border-overlay-strong bg-elevated p-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)] ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
           >
             <input
               ref={inputRef}
@@ -574,7 +574,7 @@ function ChannelActionsMenu({
           <div
             ref={menuRef}
             style={{ top: position.top, left: position.left, width: 180 }}
-            className="fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className={`fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)] ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
           >
             <button
               onClick={() => {

@@ -59,6 +59,7 @@ export const changelog: ChangelogEntry[] = [
       "Novo logo em teste",
       "Novo estilo de interface: \"liquid glass\" (Configurações > Perfil)",
       "Privacidade e Segurança: ver e trocar o email da conta (com confirmação por código), e telefone opcional pra contato de suporte",
+      "Animações fluidas ao abrir Configurações, menus e trocar de aba, em vez de aparecer seco",
     ],
     bugsFixed: [
       "Fechar a página de Novidades podia levar de volta pra ela mesma, sem conseguir sair",

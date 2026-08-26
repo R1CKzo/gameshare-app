@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 
 import { usePresence } from "@/components/notifications/PresenceProvider";
 import { StatusDot } from "@/components/shell/StatusDot";
+import { isBetaEnabled } from "@/lib/beta";
 import type { PresenceStatus } from "@/lib/presence";
 
 const MENU_WIDTH = 200;
@@ -85,7 +86,7 @@ export function StatusMenu({ status, children }: { status: PresenceStatus; child
           <div
             ref={menuRef}
             style={{ top: position.top, left: position.left, width: MENU_WIDTH, transform: "translateY(-100%)" }}
-            className="fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+            className={`fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)] ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
           >
             {OPTIONS.map((opt) => (
               <button
