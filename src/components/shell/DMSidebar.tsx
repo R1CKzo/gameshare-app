@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useUnread } from "@/components/notifications/UnreadContext";
 import { StatusDot } from "@/components/shell/StatusDot";
 import { UserPill } from "@/components/shell/UserPill";
+import { useFloatingMenu } from "@/hooks/useFloatingMenu";
 import { apiUrl } from "@/lib/apiUrl";
 import { deriveStatus, type RawStatus } from "@/lib/presence";
 
@@ -153,43 +154,10 @@ export function DMSidebar({
 function DMActionsMenu({ dmChannelId }: { dmChannelId: string }) {
   const { isDmMuted, setDmMuted } = useUnread();
   const muted = isDmMuted(dmChannelId);
-  const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  function toggleOpen() {
-    if (!open && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setPosition({ top: rect.bottom + 4, left: Math.min(rect.left, window.innerWidth - 200 - 12) });
-    }
-    setOpen((v) => !v);
-  }
-
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(target)
-      ) {
-        setOpen(false);
-      }
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    if (open) {
-      document.addEventListener("mousedown", onClickOutside);
-      document.addEventListener("keydown", onKeyDown);
-    }
-    return () => {
-      document.removeEventListener("mousedown", onClickOutside);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
+  const { open, setOpen, position, buttonRef, menuRef, toggleOpen } = useFloatingMenu((rect) => ({
+    top: rect.bottom + 4,
+    left: Math.min(rect.left, window.innerWidth - 200 - 12),
+  }));
 
   return (
     <>

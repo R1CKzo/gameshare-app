@@ -246,6 +246,20 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       else next.delete(serverId);
       return next;
     });
+    // Silenciar tambem apaga a bolinha de nao-lida que ja estava acesa --
+    // senao o usuario acabou de pedir pra nao ser mais avisado sobre aquilo
+    // e a marcacao antiga continuava la ate ele abrir o canal manualmente.
+    if (muted) {
+      const channelIds = channelMeta.filter((c) => c.serverId === serverId).map((c) => c.channelId);
+      if (channelIds.length) {
+        setUnreadChannelIds((prev) => {
+          if (!channelIds.some((id) => prev.has(id))) return prev;
+          const next = new Set(prev);
+          for (const id of channelIds) next.delete(id);
+          return next;
+        });
+      }
+    }
     try {
       const res = await fetch(apiUrl(`/api/servers/${serverId}/mute`), {
         method: "PATCH",
@@ -270,6 +284,14 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       else next.delete(channelId);
       return next;
     });
+    if (muted) {
+      setUnreadChannelIds((prev) => {
+        if (!prev.has(channelId)) return prev;
+        const next = new Set(prev);
+        next.delete(channelId);
+        return next;
+      });
+    }
     try {
       const res = await fetch(apiUrl(`/api/channels/${channelId}/mute`), {
         method: "PATCH",
@@ -294,6 +316,14 @@ export function GlobalNotificationListener({ children }: { children: ReactNode }
       else next.delete(dmChannelId);
       return next;
     });
+    if (muted) {
+      setUnreadDmIds((prev) => {
+        if (!prev.has(dmChannelId)) return prev;
+        const next = new Set(prev);
+        next.delete(dmChannelId);
+        return next;
+      });
+    }
     try {
       const res = await fetch(apiUrl(`/api/dms/${dmChannelId}/mute`), {
         method: "PATCH",

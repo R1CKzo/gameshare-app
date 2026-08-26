@@ -51,7 +51,7 @@ export function TextChannelView({
     const el = draftRef.current;
     const content = el?.value.trim() ?? "";
     const attachmentReady = attachment?.status === "done";
-    if ((!content && !attachmentReady) || chat.sending) return;
+    if ((!content && !attachmentReady) || attachment?.status === "uploading" || chat.sending) return;
     if (el) el.value = "";
     stickToBottom();
     const ok = await chat.sendMessage(

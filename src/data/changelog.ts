@@ -69,6 +69,13 @@ export const changelog: ChangelogEntry[] = [
       "Interruptor do \"liquid glass\" não aplicava efeito nenhum ao ativar (beta)",
       "Página de Novidades ficava com o visual quebrado com o \"liquid glass\" ativo (beta)",
       "Liquid Glass ficava transparente demais, difícil de enxergar o conteúdo por trás (beta)",
+      "Configurações sem a versão beta ativada ficava sem a aba de Aparência, sem jeito de trocar de tema ou desligar o Liquid Glass",
+      "Anexo de mensagem aceitava link de qualquer conta do serviço de armazenamento, não só do próprio GameShare (beta)",
+      "Tamanho e tipo do anexo não eram conferidos contra o arquivo realmente enviado (beta)",
+      "Liquid Glass deixava um desfoque grudado em vários ícones da interface fora do hover (beta)",
+      "Trocar de anexo antes do envio anterior terminar podia misturar o arquivo errado na mensagem (beta)",
+      "Enviar uma mensagem enquanto o anexo ainda estava subindo descartava o anexo sem avisar (beta)",
+      "Silenciar um servidor, canal ou conversa não apagava o aviso de não lida que já estava aceso ali (beta)",
     ],
   },
   {

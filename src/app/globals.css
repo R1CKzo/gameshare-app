@@ -110,13 +110,18 @@ html[data-glass="true"][data-theme="light"] {
    cima (bg-elevated/40, bg-elevated/70 etc, ex: novidades/page.tsx,
    CallControlBar.tsx), e cada uma vira uma classe CSS diferente
    (".bg-elevated\/40" != ".bg-elevated"). Selecionar por substring pega
-   TODAS as variantes de uma vez, sem precisar listar cada fracao usada. */
-html[data-glass="true"] [class*="bg-surface"],
-html[data-glass="true"] [class*="bg-elevated"],
-html[data-glass="true"] [class*="bg-sidebar"],
-html[data-glass="true"] [class*="bg-rail"],
-html[data-glass="true"] [class*="bg-main"],
-html[data-glass="true"] [class*="bg-background"] {
+   TODAS as variantes de uma vez, sem precisar listar cada fracao usada.
+   O :not([class*="hover:bg-X"]) e necessario porque a mesma busca por
+   substring tambem casava com classes SO de hover (ex: um botao com
+   "hover:bg-elevated-hover" contem "bg-elevated" no meio) -- sem essa
+   exclusao, esses botoes ficavam com o desfoque grudado o tempo todo, e
+   nao so quando o mouse realmente passa em cima. */
+html[data-glass="true"] [class*="bg-surface"]:not([class*="hover:bg-surface"]),
+html[data-glass="true"] [class*="bg-elevated"]:not([class*="hover:bg-elevated"]),
+html[data-glass="true"] [class*="bg-sidebar"]:not([class*="hover:bg-sidebar"]),
+html[data-glass="true"] [class*="bg-rail"]:not([class*="hover:bg-rail"]),
+html[data-glass="true"] [class*="bg-main"]:not([class*="hover:bg-main"]),
+html[data-glass="true"] [class*="bg-background"]:not([class*="hover:bg-background"]) {
   backdrop-filter: blur(34px) saturate(190%);
   -webkit-backdrop-filter: blur(34px) saturate(190%);
 }

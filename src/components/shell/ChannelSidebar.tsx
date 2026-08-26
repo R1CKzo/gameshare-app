@@ -11,6 +11,7 @@ import { useUnread } from "@/components/notifications/UnreadContext";
 import { InviteButton } from "@/components/shell/InviteButton";
 import { ServerSettingsButton } from "@/components/shell/ServerSettingsButton";
 import { UserPill } from "@/components/shell/UserPill";
+import { useFloatingMenu } from "@/hooks/useFloatingMenu";
 import type { ConnectionQuality } from "@/hooks/useVoiceMesh";
 import { apiUrl } from "@/lib/apiUrl";
 import { isBetaEnabled } from "@/lib/beta";
@@ -550,43 +551,10 @@ function ChannelActionsMenu({
 }) {
   const { isChannelMuted, setChannelMuted } = useUnread();
   const muted = isChannelMuted(channelId);
-  const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  function toggleOpen() {
-    if (!open && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setPosition({ top: rect.bottom + 4, left: Math.min(rect.left, window.innerWidth - 160 - 12) });
-    }
-    setOpen((v) => !v);
-  }
-
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(target)
-      ) {
-        setOpen(false);
-      }
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    if (open) {
-      document.addEventListener("mousedown", onClickOutside);
-      document.addEventListener("keydown", onKeyDown);
-    }
-    return () => {
-      document.removeEventListener("mousedown", onClickOutside);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
+  const { open, setOpen, position, buttonRef, menuRef, toggleOpen } = useFloatingMenu((rect) => ({
+    top: rect.bottom + 4,
+    left: Math.min(rect.left, window.innerWidth - 160 - 12),
+  }));
 
   return (
     <>

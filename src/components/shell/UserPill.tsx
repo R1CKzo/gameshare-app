@@ -158,15 +158,15 @@ export function UserPill({
           </div>
         )}
 
-        {/* Mais/atualizacao ficam escondidos durante uma chamada -- com os
-            3 botoes de chamada + nome + avatar + Configuracoes, nao sobra
-            espaco pra ISSO tambem na barra lateral estreita (252px) sem
-            cortar o nome. Uma correcao disponivel pode esperar a call
-            acabar. Configuracoes, porem, sempre fica -- ficar preso sem
-            conseguir abri-la so porque entrou numa call e um problema
-            de verdade (relatado pelo dono), nao so cosmetico como o
-            resto desse bloco. */}
-        {!target && (
+        {/* Mais/atualizacao cabem na lista de coisas que podem esperar a
+            call acabar -- com os 3 botoes de chamada + nome + avatar +
+            Configuracoes, nao sobra espaco pra ISSO tambem na barra
+            lateral estreita (252px) sem cortar o nome. O wrapper deixa
+            isso estrutural, nao so um comentario: qualquer botao que
+            precise continuar acessivel DURANTE uma chamada (como
+            Configuracoes, ver bug relatado pelo dono) tem que ficar FORA
+            dele, nunca colado aqui dentro. */}
+        <HiddenDuringCall hidden={Boolean(target)}>
           <div className="flex shrink-0 items-center gap-0.5">
             {patchDownloadUrl && (
               <button
@@ -183,11 +183,19 @@ export function UserPill({
             )}
             <MoreMenu isAdmin={session?.user?.isAdmin ?? false} serverId={serverId} isServerOwner={isServerOwner} />
           </div>
-        )}
+        </HiddenDuringCall>
         <SettingsButton />
       </div>
     </div>
   );
+}
+
+// So mostra os filhos fora de uma chamada ativa -- existe como componente
+// (em vez de so `{!target && (...)}` inline) pra deixar explicito, pelo
+// nome, que nada essencial pode entrar aqui dentro sem pensar duas vezes.
+function HiddenDuringCall({ hidden, children }: { hidden: boolean; children: React.ReactNode }) {
+  if (hidden) return null;
+  return <>{children}</>;
 }
 
 // Botao circular compacto pros controles de chamada dentro do pill --

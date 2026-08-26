@@ -1,5 +1,5 @@
 import { upload } from "@vercel/blob/client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { type AttachmentKind, formatBytes, kindForContentType, maxBytesForKind } from "@/lib/attachmentLimits";
 import { apiUrl } from "@/lib/apiUrl";
@@ -22,8 +22,20 @@ export type PendingAttachmentState = {
 // de nao passar pelo nosso servidor).
 export function useAttachmentUpload() {
   const [attachment, setAttachment] = useState<PendingAttachmentState | null>(null);
+  // Identifica qual selectFile() "e dono" do upload em andamento -- se o
+  // usuario trocar de arquivo antes do primeiro terminar de subir, o
+  // .then()/.catch() antigo confere esse numero antes de gravar no estado
+  // e desiste se nao bater mais (senao o link do arquivo A podia acabar
+  // grudando no estado do arquivo B, que substituiu ele antes de terminar).
+  const generationRef = useRef(0);
 
   function selectFile(file: File) {
+    setAttachment((prev) => {
+      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+      return prev;
+    });
+    const generation = ++generationRef.current;
+
     const kind = kindForContentType(file.type);
     if (!kind) {
       setAttachment({ file, kind: "file", previewUrl: "", status: "error", progress: 0, errorMessage: "Esse tipo de arquivo não é aceito." });
@@ -47,17 +59,23 @@ export function useAttachmentUpload() {
     upload(file.name, file, {
       access: "public",
       handleUploadUrl: apiUrl("/api/upload"),
-      onUploadProgress: (p) => setAttachment((a) => (a ? { ...a, progress: p.percentage } : a)),
+      onUploadProgress: (p) => {
+        if (generationRef.current !== generation) return;
+        setAttachment((a) => (a ? { ...a, progress: p.percentage } : a));
+      },
     })
       .then((blob) => {
+        if (generationRef.current !== generation) return;
         setAttachment((a) => (a ? { ...a, status: "done", blobUrl: blob.url } : a));
       })
       .catch(() => {
+        if (generationRef.current !== generation) return;
         setAttachment((a) => (a ? { ...a, status: "error", errorMessage: "Não foi possível enviar o arquivo." } : a));
       });
   }
 
   function clear() {
+    generationRef.current++;
     setAttachment((a) => {
       if (a?.previewUrl) URL.revokeObjectURL(a.previewUrl);
       return null;

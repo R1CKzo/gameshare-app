@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useUnread } from "@/components/notifications/UnreadContext";
+import { useFloatingMenu } from "@/hooks/useFloatingMenu";
 import { apiUrl } from "@/lib/apiUrl";
 import { isDesktopApp } from "@/lib/desktop";
 
@@ -28,47 +29,11 @@ export function MoreMenu({
   const router = useRouter();
   const { isServerMuted, setServerMuted } = useUnread();
   const serverMuted = serverId ? isServerMuted(serverId) : false;
-  const [open, setOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  function toggleOpen() {
-    if (!open && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.top - 8,
-        left: Math.min(rect.left, window.innerWidth - MENU_WIDTH - 12),
-      });
-    }
-    setOpen((v) => !v);
-  }
-
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(target)
-      ) {
-        setOpen(false);
-      }
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    if (open) {
-      document.addEventListener("mousedown", onClickOutside);
-      document.addEventListener("keydown", onKeyDown);
-    }
-    return () => {
-      document.removeEventListener("mousedown", onClickOutside);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
+  const { open, setOpen, position, buttonRef, menuRef, toggleOpen } = useFloatingMenu((rect) => ({
+    top: rect.top - 8,
+    left: Math.min(rect.left, window.innerWidth - MENU_WIDTH - 12),
+  }));
 
   async function leaveServer() {
     if (!serverId || leaving) return;

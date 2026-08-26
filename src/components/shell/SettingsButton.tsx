@@ -222,8 +222,8 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
 }
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<"perfil" | "audio" | "seguranca" | "beta" | "bug">("perfil");
-  const tabs = (["perfil", "audio", "seguranca", ...(isDesktopApp() ? (["beta"] as const) : []), "bug"] as const);
+  const [tab, setTab] = useState<"perfil" | "aparencia" | "audio" | "seguranca" | "beta" | "bug">("perfil");
+  const tabs = (["perfil", "aparencia", "audio", "seguranca", ...(isDesktopApp() ? (["beta"] as const) : []), "bug"] as const);
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
@@ -253,13 +253,15 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             >
               {t === "perfil"
                 ? "Perfil"
-                : t === "audio"
-                  ? "Áudio"
-                  : t === "seguranca"
-                    ? "Segurança"
-                    : t === "beta"
-                      ? "Beta"
-                      : "Reportar bug"}
+                : t === "aparencia"
+                  ? "Aparência"
+                  : t === "audio"
+                    ? "Áudio"
+                    : t === "seguranca"
+                      ? "Segurança"
+                      : t === "beta"
+                        ? "Beta"
+                        : "Reportar bug"}
             </button>
           ))}
         </div>
@@ -267,6 +269,8 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         <div className="overflow-y-auto p-5">
           {tab === "perfil" ? (
             <ProfileTab />
+          ) : tab === "aparencia" ? (
+            <AparenciaTab />
           ) : tab === "audio" ? (
             <AudioTab />
           ) : tab === "seguranca" ? (
