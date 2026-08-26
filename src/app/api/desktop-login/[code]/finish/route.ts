@@ -46,6 +46,7 @@ export async function GET(request: Request, { params }: { params: { code: string
       userTag: true,
       isAdmin: true,
       passwordHash: true,
+      phone: true,
     },
   });
   if (!user) {

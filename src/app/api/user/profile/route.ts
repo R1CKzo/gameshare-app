@@ -8,9 +8,15 @@ const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
 // Base64 de uma imagem 256x256 cabe bem dentro disso; e uma rede de
 // seguranca alem do redimensionamento que ja acontece no navegador.
 const MAX_IMAGE_BASE64_LENGTH = 300_000;
+// So digitos, espaço e os simbolos comuns de telefone (+, -, parenteses)
+// -- nao valida DDD/formato de verdade (o campo e livre, qualquer pais),
+// so uma rede de seguranca contra colar algo gigante ou sem sentido ali.
+const PHONE_REGEX = /^[\d\s()+-]{0,30}$/;
 
-// Atualiza nickname e/ou foto do usuario logado. A tag numerica (#XXXXXX)
-// nunca muda depois de criada — so o nickname que acompanha ela.
+// Atualiza nickname, foto e/ou telefone do usuario logado. A tag numerica
+// (#XXXXXX) nunca muda depois de criada — so o nickname que acompanha ela.
+// Telefone e opcional e sem verificacao nenhuma (diferente do email, que
+// exige codigo -- ver /api/auth/email); manda "" pra apagar.
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !session.user.userTag) {
@@ -18,7 +24,7 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const data: { nickname?: string; image?: string } = {};
+  const data: { nickname?: string; image?: string; phone?: string | null } = {};
 
   if (typeof body?.nickname === "string") {
     const nickname = body.nickname.trim();
@@ -59,6 +65,14 @@ export async function PATCH(request: Request) {
     data.image = body.image;
   }
 
+  if (typeof body?.phone === "string") {
+    const phone = body.phone.trim();
+    if (!PHONE_REGEX.test(phone)) {
+      return NextResponse.json({ error: "Telefone inválido." }, { status: 400 });
+    }
+    data.phone = phone || null;
+  }
+
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "Nada pra atualizar." }, { status: 400 });
   }
@@ -66,7 +80,7 @@ export async function PATCH(request: Request) {
   const updated = await prisma.user.update({
     where: { id: session.user.id },
     data,
-    select: { nickname: true, userTag: true, image: true },
+    select: { nickname: true, userTag: true, image: true, phone: true },
   });
 
   return NextResponse.json(updated);

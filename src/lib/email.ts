@@ -10,7 +10,7 @@ export async function sendSecurityCodeEmail({
 }: {
   to: string;
   code: string;
-  purpose: "LOGIN" | "PASSWORD_CHANGE";
+  purpose: "LOGIN" | "PASSWORD_CHANGE" | "EMAIL_CHANGE";
 }): Promise<void> {
   const apiKey = process.env.BREVO_API_KEY;
   const fromAddress = process.env.EMAIL_FROM_ADDRESS;
@@ -20,11 +20,14 @@ export async function sendSecurityCodeEmail({
     throw new Error("Envio de email não configurado (BREVO_API_KEY/EMAIL_FROM_ADDRESS ausentes).");
   }
 
-  const subject = purpose === "LOGIN" ? "Seu código de login" : "Confirme a troca de senha";
+  const subject =
+    purpose === "LOGIN" ? "Seu código de login" : purpose === "PASSWORD_CHANGE" ? "Confirme a troca de senha" : "Confirme seu novo email";
   const intro =
     purpose === "LOGIN"
       ? "Use o código abaixo pra concluir seu login no GameShare:"
-      : "Use o código abaixo pra confirmar a troca de senha no GameShare:";
+      : purpose === "PASSWORD_CHANGE"
+        ? "Use o código abaixo pra confirmar a troca de senha no GameShare:"
+        : "Use o código abaixo pra confirmar que esse email é seu e concluir a troca no GameShare:";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 420px; margin: 0 auto; padding: 24px;">

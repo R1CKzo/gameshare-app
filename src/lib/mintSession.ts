@@ -14,6 +14,7 @@ type SessionUser = {
   userTag: string | null;
   isAdmin: boolean;
   passwordHash: string | null;
+  phone: string | null;
 };
 
 // Monta o JWT de sessao na mao (fora do fluxo normal do NextAuth) — usado
@@ -44,6 +45,7 @@ export async function buildSessionCookie(
       userTag: user.userTag,
       isAdmin: user.isAdmin,
       hasPassword: user.passwordHash !== null,
+      phone: user.phone,
     },
   });
 

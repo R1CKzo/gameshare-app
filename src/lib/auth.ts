@@ -31,12 +31,17 @@ export const authOptions: NextAuthOptions = {
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { nickname: true, userTag: true, isAdmin: true, passwordHash: true, image: true },
+          select: { nickname: true, userTag: true, isAdmin: true, passwordHash: true, image: true, email: true, phone: true },
         });
         token.nickname = dbUser?.nickname ?? null;
         token.userTag = dbUser?.userTag ?? null;
         token.isAdmin = dbUser?.isAdmin ?? false;
         token.hasPassword = dbUser?.passwordHash != null;
+        token.phone = dbUser?.phone ?? null;
+        // Reescreve toda vez, igual o nickname acima -- sem isso, trocar o
+        // email nas Configuracoes (beta) so refletiria na sessao depois de
+        // sair e entrar de novo, mesmo o banco ja estando certo.
+        if (dbUser?.email) token.email = dbUser.email;
         // Reescreve toda vez (nao so na primeira vez) — sem isso, uma foto
         // enviada por upload DEPOIS do login inicial (quando o NextAuth
         // ainda copia a URL antiga/curta do Google pro token sozinho)
@@ -54,6 +59,7 @@ export const authOptions: NextAuthOptions = {
         session.user.userTag = (token.userTag as string | null) ?? null;
         session.user.isAdmin = Boolean(token.isAdmin);
         session.user.hasPassword = Boolean(token.hasPassword);
+        session.user.phone = (token.phone as string | null) ?? null;
       }
       return session;
     },

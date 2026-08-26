@@ -35,6 +35,7 @@ export async function getRequestSession(request: Request): Promise<Session | nul
       userTag: decoded.userTag,
       isAdmin: decoded.isAdmin,
       hasPassword: decoded.hasPassword,
+      phone: (decoded.phone as string | null) ?? null,
     },
     expires: new Date(Number(decoded.exp ?? 0) * 1000).toISOString(),
   };

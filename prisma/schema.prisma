@@ -64,6 +64,7 @@ model VerificationToken {
 enum SecurityCodePurpose {
   LOGIN
   PASSWORD_CHANGE
+  EMAIL_CHANGE
 }
 
 // Codigo de 6 digitos enviado por email — usado tanto pra confirmar login
@@ -74,7 +75,7 @@ model SecurityCode {
   id         String              @id @default(uuid())
   purpose    SecurityCodePurpose
   codeHash   String              // sha256 do codigo — nunca guarda em texto puro
-  payload    String?             @db.Text // so PASSWORD_CHANGE: o novo hash de senha, aplicado quando o codigo bate
+  payload    String?             @db.Text // PASSWORD_CHANGE: o novo hash de senha; EMAIL_CHANGE: o novo email -- os dois so aplicados quando o codigo bate
   attempts   Int                 @default(0)
   expiresAt  DateTime
   consumedAt DateTime?
@@ -109,6 +110,12 @@ model User {
   // conta so-Google, sem senha definida — usado pra decidir se a tela de
   // "Seguranca" mostra "Definir senha" ou "Alterar senha".
   passwordHash String?
+
+  // Telefone opcional (beta, Configuracoes > Privacidade e Seguranca) --
+  // sem verificacao nenhuma (diferente do email, que exige codigo): so
+  // guardado pra eventualmente dar pra usar em suporte, nunca usado pra
+  // login nem exibido pra outros usuarios.
+  phone String?
 
   // Chave da ultima entrada do changelog (src/data/changelog.ts) que essa
   // pessoa ja viu — compara com a mais recente pra saber se leva pra

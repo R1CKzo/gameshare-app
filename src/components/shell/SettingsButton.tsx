@@ -1027,12 +1027,41 @@ function ToggleRow({
   );
 }
 
+// Aba inteira: senha (sempre disponivel) + email/telefone (beta -- so
+// aparece pra quem ligou "Permitir versões beta"). Mesmo padrao de leitura
+// do interruptor usado em SettingsButton() acima: so depois de montar,
+// localStorage nao existe no server.
+function SegurancaTab() {
+  const [betaOn, setBetaOn] = useState(false);
+  useEffect(() => {
+    setBetaOn(isBetaEnabled());
+  }, []);
+
+  return (
+    <div className="space-y-8">
+      <PasswordSection />
+      {betaOn && (
+        <>
+          <div className="border-t border-overlay pt-6">
+            <h3 className="mb-1 text-sm font-bold text-foreground">Email</h3>
+            <EmailSection />
+          </div>
+          <div className="border-t border-overlay pt-6">
+            <h3 className="mb-1 text-sm font-bold text-foreground">Telefone</h3>
+            <PhoneSection />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 type PwStep = "form" | "code";
 
 // Definir senha (conta so-Google) ou trocar (ja tem uma) — os dois casos
 // sempre passam por um codigo enviado por email antes de valer, mesma
 // logica do login por senha.
-function SegurancaTab() {
+function PasswordSection() {
   const { data: session, update } = useSession();
   const hasPassword = session?.user?.hasPassword ?? false;
 
@@ -1160,6 +1189,180 @@ function SegurancaTab() {
         {sending ? "Enviando..." : hasPassword ? "Trocar senha" : "Definir senha"}
       </button>
     </form>
+  );
+}
+
+type EmailStep = "form" | "code";
+
+// Troca de email (beta) -- mesma logica de "codigo sempre" da senha, so
+// que o codigo vai pro email NOVO (nao o atual): prova que a pessoa tem
+// acesso a ele antes da troca valer, em vez de so confiar no que foi
+// digitado.
+function EmailSection() {
+  const { data: session, update } = useSession();
+  const currentEmail = session?.user?.email ?? "";
+
+  const [step, setStep] = useState<EmailStep>("form");
+  const [newEmail, setNewEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [ticketId, setTicketId] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  async function requestChange(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+    const res = await fetch(apiUrl("/api/auth/email/change-request"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newEmail }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok) {
+      setError(data.error ?? "Não foi possível continuar.");
+      return;
+    }
+    setTicketId(data.ticketId);
+    setStep("code");
+  }
+
+  async function confirmChange(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+    const res = await fetch(apiUrl("/api/auth/email/change-confirm"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticketId, code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok) {
+      setError(data.error ?? "Código inválido.");
+      return;
+    }
+    await update();
+    setDone(true);
+  }
+
+  if (done) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-6 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <CheckIcon />
+        </div>
+        <p className="text-sm font-bold text-foreground">Email alterado!</p>
+      </div>
+    );
+  }
+
+  if (step === "code") {
+    return (
+      <form onSubmit={confirmChange} className="space-y-4">
+        <p className="text-xs text-dim">Enviamos um código de 6 dígitos pro email novo ({newEmail}). Confirme pra aplicar a troca.</p>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          inputMode="numeric"
+          placeholder="000000"
+          className="h-12 w-full rounded-xl border border-border bg-background px-4 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-primary"
+        />
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <button
+          type="submit"
+          disabled={sending || code.length !== 6}
+          className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+        >
+          {sending ? "Confirmando..." : "Confirmar código"}
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={requestChange} className="space-y-4">
+      <p className="text-xs text-dim">Email atual: {currentEmail}</p>
+      <div>
+        <label className="mb-2 block text-xs font-bold tracking-wide text-muted">NOVO EMAIL</label>
+        <input
+          type="email"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          placeholder="voce@exemplo.com"
+          className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+        />
+        <p className="mt-1.5 text-xs text-dim">Vamos mandar um código de confirmação pra esse endereço antes de trocar.</p>
+      </div>
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <button
+        type="submit"
+        disabled={sending || !newEmail.trim()}
+        className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+      >
+        {sending ? "Enviando..." : "Trocar email"}
+      </button>
+    </form>
+  );
+}
+
+// Telefone (beta) -- opcional, sem verificacao nenhuma (diferente do
+// email): so guardado pra eventualmente dar pra usar em suporte. Deixar em
+// branco e salvar apaga.
+function PhoneSection() {
+  const { data: session, update } = useSession();
+  const [phone, setPhone] = useState(session?.user?.phone ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  const changed = phone !== (session?.user?.phone ?? "");
+
+  async function handleSave() {
+    setSaving(true);
+    setError("");
+    setSaved(false);
+    const res = await fetch(apiUrl("/api/user/profile"), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) {
+      setError(data.error ?? "Não foi possível salvar.");
+      return;
+    }
+    await update();
+    setSaved(true);
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-dim">
+        Opcional, só usado pra suporte se a gente precisar entrar em contato. Não aparece pra outros usuários.
+      </p>
+      <input
+        type="tel"
+        value={phone}
+        onChange={(e) => {
+          setPhone(e.target.value);
+          setSaved(false);
+        }}
+        placeholder="(00) 00000-0000"
+        className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+      />
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <button
+        onClick={handleSave}
+        disabled={saving || !changed}
+        className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+      >
+        {saving ? "Salvando..." : saved ? "Salvo!" : "Salvar telefone"}
+      </button>
+    </div>
   );
 }
 

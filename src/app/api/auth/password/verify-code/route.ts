@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       isAdmin: true,
       passwordHash: true,
       emailVerified: true,
+      phone: true,
     },
   });
   if (!user) {
