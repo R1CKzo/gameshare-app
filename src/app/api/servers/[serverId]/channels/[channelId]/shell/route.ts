@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { publicServerImage, publicUserImage } from "@/lib/avatarUrl";
 import { corsPreflight, withCors } from "@/lib/cors";
 import { getRequestSession } from "@/lib/getRequestSession";
 import { PRESENCE_WINDOW_MS } from "@/lib/callLimits";
@@ -87,11 +88,11 @@ export async function GET(
   return withCors(
     request,
     NextResponse.json({
-      servers,
+      servers: servers.map((s) => ({ ...s, image: publicServerImage(s.id, s.image) })),
       server: {
         id: membership.server.id,
         name: membership.server.name,
-        image: membership.server.image,
+        image: publicServerImage(membership.server.id, membership.server.image),
         inviteCode: membership.server.inviteCode,
         ownerId: membership.server.ownerId,
       },
@@ -104,7 +105,7 @@ export async function GET(
         presenceCount: c._count.presences,
       })),
       channel: { id: channel.id, name: channel.name, type: channel.type, isLive: channel.isLive, broadcaster: channel.broadcaster },
-      members: members.map((m) => ({ ...m.user, roleId: m.roleId, role: m.role })),
+      members: members.map((m) => ({ ...m.user, image: publicUserImage(m.user.id, m.user.image), roleId: m.roleId, role: m.role })),
       permissions,
     }),
   );

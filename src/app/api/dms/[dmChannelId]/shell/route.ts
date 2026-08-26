@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { publicServerImage, publicUserImage } from "@/lib/avatarUrl";
 import { corsPreflight, withCors } from "@/lib/cors";
 import { getRequestSession } from "@/lib/getRequestSession";
 import { prisma } from "@/lib/prisma";
@@ -43,9 +44,9 @@ export async function GET(request: Request, { params }: { params: { dmChannelId:
   return withCors(
     request,
     NextResponse.json({
-      servers,
+      servers: servers.map((s) => ({ ...s, image: publicServerImage(s.id, s.image) })),
       dmChannel: { id: dmChannel.id, isLive: dmChannel.isLive, broadcaster: dmChannel.broadcaster },
-      otherUser,
+      otherUser: { ...otherUser, image: publicUserImage(otherUser.id, otherUser.image) },
     }),
   );
 }

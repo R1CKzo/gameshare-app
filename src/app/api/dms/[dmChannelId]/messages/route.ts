@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { verifyAttachment } from "@/lib/attachmentVerify";
+import { publicUserImage } from "@/lib/avatarUrl";
 import { prisma } from "@/lib/prisma";
 import { NEW_MESSAGE_EVENT, pusherServer, dmChannelPusherName } from "@/lib/pusher";
 
@@ -19,6 +20,12 @@ const messageSelect = {
   attachmentSize: true,
   user: { select: { id: true, nickname: true, userTag: true, image: true } },
 } as const;
+
+// Troca a foto (se for um upload em base64) pelo link curto -- ver
+// publicUserImage em src/lib/avatarUrl.ts.
+function withPublicImage<T extends { user: { id: string; image: string | null } }>(message: T): T {
+  return { ...message, user: { ...message.user, image: publicUserImage(message.user.id, message.user.image) } };
+}
 
 async function requireParticipant(userId: string, dmChannelId: string) {
   const participant = await prisma.dMParticipant.findUnique({
@@ -55,7 +62,7 @@ export async function GET(request: Request, { params }: { params: { dmChannelId:
       take: PAGE_SIZE,
       select: messageSelect,
     });
-    return NextResponse.json({ messages, hasMore: false });
+    return NextResponse.json({ messages: messages.map(withPublicImage), hasMore: false });
   }
 
   const cursorDate = before ? new Date(before) : null;
@@ -70,7 +77,7 @@ export async function GET(request: Request, { params }: { params: { dmChannelId:
   });
 
   return NextResponse.json({
-    messages: messages.reverse(),
+    messages: messages.reverse().map(withPublicImage),
     hasMore: messages.length === PAGE_SIZE,
   });
 }
@@ -105,10 +112,11 @@ export async function POST(request: Request, { params }: { params: { dmChannelId
     attachmentData = verified;
   }
 
-  const message = await prisma.dMMessage.create({
+  const created = await prisma.dMMessage.create({
     data: { dmChannelId: params.dmChannelId, userId: session.user.id, content, ...attachmentData },
     select: messageSelect,
   });
+  const message = withPublicImage(created);
 
   pusherServer.trigger(dmChannelPusherName(params.dmChannelId), NEW_MESSAGE_EVENT, message).catch((err) => {
     console.error("Falha ao disparar evento no Pusher:", err);

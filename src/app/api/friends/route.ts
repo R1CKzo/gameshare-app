@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { publicUserImage } from "@/lib/avatarUrl";
 import { corsPreflight, withCors } from "@/lib/cors";
 import { getRequestSession } from "@/lib/getRequestSession";
 import { prisma } from "@/lib/prisma";
@@ -43,7 +44,8 @@ export async function GET(request: Request) {
 
   for (const f of friendships) {
     const isRequester = f.requesterId === session.user.id;
-    const otherUser = isRequester ? f.addressee : f.requester;
+    const raw = isRequester ? f.addressee : f.requester;
+    const otherUser = { ...raw, image: publicUserImage(raw.id, raw.image) };
 
     if (f.status === "ACCEPTED") {
       friends.push({ friendshipId: f.id, user: otherUser });

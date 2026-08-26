@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { publicUserImage } from "@/lib/avatarUrl";
 import { getServerPermissions } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
@@ -16,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: { serverId: s
     return NextResponse.json({ error: "Sem permissão pra ver banimentos." }, { status: 403 });
   }
 
-  const bans = await prisma.serverBan.findMany({
+  const rows = await prisma.serverBan.findMany({
     where: { serverId: params.serverId },
     orderBy: { createdAt: "desc" },
     select: {
@@ -26,6 +27,7 @@ export async function GET(_request: Request, { params }: { params: { serverId: s
       user: { select: { id: true, nickname: true, userTag: true, image: true } },
     },
   });
+  const bans = rows.map((b) => ({ ...b, user: { ...b.user, image: publicUserImage(b.user.id, b.user.image) } }));
 
   return NextResponse.json({ bans });
 }

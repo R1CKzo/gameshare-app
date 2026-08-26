@@ -309,7 +309,7 @@ function ParticipantTile({
       >
         <div className={`relative overflow-hidden rounded-full bg-primary ${size.avatar}`}>
           {user.image ? (
-            <Image src={user.image} alt="" fill sizes="64px" className="object-cover" />
+            <Image src={user.image} alt="" fill sizes="64px" unoptimized className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center font-display text-lg font-bold">{initials}</div>
           )}

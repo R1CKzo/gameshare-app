@@ -389,7 +389,7 @@ function VoicePresenceRow({ user }: { user: VoicePresentUser }) {
     <div className="flex items-center gap-2 rounded-md px-2 py-1">
       <div className="relative h-5 w-5 shrink-0 overflow-hidden rounded-full bg-primary">
         {user.image ? (
-          <Image src={user.image} alt="" fill sizes="20px" className="object-cover" />
+          <Image src={user.image} alt="" fill sizes="20px" unoptimized className="object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center font-display text-[9px] font-bold">{initials}</div>
         )}

@@ -157,7 +157,7 @@ export function DMChatView({
         </button>
         <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-primary">
           {otherUser.image ? (
-            <Image src={otherUser.image} alt="" fill sizes="28px" className="object-cover" />
+            <Image src={otherUser.image} alt="" fill sizes="28px" unoptimized className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center font-display text-[11px] font-bold">
               {(otherUser.nickname ?? "?").slice(0, 1).toUpperCase()}
@@ -226,7 +226,7 @@ export function DMChatView({
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
             <div className="relative h-16 w-16 overflow-hidden rounded-full bg-primary">
               {otherUser.image ? (
-                <Image src={otherUser.image} alt="" fill sizes="64px" className="object-cover" />
+                <Image src={otherUser.image} alt="" fill sizes="64px" unoptimized className="object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center font-display text-xl font-bold">
                   {(otherUser.nickname ?? "?").slice(0, 1).toUpperCase()}

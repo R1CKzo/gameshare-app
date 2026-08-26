@@ -249,7 +249,7 @@ function GeralTab({
           title="Trocar imagem do servidor"
         >
           {image ? (
-            <Image src={image} alt="" fill sizes="64px" className="object-cover" />
+            <Image src={image} alt="" fill sizes="64px" unoptimized className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center font-display text-lg font-bold">
               {(name || "?").slice(0, 2).toUpperCase()}
@@ -374,7 +374,7 @@ function MembrosTab({
             <div key={member.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-overlay-weak">
               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-primary">
                 {member.image ? (
-                  <Image src={member.image} alt="" fill sizes="32px" className="object-cover" />
+                  <Image src={member.image} alt="" fill sizes="32px" unoptimized className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">
                     {(member.nickname ?? "?").slice(0, 1).toUpperCase()}

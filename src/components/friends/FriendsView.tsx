@@ -229,7 +229,7 @@ function FriendRowItem({ user, children }: { user: FriendUser; children: React.R
       <div className="relative h-9 w-9 shrink-0">
         <div className="relative h-full w-full overflow-hidden rounded-full bg-primary">
           {user.image ? (
-            <Image src={user.image} alt="" fill sizes="36px" className="object-cover" />
+            <Image src={user.image} alt="" fill sizes="36px" unoptimized className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">{initials}</div>
           )}

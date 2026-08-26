@@ -241,7 +241,7 @@ function PresenceAvatar({ user, style }: { user: PresentUser; style?: React.CSSP
       className="relative h-6 w-6 overflow-hidden rounded-full border-2 border-main bg-primary"
     >
       {user.image ? (
-        <Image src={user.image} alt="" fill sizes="24px" className="object-cover" />
+        <Image src={user.image} alt="" fill sizes="24px" unoptimized className="object-cover" />
       ) : (
         <div className="flex h-full w-full items-center justify-center font-display text-[10px] font-bold">
           {initials}

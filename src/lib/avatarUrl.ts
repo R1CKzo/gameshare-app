@@ -18,3 +18,27 @@ export function sessionSafeImage(image: string | null): string | null {
   if (!image) return null;
   return image.startsWith("data:") ? apiUrl("/api/me/avatar") : image;
 }
+
+// Mesma ideia do sessionSafeImage acima, so que pra devolver a foto de
+// QUALQUER usuario (nao so o da propria sessao) nas respostas de API --
+// mensagens, presenca de chamada, lista de amigos, membros do servidor,
+// etc. Antes, essas 10+ rotas devolviam o campo "image" cru do Prisma: uma
+// foto por upload sai como data URL em base64 (varios KB de texto), e como
+// isso ia dentro de CADA mensagem/presenca/membro da resposta, uma rota
+// consultada com frequencia (ex: presenca de chamada, a cada 10s -- ver
+// ChannelSidebar.tsx) reenviava os mesmos KBs repetidos sem parar, inflando
+// rapido a transferencia de rede do banco (Neon). Igual ao token de sessao,
+// so o link curto sai daqui -- a foto de verdade continua guardada inteira
+// no banco, so nao trafega em toda resposta.
+export function publicUserImage(userId: string, image: string | null): string | null {
+  if (!image) return null;
+  return image.startsWith("data:") ? apiUrl(`/api/users/${userId}/avatar`) : image;
+}
+
+// Gemeo do publicUserImage acima, pro icone de SERVIDOR (dono tambem pode
+// enviar um por upload, mesmo formato data URL -- ver PATCH em
+// /api/servers/[serverId]).
+export function publicServerImage(serverId: string, image: string | null): string | null {
+  if (!image) return null;
+  return image.startsWith("data:") ? apiUrl(`/api/servers/${serverId}/icon`) : image;
+}

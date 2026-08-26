@@ -50,7 +50,7 @@ function MessageGroup({ group, isSelf }: { group: MessageGroupData; isSelf: bool
     <div className="flex gap-3 py-1.5 hover:bg-overlay-weak">
       <div className="relative mt-0.5 h-9 w-9 shrink-0 overflow-hidden rounded-full bg-primary">
         {user.image ? (
-          <Image src={user.image} alt="" fill sizes="36px" className="object-cover" />
+          <Image src={user.image} alt="" fill sizes="36px" unoptimized className="object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">{initials}</div>
         )}

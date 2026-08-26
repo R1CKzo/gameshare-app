@@ -114,7 +114,7 @@ export function DMSidebar({
                 <div className="relative h-8 w-8 shrink-0">
                   <div className="relative h-full w-full overflow-hidden rounded-full bg-primary">
                     {c.user.image ? (
-                      <Image src={c.user.image} alt="" fill sizes="32px" className="object-cover" />
+                      <Image src={c.user.image} alt="" fill sizes="32px" unoptimized className="object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center font-display text-xs font-bold">
                         {(c.user.nickname ?? "?").slice(0, 1).toUpperCase()}

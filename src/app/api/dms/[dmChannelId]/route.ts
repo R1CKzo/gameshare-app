@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { publicUserImage } from "@/lib/avatarUrl";
 import { PRESENCE_WINDOW_MS } from "@/lib/callLimits";
 import { prisma } from "@/lib/prisma";
 
@@ -43,9 +44,12 @@ export async function GET(_request: Request, { params }: { params: { dmChannelId
   return NextResponse.json({
     id: dmChannel.id,
     isLive: dmChannel.isLive,
-    broadcaster: dmChannel.broadcaster,
+    broadcaster: dmChannel.broadcaster
+      ? { ...dmChannel.broadcaster, image: publicUserImage(dmChannel.broadcaster.id, dmChannel.broadcaster.image) }
+      : null,
     present: dmChannel.presences.map((p) => ({
       ...p.user,
+      image: publicUserImage(p.user.id, p.user.image),
       peerId: p.peerId,
       isMuted: p.isMuted,
       isDeafened: p.isDeafened,

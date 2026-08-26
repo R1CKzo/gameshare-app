@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { publicServerImage } from "@/lib/avatarUrl";
 import { corsPreflight, withCors } from "@/lib/cors";
 import { getRequestSession } from "@/lib/getRequestSession";
 import { prisma } from "@/lib/prisma";
@@ -18,11 +19,12 @@ export async function GET(request: Request) {
     return withCors(request, NextResponse.json({ error: "Não autenticado." }, { status: 401 }));
   }
 
-  const servers = await prisma.server.findMany({
+  const rows = await prisma.server.findMany({
     where: { members: { some: { userId: session.user.id } } },
     orderBy: { createdAt: "asc" },
     select: { id: true, name: true, image: true },
   });
+  const servers = rows.map((s) => ({ ...s, image: publicServerImage(s.id, s.image) }));
 
   return withCors(request, NextResponse.json({ servers }));
 }

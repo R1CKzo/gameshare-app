@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { verifyAttachment } from "@/lib/attachmentVerify";
+import { publicUserImage } from "@/lib/avatarUrl";
 import { prisma } from "@/lib/prisma";
 import { NEW_MESSAGE_EVENT, pusherServer, textChannelPusherName } from "@/lib/pusher";
 
@@ -19,6 +20,12 @@ const messageSelect = {
   attachmentSize: true,
   user: { select: { id: true, nickname: true, userTag: true, image: true } },
 } as const;
+
+// Troca a foto (se for um upload em base64) pelo link curto -- ver
+// publicUserImage em src/lib/avatarUrl.ts.
+function withPublicImage<T extends { user: { id: string; image: string | null } }>(message: T): T {
+  return { ...message, user: { ...message.user, image: publicUserImage(message.user.id, message.user.image) } };
+}
 
 async function requireMembership(userId: string, channelId: string) {
   const channel = await prisma.channel.findUnique({
@@ -69,7 +76,7 @@ export async function GET(request: Request, { params }: { params: { channelId: s
       take: PAGE_SIZE,
       select: messageSelect,
     });
-    return NextResponse.json({ messages, hasMore: false });
+    return NextResponse.json({ messages: messages.map(withPublicImage), hasMore: false });
   }
 
   const cursorDate = before ? new Date(before) : null;
@@ -84,7 +91,7 @@ export async function GET(request: Request, { params }: { params: { channelId: s
   });
 
   return NextResponse.json({
-    messages: messages.reverse(),
+    messages: messages.reverse().map(withPublicImage),
     hasMore: messages.length === PAGE_SIZE,
   });
 }
@@ -123,10 +130,11 @@ export async function POST(request: Request, { params }: { params: { channelId: 
     attachmentData = verified;
   }
 
-  const message = await prisma.message.create({
+  const created = await prisma.message.create({
     data: { channelId: channel.id, userId: session.user.id, content, ...attachmentData },
     select: messageSelect,
   });
+  const message = withPublicImage(created);
 
   pusherServer.trigger(textChannelPusherName(channel.id), NEW_MESSAGE_EVENT, message).catch((err) => {
     // Se o Pusher falhar, a mensagem ja esta salva — quem esta com a

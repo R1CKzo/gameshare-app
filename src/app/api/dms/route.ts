@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { publicUserImage } from "@/lib/avatarUrl";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,8 @@ export async function GET() {
 
   const conversations = channels
     .map((c) => {
-      const other = c.participants.map((p) => p.user).find((u) => u.id !== session.user.id) ?? null;
+      const raw = c.participants.map((p) => p.user).find((u) => u.id !== session.user.id) ?? null;
+      const other = raw ? { ...raw, image: publicUserImage(raw.id, raw.image) } : null;
       const lastMessage = c.messages[0] ?? null;
       return { id: c.id, user: other, lastMessage };
     })
