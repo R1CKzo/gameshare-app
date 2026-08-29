@@ -508,7 +508,8 @@ function createGameOverlayWindow() {
   gameOverlayWindow.setAlwaysOnTop(true, "screen-saver");
   gameOverlayWindow.setIgnoreMouseEvents(true);
   gameOverlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  gameOverlayWindow.loadURL(`${APP_URL}/overlay`);
+  // O loadURL de verdade acontece no "overlay:show" logo abaixo (sempre,
+  // pra pegar o deploy mais recente do site) -- aqui so cria a janela.
   gameOverlayWindow.on("closed", () => {
     gameOverlayWindow = null;
   });
@@ -517,6 +518,11 @@ function createGameOverlayWindow() {
 
 ipcMain.on("overlay:show", () => {
   const win = createGameOverlayWindow();
+  // Recarrega toda vez que uma call comeca -- sem isso, a janela (criada
+  // so uma vez por sessao do app, ver createGameOverlayWindow) ficava com
+  // o HTML/JS antigo em memoria pra sempre, mesmo depois de um deploy
+  // novo no site, ate a pessoa fechar o app de verdade e abrir de novo.
+  win.loadURL(`${APP_URL}/overlay`);
   win.showInactive();
 });
 
