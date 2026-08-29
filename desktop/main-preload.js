@@ -89,5 +89,15 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
       ipcRenderer.on("window:maximized-changed", listener);
       return () => ipcRenderer.removeListener("window:maximized-changed", listener);
     },
+
+    // Atalhos globais (Configuracoes > Atalhos, beta) -- disparam mesmo
+    // com outra janela (ex: um jogo) em foco, ver globalShortcut em
+    // main.js. name e "mute-toggle" | "deafen-toggle" | "leave-call".
+    onShortcut: (name, callback) => {
+      const channel = `shortcut:${name}`;
+      const listener = () => callback();
+      ipcRenderer.on(channel, listener);
+      return () => ipcRenderer.removeListener(channel, listener);
+    },
   });
 }

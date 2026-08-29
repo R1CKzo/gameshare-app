@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { type PresentUser, type RemotePeerTracks, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { isBetaEnabled } from "@/lib/beta";
+import { onShortcut } from "@/lib/desktop";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_KICKED_EVENT, CALL_UPDATE_EVENT, dmChannelPusherName, textChannelPusherName, userPusherName } from "@/lib/pusherShared";
 import { playJoinCallSound, playLeaveCallSound } from "@/lib/sound";
@@ -295,6 +297,24 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, currentUserId]);
+
+  // Atalhos globais (Configuracoes > Atalhos, beta) -- funcionam mesmo
+  // com outra janela (ex: um jogo) em foco, ver registerGlobalShortcuts
+  // em desktop/main.js. So assina enquanto estiver numa chamada de
+  // verdade (target != null) -- sem call ativa, mutar/silenciar/sair nao
+  // significam nada.
+  useEffect(() => {
+    if (!target || !isBetaEnabled()) return;
+    const offMute = onShortcut("mute-toggle", () => mesh.toggleMute());
+    const offDeafen = onShortcut("deafen-toggle", () => toggleDeafen());
+    const offLeave = onShortcut("leave-call", () => leave());
+    return () => {
+      offMute();
+      offDeafen();
+      offLeave();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, mesh.toggleMute, toggleDeafen, leave]);
 
   const startScreenShare = useCallback(
     async (options: ScreenShareOptions) => {

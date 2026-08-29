@@ -35,6 +35,16 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.0.15",
+    date: "2026-08-29",
+    id: "2026-08-29::Atalhos globais (beta)",
+    title: "Atalhos globais (beta)",
+    items: [],
+    betaFeatures: [
+      "Atalhos globais de chamada (app de desktop): Ctrl+Shift+M mutar/desmutar, Ctrl+Shift+S silenciar geral, Ctrl+Shift+L sair da chamada — funcionam mesmo com um jogo em foco",
+    ],
+  },
+  {
     date: "2026-08-29",
     id: "2026-08-29::Controle parental",
     title: "Controle parental",

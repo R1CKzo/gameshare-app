@@ -64,6 +64,10 @@ type GameshareDesktopBridge = {
   closeWindow?: () => void;
   isWindowMaximized?: () => Promise<boolean>;
   onWindowMaximizedChanged?: (callback: (isMaximized: boolean) => void) => () => void;
+  // Atalhos globais (Configuracoes > Atalhos, beta) -- ver
+  // registerGlobalShortcuts em main.js. name e "mute-toggle" |
+  // "deafen-toggle" | "leave-call".
+  onShortcut?: (name: string, callback: () => void) => () => void;
 };
 
 declare global {
@@ -124,6 +128,13 @@ export function stopAppAudio(): void {
 export function onSystemAudioChunk(callback: (chunk: Uint8Array) => void): () => void {
   if (typeof window === "undefined" || !window.gameshareDesktop) return () => {};
   return window.gameshareDesktop.onSystemAudioChunk(callback);
+}
+
+// Atalhos globais (beta) -- ver ActiveCallProvider.tsx, unico lugar que
+// assina isso, so quando isBetaEnabled().
+export function onShortcut(name: "mute-toggle" | "deafen-toggle" | "leave-call", callback: () => void): () => void {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.onShortcut) return () => {};
+  return window.gameshareDesktop.onShortcut(name, callback);
 }
 
 // Liga/desliga o ponto vermelho de notificacao no icone da bandeja do

@@ -12,6 +12,7 @@ const {
   protocol,
   safeStorage,
   session,
+  globalShortcut,
 } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
@@ -886,6 +887,29 @@ function notify(title, body) {
   new Notification({ title, body, icon: path.join(__dirname, "build", "icon.ico") }).show();
 }
 
+// Atalhos globais (Configuracoes > Atalhos, beta) -- registrados sempre
+// (nao ha como o processo principal saber se o interruptor de beta da
+// pessoa esta ligado sem uma ponte de IPC nova so pra isso); quem decide
+// se REAGE ao evento ou nao e o renderer, em ActiveCallProvider.tsx, so
+// se isBetaEnabled(). globalShortcut funciona mesmo com outra janela
+// (ex: um jogo) em foco -- diferente de um atalho normal da pagina.
+function registerGlobalShortcuts() {
+  const bindings = {
+    "CommandOrControl+Shift+M": "mute-toggle",
+    "CommandOrControl+Shift+S": "deafen-toggle",
+    "CommandOrControl+Shift+L": "leave-call",
+  };
+  for (const [accelerator, name] of Object.entries(bindings)) {
+    try {
+      globalShortcut.register(accelerator, () => {
+        mainWindow?.webContents.send(`shortcut:${name}`);
+      });
+    } catch (err) {
+      log.error(`Falha ao registrar atalho global ${accelerator}:`, err);
+    }
+  }
+}
+
 app.whenReady().then(() => {
   // A janela de teste, com pasta de dados propria (ver acima), nao
   // precisa da janela/bandeja/auto-update normais junto — mante-la fora
@@ -896,6 +920,7 @@ app.whenReady().then(() => {
     createWindow();
     createTray();
     setupAutoUpdate();
+    registerGlobalShortcuts();
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -951,6 +976,14 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+});
+
+// Atalho global fica "reservado" no sistema operacional inteiro enquanto
+// o processo estiver vivo -- sem isso, um segundo GameShare (ou depois de
+// reabrir) podia falhar em re-registrar por engano, ou o atalho continuar
+// ativo por um instante depois do app ja ter fechado.
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
 });
 
 // Processos filhos (child_process.spawn) nao morrem sozinhos so porque o
