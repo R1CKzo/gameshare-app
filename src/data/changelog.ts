@@ -35,7 +35,6 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
-    version: "1.0.15",
     date: "2026-08-29",
     id: "2026-08-29::Atalhos globais (beta)",
     title: "Atalhos globais (beta)",
