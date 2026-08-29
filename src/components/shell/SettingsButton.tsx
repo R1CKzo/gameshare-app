@@ -967,7 +967,7 @@ function BetaTab() {
     <div className="space-y-4">
       <ToggleRow
         label="Permitir versões beta"
-        description="Libera acesso ao Liquid Glass, o unico recurso ainda em teste no momento."
+        description="Libera acesso a recursos que ainda estão em teste, antes de virarem oficiais pra todo mundo."
         checked={allowed}
         onChange={handleToggle}
       />

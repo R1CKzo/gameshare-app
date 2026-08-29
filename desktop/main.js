@@ -13,6 +13,7 @@ const {
   safeStorage,
   session,
   globalShortcut,
+  screen,
 } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
@@ -530,6 +531,68 @@ function createWindow() {
   // icone da bandeja ainda mostrando o aviso.
   if (lastUnreadState) setUnreadBadge(true);
 }
+
+// Sobreposicao em jogo (Configuracoes > beta) -- mostra quem esta na
+// call por cima de um jogo em janela/tela cheia sem borda. Janela
+// Electron SEPARADA da principal, sempre transparente/clique-atravessa/
+// sem foco -- carrega a mesma rota do site (/overlay), so que essa rota
+// nao usa ActiveCallProvider (ver Providers.tsx), pra nao abrir uma
+// SEGUNDA conexao de voz fantasma na malha. O estado de quem esta na
+// call chega por IPC (ver ipcMain "overlay:state" abaixo), empurrado
+// pela janela principal de verdade -- a janela do overlay nunca busca
+// nada sozinha.
+let gameOverlayWindow = null;
+
+function createGameOverlayWindow() {
+  if (gameOverlayWindow) return gameOverlayWindow;
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  gameOverlayWindow = new BrowserWindow({
+    width,
+    height,
+    x: 0,
+    y: 0,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false,
+    resizable: false,
+    hasShadow: false,
+    show: false,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      preload: path.join(__dirname, "main-preload.js"),
+    },
+  });
+  // Fica por cima ate de jogos em tela cheia sem borda (nivel "screen-saver",
+  // acima do nivel normal de "always on top"); ignora clique/mouse pra tudo
+  // atravessar pra janela do jogo por baixo.
+  gameOverlayWindow.setAlwaysOnTop(true, "screen-saver");
+  gameOverlayWindow.setIgnoreMouseEvents(true);
+  gameOverlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  gameOverlayWindow.loadURL(`${APP_URL}/overlay`);
+  gameOverlayWindow.on("closed", () => {
+    gameOverlayWindow = null;
+  });
+  return gameOverlayWindow;
+}
+
+ipcMain.on("overlay:show", () => {
+  const win = createGameOverlayWindow();
+  win.showInactive();
+});
+
+ipcMain.on("overlay:hide", () => {
+  gameOverlayWindow?.hide();
+});
+
+// Repassa o estado da call (quem esta presente, mutado, compartilhando)
+// que a janela principal manda pra dentro da janela do overlay.
+ipcMain.on("overlay:state", (_event, state) => {
+  gameOverlayWindow?.webContents.send("overlay:state", state);
+});
 
 // Duas variantes do icone da bandeja (normal e com o ponto vermelho) mais
 // o ponto sozinho (fundo transparente) pro overlay do icone na barra de
@@ -1264,6 +1327,7 @@ app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   if (hookStarted) uIOhook.stop();
   if (gameDetectionInterval) clearInterval(gameDetectionInterval);
+  gameOverlayWindow?.destroy();
 });
 
 // Processos filhos (child_process.spawn) nao morrem sozinhos so porque o

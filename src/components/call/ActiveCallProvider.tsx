@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { type PresentUser, type RemotePeerTracks, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
 import { loadAudioSettings } from "@/lib/audioSettings";
 import { isBetaEnabled } from "@/lib/beta";
-import { onShortcut } from "@/lib/desktop";
+import { hideOverlay, isDesktopApp, onShortcut, showOverlay, syncOverlayState } from "@/lib/desktop";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_KICKED_EVENT, CALL_UPDATE_EVENT, dmChannelPusherName, textChannelPusherName, userPusherName } from "@/lib/pusherShared";
 import { playJoinCallSound, playLeaveCallSound } from "@/lib/sound";
@@ -332,6 +332,33 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, mesh.setPushToTalkActive]);
+
+  // Sobreposicao em jogo (beta, app de desktop) -- a janela do overlay
+  // (rota /overlay, ver Providers.tsx) so existe enquanto a call estiver
+  // ativa, some inteira ao sair (nao so fica vazia).
+  useEffect(() => {
+    if (!isDesktopApp() || !isBetaEnabled()) return;
+    if (target) showOverlay();
+    else hideOverlay();
+  }, [target]);
+
+  // Empurra pra dentro do overlay quem esta presente, mutado/silenciado e
+  // quem esta compartilhando -- a janela do overlay nunca busca nada
+  // sozinha, so reflete o que a gente manda aqui (ver createGameOverlayWindow
+  // em desktop/main.js).
+  useEffect(() => {
+    if (!isDesktopApp() || !isBetaEnabled() || !target) return;
+    syncOverlayState({
+      participants: present.map((p) => ({
+        id: p.id,
+        nickname: p.nickname,
+        image: p.image,
+        isMuted: p.id === currentUserId ? mesh.isMuted : p.isMuted,
+        isDeafened: p.isDeafened,
+        isSharing: p.id === sharingUserId,
+      })),
+    });
+  }, [target, present, currentUserId, mesh.isMuted, sharingUserId]);
 
   const startScreenShare = useCallback(
     async (options: ScreenShareOptions) => {

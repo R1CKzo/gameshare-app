@@ -52,6 +52,7 @@ export const changelog: ChangelogEntry[] = [
       "Atalhos globais de chamada (app de desktop): Ctrl+Shift+M mutar, Ctrl+Shift+S silenciar geral, Ctrl+Shift+L sair da chamada",
       "Push-to-talk configurável em Configurações > Atalhos (app de desktop)",
       "Detecção de jogo (app de desktop): mostra \"Jogando X\" pros outros membros do servidor/amigos",
+      "Sobreposição em jogo (app de desktop): mostra quem está na call por cima da tela do jogo",
     ],
     bugsFixed: [
       "Cursor do mouse mal posicionado e perda de nitidez durante o compartilhamento de tela",

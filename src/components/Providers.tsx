@@ -1,6 +1,7 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AccessibilityProvider } from "@/components/AccessibilityProvider";
@@ -13,6 +14,19 @@ import { DesktopTitleBar } from "@/components/shell/DesktopTitleBar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export function Providers({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
+  // A janela do overlay em jogo (beta, app de desktop) carrega essa
+  // rota igual a qualquer outra do site (mesmo dominio, mesmo layout
+  // raiz) -- mas ela NAO pode montar ActiveCallProvider/PresenceProvider
+  // de novo, senao abriria uma SEGUNDA conexao de voz fantasma na malha
+  // (ver createGameOverlayWindow em desktop/main.js e a pagina
+  // src/app/overlay/page.tsx, que so recebe estado por IPC da janela
+  // principal de verdade, nunca busca nada sozinha).
+  if (pathname === "/overlay") {
+    return <>{children}</>;
+  }
+
   return (
     // ThemeProvider e AccessibilityProvider ficam por fora de tudo —
     // funcionam ate na tela de login, que nao depende de sessao nenhuma.

@@ -73,6 +73,24 @@ type GameshareDesktopBridge = {
   // Deteccao de jogo (beta) -- ver startGameDetection em main.js. gameName
   // e o nome bonito (lista curada) ou null.
   onActivityChanged?: (callback: (gameName: string | null) => void) => () => void;
+  // Sobreposicao em jogo (beta) -- ver createGameOverlayWindow em main.js.
+  showOverlay?: () => void;
+  hideOverlay?: () => void;
+  syncOverlayState?: (state: OverlayState) => void;
+  onOverlayState?: (callback: (state: OverlayState) => void) => () => void;
+};
+
+export type OverlayParticipant = {
+  id: string;
+  nickname: string | null;
+  image: string | null;
+  isMuted: boolean;
+  isDeafened: boolean;
+  isSharing: boolean;
+};
+
+export type OverlayState = {
+  participants: OverlayParticipant[];
 };
 
 export type ShortcutBindings = {
@@ -176,6 +194,23 @@ export function setShortcuts(shortcuts: ShortcutBindings): Promise<ShortcutBindi
 export function onActivityChanged(callback: (gameName: string | null) => void): () => void {
   if (typeof window === "undefined" || !window.gameshareDesktop?.onActivityChanged) return () => {};
   return window.gameshareDesktop.onActivityChanged(callback);
+}
+
+export function showOverlay(): void {
+  window.gameshareDesktop?.showOverlay?.();
+}
+
+export function hideOverlay(): void {
+  window.gameshareDesktop?.hideOverlay?.();
+}
+
+export function syncOverlayState(state: OverlayState): void {
+  window.gameshareDesktop?.syncOverlayState?.(state);
+}
+
+export function onOverlayState(callback: (state: OverlayState) => void): () => void {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.onOverlayState) return () => {};
+  return window.gameshareDesktop.onOverlayState(callback);
 }
 
 // Liga/desliga o ponto vermelho de notificacao no icone da bandeja do

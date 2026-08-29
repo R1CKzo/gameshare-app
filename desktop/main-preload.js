@@ -111,5 +111,19 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
       ipcRenderer.on("activity:changed", listener);
       return () => ipcRenderer.removeListener("activity:changed", listener);
     },
+
+    // Sobreposicao em jogo (beta) -- ver createGameOverlayWindow em
+    // main.js. show/hide sao chamados pela janela principal (quando entra/
+    // sai de uma call); syncOverlayState tambem, pra empurrar quem esta
+    // presente pra dentro da janela do overlay. onOverlayState e o que a
+    // propria pagina /overlay usa pra receber esse estado.
+    showOverlay: () => ipcRenderer.send("overlay:show"),
+    hideOverlay: () => ipcRenderer.send("overlay:hide"),
+    syncOverlayState: (state) => ipcRenderer.send("overlay:state", state),
+    onOverlayState: (callback) => {
+      const listener = (_event, state) => callback(state);
+      ipcRenderer.on("overlay:state", listener);
+      return () => ipcRenderer.removeListener("overlay:state", listener);
+    },
   });
 }
