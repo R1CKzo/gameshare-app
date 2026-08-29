@@ -193,9 +193,19 @@ async function captureDesktopSource(options: ScreenShareOptions): Promise<MediaS
         chromeMediaSourceId: options.sourceId,
         minFrameRate: options.fps,
         maxFrameRate: options.fps,
-        minWidth: options.width,
+        // minWidth/minHeight NAO travados em options.width/height (era
+        // min=max antes): isso forcava o Chromium a fazer upscale/downscale
+        // na captura pra bater EXATAMENTE a resolucao escolhida, mesmo
+        // quando o monitor de verdade era menor ou maior -- alem de perder
+        // nitidez a toa, esse escalonamento forcado na captura e a causa
+        // mais provavel do cursor aparecer preso/mal posicionado durante a
+        // transmissao (o Chromium compoe o cursor ANTES de aplicar esse
+        // escalonamento em alguns caminhos internos). max continua
+        // respeitando o teto de qualidade escolhido; min so evita um frame
+        // ridiculamente pequeno.
+        minWidth: 320,
         maxWidth: options.width,
-        minHeight: options.height,
+        minHeight: 180,
         maxHeight: options.height,
       },
     },

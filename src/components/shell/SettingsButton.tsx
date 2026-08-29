@@ -193,7 +193,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
       <button
         onClick={onClose}
         aria-label="Fechar"
-        className="absolute right-3 top-[calc(0.75rem_+_var(--titlebar-h,0px))] flex flex-col items-center gap-1 text-muted transition hover:text-foreground md:right-10 md:top-[calc(60px_+_var(--titlebar-h,0px))]"
+        className="absolute right-2 top-[calc(0.5rem_+_var(--titlebar-h,0px))] flex flex-col items-center gap-1 text-muted transition hover:text-foreground md:right-6 md:top-[calc(24px_+_var(--titlebar-h,0px))]"
       >
         <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-current">
           <CloseIcon />
