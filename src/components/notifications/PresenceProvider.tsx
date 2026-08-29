@@ -4,6 +4,8 @@ import { useSession } from "next-auth/react";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { apiUrl } from "@/lib/apiUrl";
+import { isBetaEnabled } from "@/lib/beta";
+import { onActivityChanged } from "@/lib/desktop";
 import { HEARTBEAT_INTERVAL_MS, IDLE_AFTER_MS, type PresenceStatus } from "@/lib/presence";
 
 type ManualStatus = "ONLINE" | "AWAY" | "BUSY";
@@ -49,6 +51,11 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const manualRef = useRef<ManualStatus | null>(null);
   const lastInteractionRef = useRef(Date.now());
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Jogo detectado pelo app de desktop (beta) -- ver onActivityChanged em
+  // desktop/main.js. Guardado por ref (nao state) pelo mesmo motivo do
+  // manualRef: sendHeartbeat roda dentro de closures que nao veem state
+  // atualizado.
+  const activityRef = useRef<string | null>(null);
 
   useEffect(() => {
     manualRef.current = manualStatus;
@@ -69,7 +76,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       fetch(apiUrl("/api/me/heartbeat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, activity: activityRef.current }),
         keepalive: true,
       }).catch(() => {});
     }
@@ -110,12 +117,23 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
     markInteraction();
 
+    // Deteccao de jogo (app de desktop, beta) -- manda um heartbeat extra
+    // na hora que o jogo muda, sem esperar o proximo ciclo de
+    // HEARTBEAT_MS, pra "Jogando X" aparecer rapido pros outros membros.
+    const offActivity = isBetaEnabled()
+      ? onActivityChanged((gameName) => {
+          activityRef.current = gameName;
+          sendHeartbeat();
+        })
+      : () => {};
+
     return () => {
       cancelled = true;
       events.forEach((e) => window.removeEventListener(e, markInteraction));
       document.removeEventListener("visibilitychange", sendHeartbeat);
       clearInterval(interval);
       if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
+      offActivity();
     };
   }, [userId]);
 

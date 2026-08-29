@@ -150,6 +150,12 @@ model User {
   // o status sozinho, ate ela escolher "Automatico" de novo.
   statusManual Boolean @default(false)
 
+  // Jogo detectado em execucao (app de desktop, beta) -- nome bonito vindo
+  // de uma lista curada (desktop/knownGames.js), nunca o titulo cru da
+  // janela. Nulo = nenhum jogo conhecido rodando agora. Atualizado junto
+  // do heartbeat normal, ver PresenceProvider.tsx / /api/me/heartbeat.
+  currentActivity String?
+
   // Identificador unico: nickname + "#" + userTag (6 digitos)
   nickname  String?
   userTag   String? // 6 digitos numericos, ex: "123456"

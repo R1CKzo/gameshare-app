@@ -18,6 +18,12 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const status = ["ONLINE", "AWAY", "BUSY"].includes(body?.status) ? body.status : "ONLINE";
+  // Nome bonito de um jogo detectado (app de desktop, beta) -- ver
+  // desktop/knownGames.js. undefined = campo nao mandado (navegador comum,
+  // ou app de desktop ainda sem suporte a isso), null = mandado de
+  // proposito pra limpar (jogo fechado).
+  const hasActivity = "activity" in body;
+  const activity = typeof body?.activity === "string" ? body.activity.slice(0, 80) : null;
 
   // Com o status fixado manualmente (ver /api/me/status), o heartbeat
   // automatico so mantem "ultima vez vista" fresca — nunca sobrescreve o
@@ -33,7 +39,11 @@ export async function POST(request: Request) {
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: current?.statusManual ? { lastActiveAt: new Date() } : { status, lastActiveAt: new Date() },
+    data: {
+      ...(current?.statusManual ? {} : { status }),
+      lastActiveAt: new Date(),
+      ...(hasActivity ? { currentActivity: activity } : {}),
+    },
   });
 
   return NextResponse.json({ ok: true });

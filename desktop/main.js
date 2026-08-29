@@ -21,6 +21,8 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 const { uIOhook, UiohookKey } = require("uiohook-napi");
+const activeWin = require("active-win");
+const KNOWN_GAMES = require("./knownGames.js");
 
 // Log persistido em disco (%APPDATA%/GameShare/logs/main.log) — sem isso,
 // qualquer erro no auto-updater só existiria no console de uma janela que
@@ -1142,6 +1144,31 @@ ipcMain.handle("shortcuts:set", (_event, shortcuts) => {
   return merged;
 });
 
+// Deteccao de jogo (Configuracoes > beta, exibida como "Jogando X" pros
+// outros membros do servidor) -- so avisa o renderer quando o nome MUDA,
+// nunca a cada 10s, pra nao gerar heartbeat extra nenhum sem necessidade.
+// So reconhece exe's da lista curada (knownGames.js); qualquer outra
+// janela em foco conta como "nenhum jogo conhecido" (null).
+let gameDetectionInterval = null;
+let lastDetectedGame = null;
+
+function startGameDetection() {
+  if (gameDetectionInterval) return;
+  gameDetectionInterval = setInterval(async () => {
+    try {
+      const win = await activeWin();
+      const exeName = win?.owner?.path ? path.basename(win.owner.path).toLowerCase() : null;
+      const game = exeName ? KNOWN_GAMES[exeName] ?? null : null;
+      if (game !== lastDetectedGame) {
+        lastDetectedGame = game;
+        mainWindow?.webContents.send("activity:changed", game);
+      }
+    } catch (err) {
+      log.error("Falha ao detectar janela ativa:", err);
+    }
+  }, 10000);
+}
+
 app.whenReady().then(() => {
   // A janela de teste, com pasta de dados propria (ver acima), nao
   // precisa da janela/bandeja/auto-update normais junto — mante-la fora
@@ -1162,6 +1189,7 @@ app.whenReady().then(() => {
       createTray();
       setupAutoUpdate();
       registerGlobalShortcuts();
+      startGameDetection();
     });
 
     app.on("activate", () => {
@@ -1227,6 +1255,7 @@ app.on("window-all-closed", () => {
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   if (hookStarted) uIOhook.stop();
+  if (gameDetectionInterval) clearInterval(gameDetectionInterval);
 });
 
 // Processos filhos (child_process.spawn) nao morrem sozinhos so porque o

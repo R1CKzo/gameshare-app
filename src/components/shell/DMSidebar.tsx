@@ -19,6 +19,7 @@ type DMUser = {
   image: string | null;
   status: RawStatus;
   lastActiveAt: string | null;
+  currentActivity?: string | null;
 };
 type Conversation = { id: string; user: DMUser | null; lastMessage: { content: string; createdAt: string } | null };
 
@@ -131,8 +132,10 @@ export function DMSidebar({
                   >
                     {c.user.nickname}
                   </div>
-                  {c.lastMessage && (
+                  {c.lastMessage ? (
                     <div className={`truncate text-xs ${unread ? "text-foreground-secondary" : "text-dim"}`}>{c.lastMessage.content}</div>
+                  ) : (
+                    c.user.currentActivity && <div className="truncate text-xs text-dim">Jogando {c.user.currentActivity}</div>
                   )}
                 </div>
                 {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />}

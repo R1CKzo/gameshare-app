@@ -7,7 +7,15 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const userSelect = { id: true, nickname: true, userTag: true, image: true, status: true, lastActiveAt: true } as const;
+const userSelect = {
+  id: true,
+  nickname: true,
+  userTag: true,
+  image: true,
+  status: true,
+  lastActiveAt: true,
+  currentActivity: true,
+} as const;
 
 // Lista minhas conversas diretas, com a outra pessoa e a ultima mensagem
 // (pra mostrar uma previa), mais recente primeiro.

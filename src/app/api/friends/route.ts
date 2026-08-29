@@ -10,7 +10,15 @@ import { FRIEND_ACCEPTED_EVENT, FRIEND_REQUEST_EVENT, pusherServer, userPusherNa
 
 export const dynamic = "force-dynamic";
 
-const userSelect = { id: true, nickname: true, userTag: true, image: true, status: true, lastActiveAt: true } as const;
+const userSelect = {
+  id: true,
+  nickname: true,
+  userTag: true,
+  image: true,
+  status: true,
+  lastActiveAt: true,
+  currentActivity: true,
+} as const;
 
 // Lista amigos (aceitos) + pedidos pendentes recebidos e enviados. Tudo
 // numa chamada so pra tela de Amigos nao precisar de 3 requests. Login por

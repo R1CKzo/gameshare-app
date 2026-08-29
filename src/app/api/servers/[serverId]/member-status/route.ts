@@ -25,10 +25,15 @@ export async function GET(_request: Request, { params }: { params: { serverId: s
 
   const members = await prisma.serverMember.findMany({
     where: { serverId: params.serverId },
-    select: { user: { select: { id: true, status: true, lastActiveAt: true } } },
+    select: { user: { select: { id: true, status: true, lastActiveAt: true, currentActivity: true } } },
   });
 
   return NextResponse.json({
-    members: members.map((m) => ({ id: m.user.id, status: m.user.status, lastActiveAt: m.user.lastActiveAt })),
+    members: members.map((m) => ({
+      id: m.user.id,
+      status: m.user.status,
+      lastActiveAt: m.user.lastActiveAt,
+      currentActivity: m.user.currentActivity,
+    })),
   });
 }

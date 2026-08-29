@@ -70,6 +70,9 @@ type GameshareDesktopBridge = {
   onShortcut?: (name: string, callback: () => void) => () => void;
   getShortcuts?: () => Promise<ShortcutBindings>;
   setShortcuts?: (shortcuts: ShortcutBindings) => Promise<ShortcutBindings>;
+  // Deteccao de jogo (beta) -- ver startGameDetection em main.js. gameName
+  // e o nome bonito (lista curada) ou null.
+  onActivityChanged?: (callback: (gameName: string | null) => void) => () => void;
 };
 
 export type ShortcutBindings = {
@@ -168,6 +171,11 @@ export function setShortcuts(shortcuts: ShortcutBindings): Promise<ShortcutBindi
     return Promise.resolve(shortcuts);
   }
   return window.gameshareDesktop.setShortcuts(shortcuts);
+}
+
+export function onActivityChanged(callback: (gameName: string | null) => void): () => void {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.onActivityChanged) return () => {};
+  return window.gameshareDesktop.onActivityChanged(callback);
 }
 
 // Liga/desliga o ponto vermelho de notificacao no icone da bandeja do

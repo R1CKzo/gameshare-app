@@ -102,5 +102,14 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     },
     getShortcuts: () => ipcRenderer.invoke("shortcuts:get"),
     setShortcuts: (shortcuts) => ipcRenderer.invoke("shortcuts:set", shortcuts),
+
+    // Deteccao de jogo (beta) -- ver startGameDetection em main.js.
+    // gameName e o nome bonito (lista curada) ou null (nenhum jogo
+    // conhecido em foco).
+    onActivityChanged: (callback) => {
+      const listener = (_event, gameName) => callback(gameName);
+      ipcRenderer.on("activity:changed", listener);
+      return () => ipcRenderer.removeListener("activity:changed", listener);
+    },
   });
 }

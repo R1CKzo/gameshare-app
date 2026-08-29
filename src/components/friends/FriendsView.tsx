@@ -18,6 +18,7 @@ type FriendUser = {
   image: string | null;
   status: RawStatus;
   lastActiveAt: string | null;
+  currentActivity?: string | null;
 };
 type FriendRow = { friendshipId: string; user: FriendUser };
 
@@ -261,7 +262,11 @@ function FriendRowItem({ user, children }: { user: FriendUser; children: React.R
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-foreground">{user.nickname}</div>
-        <div className="text-xs text-dim">#{user.userTag}</div>
+        {user.currentActivity ? (
+          <div className="truncate text-xs text-dim">Jogando {user.currentActivity}</div>
+        ) : (
+          <div className="text-xs text-dim">#{user.userTag}</div>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-2">{children}</div>
     </div>

@@ -15,10 +15,11 @@ type Member = {
   image: string | null;
   status: RawStatus;
   lastActiveAt: string | Date | null;
+  currentActivity?: string | null;
   role?: { id: string; name: string; color: string | null } | null;
 };
 
-type StatusUpdate = { id: string; status: RawStatus; lastActiveAt: string | null };
+type StatusUpdate = { id: string; status: RawStatus; lastActiveAt: string | null; currentActivity?: string | null };
 
 const POLL_INTERVAL_MS = 8_000;
 
@@ -76,6 +77,7 @@ export function MemberList({ serverId, members }: { serverId: string; members: M
             update ? update.status : member.status,
             update ? update.lastActiveAt : member.lastActiveAt,
           );
+          const activity = update ? update.currentActivity : member.currentActivity;
           return (
           <div key={member.id} className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-overlay-weak">
             <div className="relative h-8 w-8 shrink-0">
@@ -102,6 +104,7 @@ export function MemberList({ serverId, members }: { serverId: string; members: M
               ) : (
                 <div className="truncate text-xs text-muted">#{member.userTag}</div>
               )}
+              {activity && <div className="truncate text-xs text-dim">Jogando {activity}</div>}
             </div>
           </div>
           );

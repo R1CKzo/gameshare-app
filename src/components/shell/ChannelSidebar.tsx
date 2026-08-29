@@ -35,6 +35,7 @@ type MemberSummary = {
   image: string | null;
   status: "ONLINE" | "AWAY" | "BUSY" | null;
   lastActiveAt: string | Date | null;
+  currentActivity?: string | null;
   roleId: string | null;
   role: RoleSummary | null;
 };
