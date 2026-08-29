@@ -97,18 +97,17 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     present,
   });
 
-  // Igual o Discord: ativar "silenciar geral" tambem muta o microfone de
-  // verdade (nao so um efeito visual -- por isso os outros participantes
-  // passam a ver voce como mudo tambem, do jeito que ja acontece com
-  // qualquer mutado normal). Desativar NAO desmuta sozinho -- fica mudo
-  // ate a pessoa desmutar na mao, pra ninguem comecar a falar sem querer
-  // logo que volta a ouvir a call.
+  // Ativar "silenciar geral" tambem muta o microfone de verdade (nao so
+  // um efeito visual -- por isso os outros participantes passam a ver
+  // voce como mudo tambem, do jeito que ja acontece com qualquer mutado
+  // normal). Desativar tambem desmuta sozinho, pra voltar exatamente ao
+  // estado de antes de silenciar (pedido explicito do dono).
   const isDeafenedRef = useRef(false); // espelha isDeafened pro heartbeat abaixo ler sem closure velha
   const toggleDeafen = useCallback(() => {
     setIsDeafened((prev) => {
       const next = !prev;
       isDeafenedRef.current = next;
-      if (next && !mesh.isMuted) mesh.toggleMute();
+      if (next !== mesh.isMuted) mesh.toggleMute();
       // Avisa na hora (nao espera o proximo heartbeat periodico, que pode
       // demorar ate HEARTBEAT_MS) -- mesma logica do toggleMute em
       // useVoiceMesh, pra quem esta vendo de fora perceber quase na hora.
