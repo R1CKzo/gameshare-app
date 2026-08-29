@@ -35,37 +35,16 @@ export function changelogKey(entry: ChangelogEntry): string {
 
 export const changelog: ChangelogEntry[] = [
   {
-    date: "2026-08-29",
-    id: "2026-08-29::Controle parental",
-    title: "Controle parental",
-    items: [
-      "Controle parental (Configurações > Privacidade e Segurança), com email de um responsável",
-      "Com o controle ativo, entrar em servidor ou aceitar amizade exige autorização por código do responsável",
-    ],
-  },
-  {
     version: "1.0.14",
     date: "2026-08-29",
     id: "2026-08-29::Recursos em beta viram oficiais",
     title: "Recursos em beta viram oficiais",
     items: [
       "Quase tudo que estava em beta na versão 1.0.13 agora é oficial pra todo mundo, sem precisar ligar nada nas Configurações",
-      "Tela de Configurações remodelada, em tela cheia com categorias na lateral, reorganizadas em grupos (Configurações do usuário, Config. do aplicativo, Suporte)",
-      "Nova aba Acessibilidade: tamanho do texto, reduzir movimento e alto contraste",
-      "Nova aba Avançado (app de desktop): aceleração de hardware e limpar cache",
-      "Nova aba Notificações: interruptores de som de mensagem e de chamada",
-      "Silenciar notificações de um servidor, canal ou conversa direta específicos, pelo menu (⋯ ou ≡) dele",
-      "Nova aba Bate-papo: escolher entre Enter ou Ctrl+Enter pra enviar mensagem",
-      "Mensagens aceitam **negrito**, *itálico*, `código` e link vira clicável sozinho",
-      "Anexar foto, vídeo ou arquivo nas mensagens, em canal de servidor e em conversa direta",
-      "Novo modelo de supressão de ruído do microfone (Configurações > Voz), mais robusto pra separar sua voz de ruído de teclado e fundo",
-      "Novo logo",
-      "Privacidade e Segurança: ver e trocar o email da conta (com confirmação por código), e telefone opcional pra contato de suporte",
-      "Animações fluidas ao abrir Configurações, menus e trocar de aba, e também ao trocar de servidor, canal, DM ou página",
-      "Barra de canais recolhível na lateral",
-      "App de desktop sem moldura nativa, com barra de título própria (marca + minimizar/maximizar/fechar)",
       "Tela de abertura animada ao iniciar o app",
       "Atualizações instalam sozinhas ao abrir o app, sem precisar clicar em nada",
+      "Controle parental (Configurações > Privacidade e Segurança), com email de um responsável",
+      "Com o controle ativo, entrar em servidor ou aceitar amizade exige autorização por código do responsável",
       "Quem estava com \"Permitir versões beta\" ligado é desligado automaticamente ao abrir essa versão — é só ligar de novo pra continuar testando o que ainda está em beta",
     ],
     betaFeatures: [
