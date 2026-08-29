@@ -58,7 +58,10 @@ export const changelog: ChangelogEntry[] = [
       "Quem estava com \"Permitir versões beta\" ligado é desligado automaticamente ao abrir essa versão — é só ligar de novo pra continuar testando o que ainda está em beta",
     ],
     betaFeatures: ["Novo estilo de interface: \"liquid glass\" (Configurações > Beta), continua em teste"],
-    bugsFixed: [],
+    bugsFixed: [
+      "Cursor do mouse mal posicionado e perda de nitidez durante o compartilhamento de tela",
+      "Botão ESC das Configurações estava afastado demais do canto",
+    ],
   },
   {
     version: "1.0.13",
