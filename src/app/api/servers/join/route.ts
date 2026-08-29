@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { checkAndBumpThrottle } from "@/lib/authThrottle";
 import { prisma } from "@/lib/prisma";
+import { joinServerByInviteCode } from "@/lib/serverJoin";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -31,28 +32,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Informe um código de convite." }, { status: 400 });
   }
 
-  const server = await prisma.server.findUnique({
-    where: { inviteCode },
-    select: { id: true, name: true },
+  // Controle parental (Configuracoes > Privacidade e Seguranca): so vale
+  // pra ENTRADAS NOVAS, nunca revoga servidor que a conta ja tinha -- ver
+  // src/lib/serverJoin.ts e /api/parental/authorize-confirm, que e quem
+  // de fato chama joinServerByInviteCode depois do codigo confirmado.
+  const requester = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { parentalControlEnabled: true },
   });
-
-  if (!server) {
-    return NextResponse.json({ error: "Código de convite inválido." }, { status: 404 });
+  if (requester?.parentalControlEnabled) {
+    return NextResponse.json(
+      { needsParentalAuth: true, action: "JOIN_SERVER", targetId: inviteCode },
+      { status: 403 },
+    );
   }
 
-  const ban = await prisma.serverBan.findUnique({
-    where: { serverId_userId: { serverId: server.id, userId: session.user.id } },
-    select: { id: true },
-  });
-  if (ban) {
-    return NextResponse.json({ error: "Você foi banido desse servidor." }, { status: 403 });
+  const result = await joinServerByInviteCode(session.user.id, inviteCode);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
-
-  await prisma.serverMember.upsert({
-    where: { userId_serverId: { userId: session.user.id, serverId: server.id } },
-    create: { userId: session.user.id, serverId: server.id },
-    update: {},
-  });
-
-  return NextResponse.json({ id: server.id, name: server.name });
+  return NextResponse.json({ id: result.serverId, name: result.serverName });
 }

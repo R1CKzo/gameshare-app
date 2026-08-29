@@ -951,6 +951,10 @@ function SegurancaTab() {
         <h3 className="mb-1 text-sm font-bold text-foreground">Telefone</h3>
         <PhoneSection />
       </div>
+      <div className="border-t border-overlay pt-6">
+        <h3 className="mb-1 text-sm font-bold text-foreground">Controle parental</h3>
+        <ParentalControlSection />
+      </div>
     </div>
   );
 }
@@ -1262,6 +1266,253 @@ function PhoneSection() {
         {saving ? "Salvando..." : saved ? "Salvo!" : "Salvar telefone"}
       </button>
     </div>
+  );
+}
+
+type ParentalStep = "form" | "code";
+
+// Ativa/desativa o controle parental. So daqui pra frente (nao mexe em
+// servidor/amizade que a conta ja tinha) -- ver contexto completo em
+// prisma/schema.prisma no campo parentalControlEnabled. Ativar pede so o
+// codigo (email do responsavel) + a senha de remocao que ele cria nessa
+// hora; desativar pede as DUAS coisas de novo (codigo novo + a mesma
+// senha) -- nunca so uma.
+function ParentalControlSection() {
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [enabled, setEnabled] = useState(false);
+  const [parentEmail, setParentEmail] = useState<string | null>(null);
+
+  const [step, setStep] = useState<ParentalStep>("form");
+  const [emailInput, setEmailInput] = useState("");
+  const [code, setCode] = useState("");
+  const [removalPassword, setRemovalPassword] = useState("");
+  const [ticketId, setTicketId] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState<"activated" | "deactivated" | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(apiUrl("/api/parental/status"), { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (cancelled) return;
+      setLoadingStatus(false);
+      setEnabled(Boolean(data.enabled));
+      setParentEmail(data.parentEmail ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function requestActivation(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+    const res = await fetch(apiUrl("/api/parental/setup-request"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parentEmail: emailInput }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok) {
+      setError(data.error ?? "Não foi possível continuar.");
+      return;
+    }
+    setTicketId(data.ticketId);
+    setStep("code");
+  }
+
+  async function confirmActivation(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+    const res = await fetch(apiUrl("/api/parental/setup-confirm"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticketId, code, removalPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok) {
+      setError(data.error ?? "Código inválido.");
+      return;
+    }
+    setEnabled(true);
+    setParentEmail(data.parentEmail ?? emailInput);
+    setDone("activated");
+  }
+
+  async function requestRemoval() {
+    setError("");
+    setSending(true);
+    const res = await fetch(apiUrl("/api/parental/removal-request"), { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok) {
+      setError(data.error ?? "Não foi possível continuar.");
+      return;
+    }
+    setTicketId(data.ticketId);
+    setStep("code");
+  }
+
+  async function confirmRemoval(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+    const res = await fetch(apiUrl("/api/parental/removal-confirm"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticketId, code, removalPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok) {
+      setError(data.error ?? "Código ou senha incorretos.");
+      return;
+    }
+    setEnabled(false);
+    setParentEmail(null);
+    setDone("deactivated");
+  }
+
+  if (loadingStatus) return <p className="text-sm text-dim">Carregando...</p>;
+
+  if (done) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-6 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <CheckIcon />
+        </div>
+        <p className="text-sm font-bold text-foreground">
+          {done === "activated" ? "Controle parental ativado!" : "Controle parental desativado!"}
+        </p>
+      </div>
+    );
+  }
+
+  // Ligado, ainda nao pediu pra desativar
+  if (enabled && step === "form") {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-dim">
+          Ativo — responsável: <span className="font-semibold text-foreground">{parentEmail}</span>. Entrar num
+          servidor novo ou aceitar um pedido de amizade novo agora pede autorização por email.
+        </p>
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <button
+          onClick={requestRemoval}
+          disabled={sending}
+          className="h-11 w-full rounded-xl border border-danger text-sm font-bold text-danger transition hover:bg-danger/10 disabled:opacity-50"
+        >
+          {sending ? "Enviando..." : "Desativar controle parental"}
+        </button>
+      </div>
+    );
+  }
+
+  // Ligado, pediu pra desativar -- confirma com codigo NOVO + a mesma senha de remocao
+  if (enabled && step === "code") {
+    return (
+      <form onSubmit={confirmRemoval} className="space-y-4">
+        <p className="text-xs text-dim">
+          Enviamos um código de 6 dígitos pro email do responsável ({parentEmail}). Digite ele e a senha de remoção
+          criada na ativação pra desativar.
+        </p>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          inputMode="numeric"
+          placeholder="000000"
+          className="h-12 w-full rounded-xl border border-border bg-background px-4 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-primary"
+        />
+        <div>
+          <label className="mb-2 block text-xs font-bold tracking-wide text-muted">SENHA DE REMOÇÃO</label>
+          <input
+            type="password"
+            value={removalPassword}
+            onChange={(e) => setRemovalPassword(e.target.value)}
+            className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+          />
+        </div>
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <button
+          type="submit"
+          disabled={sending || code.length !== 6 || !removalPassword}
+          className="h-11 w-full rounded-xl bg-danger text-sm font-bold text-white transition hover:bg-danger-hover disabled:opacity-50"
+        >
+          {sending ? "Confirmando..." : "Confirmar desativação"}
+        </button>
+      </form>
+    );
+  }
+
+  // Desligado, ainda nao pediu ativacao
+  if (step === "form") {
+    return (
+      <form onSubmit={requestActivation} className="space-y-4">
+        <p className="text-xs text-dim">
+          Restringe essa conta: entrar num servidor novo ou aceitar um pedido de amizade novo passa a exigir
+          autorização por código enviado pro email do responsável.
+        </p>
+        <div>
+          <label className="mb-2 block text-xs font-bold tracking-wide text-muted">EMAIL DO RESPONSÁVEL</label>
+          <input
+            type="email"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            placeholder="responsavel@exemplo.com"
+            className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+          />
+        </div>
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <button
+          type="submit"
+          disabled={sending || !emailInput.trim()}
+          className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+        >
+          {sending ? "Enviando..." : "Ativar controle parental"}
+        </button>
+      </form>
+    );
+  }
+
+  // Desligado, codigo ja pedido -- confirma codigo + cria a senha de remocao
+  return (
+    <form onSubmit={confirmActivation} className="space-y-4">
+      <p className="text-xs text-dim">
+        Enviamos um código de 6 dígitos pro email do responsável ({emailInput}). O responsável também cria agora uma
+        senha, exigida pra remover o controle parental depois.
+      </p>
+      <input
+        value={code}
+        onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+        inputMode="numeric"
+        placeholder="000000"
+        className="h-12 w-full rounded-xl border border-border bg-background px-4 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-primary"
+      />
+      <div>
+        <label className="mb-2 block text-xs font-bold tracking-wide text-muted">CRIAR SENHA DE REMOÇÃO</label>
+        <input
+          type="password"
+          value={removalPassword}
+          onChange={(e) => setRemovalPassword(e.target.value)}
+          className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+        />
+        <p className="mt-1.5 text-xs text-dim">Mínimo 8 caracteres. Só o responsável deve saber essa senha.</p>
+      </div>
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <button
+        type="submit"
+        disabled={sending || code.length !== 6 || removalPassword.length < 8}
+        className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
+      >
+        {sending ? "Confirmando..." : "Confirmar ativação"}
+      </button>
+    </form>
   );
 }
 

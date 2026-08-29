@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ParentalCodeModal, type ParentalAction } from "@/components/ParentalCodeModal";
 import { apiUrl } from "@/lib/apiUrl";
 
 export default function NewServerPage() {
@@ -14,6 +15,9 @@ export default function NewServerPage() {
   const [loading, setLoading] = useState<"create" | "join" | null>(null);
   const [created, setCreated] = useState<{ id: string; inviteUrl: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pendingParentalAuth, setPendingParentalAuth] = useState<{ action: ParentalAction; targetId: string } | null>(
+    null,
+  );
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +57,10 @@ export default function NewServerPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 403 && data?.needsParentalAuth) {
+          setPendingParentalAuth({ action: data.action, targetId: data.targetId });
+          return;
+        }
         setError(data.error ?? "Não foi possível entrar no servidor.");
         return;
       }
@@ -167,6 +175,18 @@ export default function NewServerPage() {
 
         {error && <p className="text-center text-sm text-danger">{error}</p>}
       </div>
+
+      {pendingParentalAuth && (
+        <ParentalCodeModal
+          action={pendingParentalAuth.action}
+          targetId={pendingParentalAuth.targetId}
+          onSuccess={(result) => {
+            setPendingParentalAuth(null);
+            if (result.serverId) router.push(`/servers/${result.serverId}`);
+          }}
+          onCancel={() => setPendingParentalAuth(null)}
+        />
+      )}
     </div>
   );
 }

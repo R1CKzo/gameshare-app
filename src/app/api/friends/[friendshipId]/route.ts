@@ -2,35 +2,35 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
+import { acceptFriendship } from "@/lib/friendAccept";
 import { prisma } from "@/lib/prisma";
-import { FRIEND_ACCEPTED_EVENT, pusherServer, userPusherName } from "@/lib/pusher";
 
 // Aceita um pedido de amizade recebido. So o "addressee" (quem recebeu)
 // pode aceitar — o requester so pode cancelar (DELETE).
-export async function PATCH(request: Request, { params }: { params: { friendshipId: string } }) {
+export async function PATCH(_request: Request, { params }: { params: { friendshipId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
-  const friendship = await prisma.friendship.findUnique({
-    where: { id: params.friendshipId },
-    select: { addresseeId: true, requesterId: true, status: true },
+  // Controle parental: so vale pra aceites NOVOS (ver comentario igual em
+  // /api/servers/join). acceptFriendship de verdade so roda depois do
+  // codigo confirmado, em /api/parental/authorize-confirm.
+  const requester = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { parentalControlEnabled: true },
   });
-  if (!friendship || friendship.addresseeId !== session.user.id) {
-    return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
-  }
-  if (friendship.status === "ACCEPTED") {
-    return NextResponse.json({ ok: true });
+  if (requester?.parentalControlEnabled) {
+    return NextResponse.json(
+      { needsParentalAuth: true, action: "ACCEPT_FRIEND", targetId: params.friendshipId },
+      { status: 403 },
+    );
   }
 
-  await prisma.friendship.update({
-    where: { id: params.friendshipId },
-    data: { status: "ACCEPTED" },
-  });
-  pusherServer
-    .trigger(userPusherName(friendship.requesterId), FRIEND_ACCEPTED_EVENT, { friendshipId: params.friendshipId })
-    .catch(() => {});
+  const result = await acceptFriendship(session.user.id, params.friendshipId);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
   return NextResponse.json({ ok: true });
 }
 

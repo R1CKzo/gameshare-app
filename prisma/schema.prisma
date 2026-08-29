@@ -65,6 +65,9 @@ enum SecurityCodePurpose {
   LOGIN
   PASSWORD_CHANGE
   EMAIL_CHANGE
+  PARENTAL_SETUP
+  PARENTAL_ACTION
+  PARENTAL_REMOVAL
 }
 
 // Codigo de 6 digitos enviado por email — usado tanto pra confirmar login
@@ -110,6 +113,19 @@ model User {
   // conta so-Google, sem senha definida — usado pra decidir se a tela de
   // "Seguranca" mostra "Definir senha" ou "Alterar senha".
   passwordHash String?
+
+  // Controle parental (Configuracoes > Privacidade e Seguranca) -- so
+  // vale dali pra frente (nao mexe em servidor/amizade que a conta ja
+  // tinha): com isso ligado, ENTRAR num servidor novo ou ACEITAR um
+  // pedido de amizade novo passa a exigir um codigo mandado pro
+  // parentEmail (ver /api/parental/authorize-*). parentalRemovalPasswordHash
+  // e criada pelo responsavel no momento de ativar -- pra desativar depois
+  // precisa dela E de um codigo novo, nunca so um dos dois (ver
+  // /api/parental/removal-*).
+  parentEmail                 String?
+  parentEmailVerifiedAt       DateTime?
+  parentalControlEnabled      Boolean   @default(false)
+  parentalRemovalPasswordHash String?
 
   // Telefone opcional (beta, Configuracoes > Privacidade e Seguranca) --
   // sem verificacao nenhuma (diferente do email, que exige codigo): so

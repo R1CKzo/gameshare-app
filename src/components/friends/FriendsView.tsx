@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useUnread } from "@/components/notifications/UnreadContext";
+import { ParentalCodeModal, type ParentalAction } from "@/components/ParentalCodeModal";
 import { HamburgerIcon, useMobileUI } from "@/components/shell/MobileUIContext";
 import { StatusDot } from "@/components/shell/StatusDot";
 import { apiUrl } from "@/lib/apiUrl";
@@ -34,6 +35,9 @@ export function FriendsView() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [startingDm, setStartingDm] = useState<string | null>(null);
+  const [pendingParentalAuth, setPendingParentalAuth] = useState<{ action: ParentalAction; targetId: string } | null>(
+    null,
+  );
 
   async function load() {
     try {
@@ -84,7 +88,14 @@ export function FriendsView() {
   }
 
   async function acceptRequest(friendshipId: string) {
-    await fetch(apiUrl(`/api/friends/${friendshipId}`), { method: "PATCH" }).catch(() => {});
+    const res = await fetch(apiUrl(`/api/friends/${friendshipId}`), { method: "PATCH" }).catch(() => null);
+    if (res?.status === 403) {
+      const data = await res.json().catch(() => ({}));
+      if (data?.needsParentalAuth) {
+        setPendingParentalAuth({ action: data.action, targetId: data.targetId });
+        return;
+      }
+    }
     load();
   }
 
@@ -208,6 +219,18 @@ export function FriendsView() {
           </Section>
         )}
       </div>
+
+      {pendingParentalAuth && (
+        <ParentalCodeModal
+          action={pendingParentalAuth.action}
+          targetId={pendingParentalAuth.targetId}
+          onSuccess={() => {
+            setPendingParentalAuth(null);
+            load();
+          }}
+          onCancel={() => setPendingParentalAuth(null)}
+        />
+      )}
     </>
   );
 }
