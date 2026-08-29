@@ -339,10 +339,10 @@ function setupMainWindowLoad(win) {
 
 // Janela de splash (inspirada num design que o dono mandou): aparece na
 // hora, antes de qualquer coisa de rede, e cobre TODO o tempo entre abrir
-// o app e a janela de verdade ficar pronta pra mostrar -- inclusive
-// enquanto confere/baixa/instala atualizacao sozinha (ver
-// runStartupUpdateCheck abaixo). So texto de status muda por baixo, ver
-// splash.html/splash-preload.js.
+// o app e a janela de verdade ficar pronta pra mostrar -- so uma
+// animacao de carregamento, nao checa atualizacao nenhuma (ver o
+// comentario antes de createWindow). So texto de status muda por baixo,
+// ver splash.html/splash-preload.js.
 let splashWindow = null;
 
 function createSplashWindow() {
@@ -375,81 +375,17 @@ function closeSplash() {
   splashWindow = null;
 }
 
-function withTimeout(promise, ms, fallback) {
-  return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(fallback), ms))]);
-}
-
-// Confere atualizacao de versao nova (electron-updater) SEM perguntar
-// nada -- diferente de setupAutoUpdate() mais abaixo (que so roda depois
-// que o app ja esta aberto e em uso, e ai sim confirma antes de reiniciar,
-// pra nao interromper uma chamada de voz em andamento). Aqui, como o app
-// ainda nem apareceu de verdade, nao tem sessao nenhuma pra interromper --
-// pode instalar e reiniciar direto. Devolve true se uma atualizacao foi
-// baixada e o quitAndInstall() ja foi chamado (o processo atual esta
-// fechando sozinho); false se nao tinha nada novo ou deu erro.
-function checkForFullUpdateSilently() {
-  return new Promise((resolve) => {
-    let settled = false;
-    function finish(result) {
-      if (settled) return;
-      settled = true;
-      autoUpdater.removeListener("update-available", onAvailable);
-      autoUpdater.removeListener("update-not-available", onNone);
-      autoUpdater.removeListener("update-downloaded", onDownloaded);
-      autoUpdater.removeListener("error", onError);
-      resolve(result);
-    }
-    function onAvailable() {
-      setSplashStatus("Baixando atualização...");
-    }
-    function onNone() {
-      finish(false);
-    }
-    function onDownloaded(info) {
-      log.info("[startup] atualizacao baixada, instalando sozinho:", info.version);
-      setSplashStatus("Instalando atualização...");
-      autoUpdater.autoInstallOnAppQuit = true;
-      // isSilent=true, isForceRunAfter=true -- sem isso o instalador abre
-      // o assistente visivel de sempre, com botoes pra clicar, quebrando
-      // o pedido de atualizar sozinho sem interacao nenhuma.
-      autoUpdater.quitAndInstall(true, true);
-      finish(true);
-    }
-    function onError(err) {
-      log.error("[startup] erro ao checar atualizacao", err);
-      finish(false);
-    }
-    autoUpdater.autoDownload = true;
-    autoUpdater.once("update-available", onAvailable);
-    autoUpdater.once("update-not-available", onNone);
-    autoUpdater.once("update-downloaded", onDownloaded);
-    autoUpdater.once("error", onError);
-    autoUpdater.checkForUpdates().catch(onError);
-  });
-}
-
-// Sequencia inteira de abertura, estilo Discord: mostra o splash, confere
-// atualizacao de versao E correcao da mesma versao (patch), instala
-// sozinho se tiver, e SO ENTAO cria a janela de verdade -- nunca deixa a
-// pessoa ver uma versao velha por um instante so pra descobrir que tinha
-// atualizacao logo em seguida. Prazo curto em cada checagem: rede lenta
-// ou fora do ar nunca trava a abertura do app, so segue sem atualizar
-// dessa vez (o check periodico de 4 em 4h, com o app ja aberto, tenta de
-// novo depois).
-async function runStartupUpdateCheck() {
-  setSplashStatus("Verificando atualizações...");
-
-  const patch = await withTimeout(checkForPatch(), 8000, { available: false });
-  if (patch.available) {
-    setSplashStatus("Instalando atualização...");
-    const installed = await downloadAndInstallPatch({ silent: true });
-    if (installed.ok) return true; // downloadAndInstallPatch ja vai reiniciar o app sozinho
-  }
-
-  const updated = await withTimeout(checkForFullUpdateSilently(), 15000, false);
-  return updated;
-}
-
+// A tela de abertura (splash.html) e so uma animacao de carregamento --
+// NAO checa atualizacao nenhuma antes de abrir o app de verdade. Ja
+// tentamos fazer isso instalar sozinho aqui (patch/versao nova, estilo
+// Discord) e o instalador silencioso deu problema real num teste (NSIS
+// falhando ao sobrescrever o proprio .exe enquanto o app ainda nao tinha
+// soltado a trava, virando um erro visivel bem no meio do que devia ser
+// silencioso). Atualizacao continua acontecendo por dois caminhos so:
+// o aviso de correcao disponivel (clique manual, ver
+// ipcMain "patch:download-and-install") e o check periodico de 4 em 4h
+// com o app ja aberto (ver setupAutoUpdate abaixo, que pergunta antes de
+// reiniciar pra nao interromper uma chamada em andamento).
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -1019,7 +955,7 @@ function describeErr(err) {
   return "";
 }
 
-async function downloadAndInstallPatch({ silent = false } = {}) {
+async function downloadAndInstallPatch() {
   const patch = await checkForPatch().catch((err) => {
     log.error("[patch] falha ao checar atualizacao antes de instalar", err);
     return { available: false };
@@ -1057,36 +993,17 @@ async function downloadAndInstallPatch({ silent = false } = {}) {
   }
 
   return await new Promise((resolve) => {
-    // /S = instalacao silenciosa do NSIS, sem wizard nenhum pra clicar --
-    // so usado na checagem automatica de abertura (ver
-    // runStartupUpdateCheck), nunca no botao manual de "baixar correcao"
-    // (ai a pessoa pediu de proposito, ver o instalador de verdade e
-    // esperado).
-    const args = silent ? ["/S"] : [];
-    const child = spawn(dest, args, { detached: true, stdio: "ignore" });
+    // Sempre abre o instalador visivel (assistente com botoes) -- so
+    // chamado pelo botao manual de "baixar correcao", a pessoa pediu de
+    // proposito e espera ver o instalador de verdade.
+    const child = spawn(dest, [], { detached: true, stdio: "ignore" });
     child.once("error", (err) => {
       log.error("[patch] instalador nao abriu", err);
       resolve({ ok: false, error: `Não foi possível abrir o instalador.${describeErr(err)} Tente de novo mais tarde.` });
     });
     child.once("spawn", () => {
-      if (!silent) {
-        child.unref();
-        setTimeout(() => app.quit(), 500);
-        resolve({ ok: true });
-        return;
-      }
-      // Silenciosa roda em segundo plano, sem janela -- mas ela precisa
-      // SOBRESCREVER o nosso proprio .exe pra terminar, e isso fica
-      // travado (Windows nao deixa apagar um .exe em uso) enquanto a
-      // gente continuar de pe. Esperar o instalador "terminar" antes de
-      // sair era um impasse dos dois lados -- ele nunca termina porque a
-      // gente nao sai, e a gente nunca sai porque esperava ele terminar
-      // (era exatamente isso que gerava o erro "Falha ao desinstalar os
-      // arquivos do aplicativo antigo" na tela). Corrigido soltando a
-      // trava (saindo) assim que o instalador abre, sem esperar nada.
       child.unref();
-      app.relaunch();
-      app.exit(0);
+      setTimeout(() => app.quit(), 500);
       resolve({ ok: true });
     });
   });
@@ -1248,20 +1165,12 @@ app.whenReady().then(() => {
   // em uso.
   if (!DEBUG_UI) {
     createSplashWindow();
-    runStartupUpdateCheck().then((updating) => {
-      // updating=true: uma atualizacao (versao nova ou patch) ja foi
-      // instalada e o app esta se fechando/reabrindo sozinho agora --
-      // nao cria a janela de verdade nessa instancia, ela nasce de novo
-      // limpa na proxima abertura.
-      if (updating) return;
-
-      setSplashStatus("Conectando...");
-      createWindow();
-      createTray();
-      setupAutoUpdate();
-      registerGlobalShortcuts();
-      startGameDetection();
-    });
+    setSplashStatus("Conectando...");
+    createWindow();
+    createTray();
+    setupAutoUpdate();
+    registerGlobalShortcuts();
+    startGameDetection();
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

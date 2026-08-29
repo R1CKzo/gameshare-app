@@ -42,7 +42,6 @@ export const changelog: ChangelogEntry[] = [
     items: [
       "Quase tudo que estava em beta na versão 1.0.13 agora é oficial pra todo mundo, sem precisar ligar nada nas Configurações",
       "Tela de abertura animada ao iniciar o app",
-      "Atualizações instalam sozinhas ao abrir o app, sem precisar clicar em nada",
       "Controle parental (Configurações > Privacidade e Segurança), com email de um responsável",
       "Com o controle ativo, entrar em servidor ou aceitar amizade exige autorização por código do responsável",
       "Quem estava com \"Permitir versões beta\" ligado é desligado automaticamente ao abrir essa versão — é só ligar de novo pra continuar testando o que ainda está em beta",
