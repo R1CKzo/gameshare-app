@@ -39,8 +39,8 @@ export const authOptions: NextAuthOptions = {
         token.hasPassword = dbUser?.passwordHash != null;
         token.phone = dbUser?.phone ?? null;
         // Reescreve toda vez, igual o nickname acima -- sem isso, trocar o
-        // email nas Configuracoes (beta) so refletiria na sessao depois de
-        // sair e entrar de novo, mesmo o banco ja estando certo.
+        // email nas Configuracoes so refletiria na sessao depois de sair e
+        // entrar de novo, mesmo o banco ja estando certo.
         if (dbUser?.email) token.email = dbUser.email;
         // Reescreve toda vez (nao so na primeira vez) — sem isso, uma foto
         // enviada por upload DEPOIS do login inicial (quando o NextAuth

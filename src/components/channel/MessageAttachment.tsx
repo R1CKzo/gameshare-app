@@ -1,5 +1,4 @@
 import { formatBytes } from "@/lib/attachmentLimits";
-import { isBetaEnabled } from "@/lib/beta";
 
 // Imagem/video/arquivo anexado numa mensagem. Imagem usa <img> comum (nao
 // next/image) de proposito -- as dimensoes do arquivo enviado sao
@@ -16,7 +15,7 @@ export function MessageAttachment({
   name: string;
   size: number;
 }) {
-  const enter = isBetaEnabled() ? "gs-anim-fade" : "";
+  const enter = "gs-anim-fade";
 
   if (type === "image") {
     return (

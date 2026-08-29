@@ -50,12 +50,8 @@ type GameshareDesktopBridge = {
   // a pessoa confirmar.
   checkForPatch?: () => Promise<PatchCheckResult>;
   downloadAndInstallPatch?: () => Promise<PatchInstallResult>;
-  // Espelha "Permitir versoes beta" pro processo principal poder decidir,
-  // no boot, se a janela nasce sem moldura nativa (ver DesktopTitleBar.tsx
-  // e createWindow em main.js). So faz efeito depois de reiniciar o app.
-  syncBetaTitlebarFlag?: (enabled: boolean) => void;
   // Aceleracao de hardware (ver AvancadoTab em SettingsButton.tsx) -- so
-  // faz efeito depois de reiniciar o app, mesmo motivo do titlebar acima.
+  // faz efeito depois de reiniciar o app.
   syncHardwareAccel?: (enabled: boolean) => void;
   // Limpa so o cache HTTP do app (ver AvancadoTab) -- nao mexe em
   // localStorage/cookies.
@@ -185,13 +181,6 @@ export function downloadAndInstallPatch(): Promise<PatchInstallResult> {
     return Promise.resolve({ ok: false, error: "Não foi possível baixar a atualização agora." });
   }
   return window.gameshareDesktop.downloadAndInstallPatch();
-}
-
-// No-op no navegador comum (sem a ponte) ou em instalacao antiga demais
-// pra ter esse metodo no preload.
-export function syncBetaTitlebarFlag(enabled: boolean): void {
-  if (typeof window === "undefined") return;
-  window.gameshareDesktop?.syncBetaTitlebarFlag?.(enabled);
 }
 
 // No-op no navegador comum ou em instalacao antiga demais pra ter esse

@@ -2,14 +2,13 @@
 
 import type { PendingAttachmentState } from "@/hooks/useAttachmentUpload";
 import { formatBytes } from "@/lib/attachmentLimits";
-import { isBetaEnabled } from "@/lib/beta";
 
 // Previa pequena do arquivo escolhido, mostrada acima da caixa de texto
 // enquanto sobe (ou se der erro) — mesmo componente usado no canal de
 // servidor e na DM.
 export function AttachmentPreview({ attachment, onRemove }: { attachment: PendingAttachmentState; onRemove: () => void }) {
   return (
-    <div className={`mb-2 flex items-center gap-2.5 rounded-lg bg-elevated px-3 py-2 ${isBetaEnabled() ? "gs-anim-slide-up" : ""}`}>
+    <div className="mb-2 flex items-center gap-2.5 gs-anim-slide-up rounded-lg bg-elevated px-3 py-2">
       {attachment.kind === "image" && attachment.previewUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={attachment.previewUrl} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />

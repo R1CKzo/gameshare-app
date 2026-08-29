@@ -9,7 +9,7 @@ import { createSecurityCode } from "@/lib/securityCode";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Pede o codigo pra trocar o email (beta, Configuracoes > Privacidade e
+// Pede o codigo pra trocar o email (Configuracoes > Privacidade e
 // Seguranca) -- o codigo vai pro email NOVO (nao o atual), pra provar que
 // a pessoa tem acesso a ele antes da troca valer. So aplicado de verdade
 // em /change-confirm, mesma filosofia do change-request de senha.

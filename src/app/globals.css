@@ -271,69 +271,39 @@ input[type="range"].gs-range-accent::-moz-range-progress {
   background: var(--color-accent);
 }
 
-/* Barra de rolagem customizada — recurso em beta (ver "Permitir versoes
-   beta" nas Configuracoes). Sem isso, todo mundo usa a barra padrao do
+/* Barra de rolagem customizada. Sem isso, todo mundo usa a barra padrao do
    SO/navegador (grossa, cinza, sem relacao nenhuma com o tema do app —
-   era a reclamacao original). Escopado atras de [data-beta-ui="true"]
-   (ligado no script inline em layout.tsx, antes da primeira pintura, pra
-   nao trocar de aparencia depois de carregar) em vez de aplicar pra todo
-   mundo direto. */
-html[data-beta-ui="true"] {
+   era a reclamacao original). */
+html {
   scrollbar-width: thin;
   scrollbar-color: var(--color-overlay-strong) transparent;
 }
-html[data-beta-ui="true"] *::-webkit-scrollbar {
+html *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
-html[data-beta-ui="true"] *::-webkit-scrollbar-track {
+html *::-webkit-scrollbar-track {
   background: transparent;
 }
-html[data-beta-ui="true"] *::-webkit-scrollbar-thumb {
+html *::-webkit-scrollbar-thumb {
   background-color: var(--color-overlay-strong);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 999px;
 }
-html[data-beta-ui="true"] *::-webkit-scrollbar-thumb:hover {
+html *::-webkit-scrollbar-thumb:hover {
   background-color: var(--color-muted);
 }
-html[data-beta-ui="true"] *::-webkit-scrollbar-corner {
+html *::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-/* Cada troca de servidor/canal/DM remonta a tela inteira do zero (so o
-   layout raiz sobrevive entre rotas) — sem isso, o conteudo novo "estala"
-   na tela assim que os dados chegam. Essa classe da uma entrada suave em
-   vez do corte seco, tanto pro esqueleto de carregamento quanto pra tela
-   de verdade. */
-@keyframes page-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.page-fade-in {
-  animation: page-fade-in 120ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page-fade-in {
-    animation: none;
-  }
-}
-
-/* Animações de entrada (beta -- classes só aplicadas quando
-   isBetaEnabled() nos componentes que as usam) pra modais, menus e outros
-   elementos que hoje só aparecem/somem sem transição nenhuma. Só ENTRADA de
-   proposito, sem animação de saída: o React desmonta esses elementos na
-   hora (sem delay nenhum programado pra isso), e criar esse atraso só pra
-   poder animar a saída adicionava complexidade grande pra um ganho
-   pequeno -- mesma escolha já feita no page-fade-in acima, que também só
-   anima a entrada. Zeradas tanto por prefers-reduced-motion quanto pelo
+/* Animações de entrada pra modais, menus, trocas de tela e outros
+   elementos que antes só apareciam/sumiam sem transição nenhuma. Só
+   ENTRADA de proposito, sem animação de saída: o React desmonta esses
+   elementos na hora (sem delay nenhum programado pra isso), e criar esse
+   atraso só pra poder animar a saída adicionava complexidade grande pra
+   um ganho pequeno. Zeradas tanto por prefers-reduced-motion quanto pelo
    interruptor manual de "reduzir movimento" (ver a regra
    [data-reduce-motion="true"] no topo desse arquivo, que já cobre
    qualquer animação/transição do app inteiro, essa incluída). */
@@ -343,16 +313,6 @@ html[data-beta-ui="true"] *::-webkit-scrollbar-corner {
   }
   to {
     opacity: 1;
-  }
-}
-@keyframes gs-scale-fade-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }
 @keyframes gs-slide-up-fade-in {
@@ -369,16 +329,12 @@ html[data-beta-ui="true"] *::-webkit-scrollbar-corner {
 .gs-anim-fade {
   animation: gs-fade-in 160ms ease-out;
 }
-.gs-anim-scale {
-  animation: gs-scale-fade-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
-}
 .gs-anim-slide-up {
   animation: gs-slide-up-fade-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .gs-anim-fade,
-  .gs-anim-scale,
   .gs-anim-slide-up {
     animation: none;
   }

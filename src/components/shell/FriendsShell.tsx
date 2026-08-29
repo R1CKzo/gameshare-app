@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 
 import { MobileUIContext } from "@/components/shell/MobileUIContext";
 import { ServerRail } from "@/components/shell/ServerRail";
-import { isBetaEnabled } from "@/lib/beta";
 
 type ServerSummary = { id: string; name: string; image: string | null };
 
@@ -37,13 +36,11 @@ export function FriendsShell({
         toggleMembers: () => {},
       }}
     >
-      <div
-        className={`relative flex h-[calc(100dvh_-_var(--titlebar-h,0px))] w-screen overflow-hidden bg-main ${isBetaEnabled() ? "gs-anim-slide-up" : "page-fade-in"}`}
-      >
+      <div className="relative flex h-[calc(100dvh_-_var(--titlebar-h,0px))] w-screen gs-anim-slide-up overflow-hidden bg-main">
         {sidebarOpen && (
           <div
             onClick={() => setSidebarOpen(false)}
-            className={`fixed inset-0 z-40 bg-black/60 md:hidden ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
+            className="fixed inset-0 z-40 gs-anim-fade bg-black/60 md:hidden"
           />
         )}
 

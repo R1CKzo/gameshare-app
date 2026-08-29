@@ -19,7 +19,7 @@ import {
 import { apiUrl } from "@/lib/apiUrl";
 import { BETA_STORAGE_KEY, isBetaEnabled } from "@/lib/beta";
 import { SEND_WITH_CTRL_ENTER_KEY } from "@/lib/chatSettings";
-import { clearCache, isDesktopApp, restartAppOrReload, syncBetaTitlebarFlag, syncHardwareAccel } from "@/lib/desktop";
+import { clearCache, isDesktopApp, restartAppOrReload, syncHardwareAccel } from "@/lib/desktop";
 import { SOUND_CALLS_KEY, SOUND_MESSAGES_KEY } from "@/lib/sound";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
@@ -53,14 +53,6 @@ async function resizeImageToDataUrl(file: File, maxBytes = 180_000): Promise<str
 
 export function SettingsButton() {
   const [open, setOpen] = useState(false);
-  // So le o interruptor de beta depois de montar (localStorage nao existe
-  // no server) -- mesmo padrao do "isBeta" em UserPill.tsx. Quem tiver
-  // "Permitir versoes beta" ligado ve a tela de configuracoes remodelada
-  // (ver DiscordSettingsModal); todo mundo continua no modal de sempre.
-  const [betaSettingsUI, setBetaSettingsUI] = useState(false);
-  useEffect(() => {
-    setBetaSettingsUI(isBetaEnabled());
-  }, []);
 
   return (
     <>
@@ -71,12 +63,7 @@ export function SettingsButton() {
       >
         <GearIcon />
       </button>
-      {open &&
-        (betaSettingsUI ? (
-          <DiscordSettingsModal onClose={() => setOpen(false)} />
-        ) : (
-          <SettingsModal onClose={() => setOpen(false)} />
-        ))}
+      {open && <DiscordSettingsModal onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -84,11 +71,7 @@ export function SettingsButton() {
 // Configuracoes remodeladas pra ficar o mais parecido possivel com o
 // Discord (pedido explicito do dono) -- tela cheia, categoria na lateral
 // esquerda, conteudo largo a direita, botao de fechar redondo flutuando
-// fora do painel com "ESC" embaixo. So a "casca" muda: reaproveita as
-// mesmas abas (ProfileTab/AudioTab/SegurancaTab/BetaTab/BugReportTab) do
-// modal de sempre, sem duplicar nenhuma logica de formulario. Atras do
-// interruptor de beta de proposito -- e uma mudanca grande de visual, so
-// pra quem escolheu testar recursos em teste.
+// fora do painel com "ESC" embaixo.
 type TabKey =
   | "perfil"
   | "seguranca"
@@ -107,10 +90,8 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
 
   // Mesmos 3 grupos do Discord (menos "Navegador" e "Icone do aplicativo",
   // que nao fazem sentido aqui — o GameShare nao tem navegador embutido
-  // nem icone customizavel). "Idioma", "Bate-papo", "Notificacoes" e
-  // "Avancado" ainda sao só placeholder (ver ComingSoonTab) — a ideia é
-  // deixar toda a navegação pronta primeiro, e preencher categoria por
-  // categoria depois.
+  // nem icone customizavel). "Idioma" ainda e so placeholder (ver
+  // ComingSoonTab) -- so o portugues (Brasil) existe por enquanto.
   const groups: { label: string; tabs: TabKey[] }[] = [
     {
       label: "Configurações do usuário",
@@ -150,7 +131,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background md:flex-row ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
+      className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background gs-anim-fade md:flex-row"
       onClick={onClose}
     >
       <div
@@ -178,7 +159,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div key={tab} className={`mx-auto max-w-[600px] px-5 py-8 md:px-10 md:py-[60px] ${isBetaEnabled() ? "gs-anim-fade" : ""}`}>
+        <div key={tab} className="mx-auto max-w-[600px] gs-anim-fade px-5 py-8 md:px-10 md:py-[60px]">
           <h2 className="mb-6 font-display text-xl font-bold">{labels[tab]}</h2>
           {tab === "perfil" ? (
             <ProfileTab />
@@ -221,77 +202,6 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
       </button>
     </div>,
     document.body,
-  );
-}
-
-function SettingsModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<"perfil" | "aparencia" | "audio" | "seguranca" | "beta" | "bug">("perfil");
-  const tabs = (["perfil", "aparencia", "audio", "seguranca", ...(isDesktopApp() ? (["beta"] as const) : []), "bug"] as const);
-
-  const beta = isBetaEnabled();
-
-  return createPortal(
-    <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 ${beta ? "gs-anim-fade" : ""}`}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className={`flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-overlay-strong bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.5)] ${beta ? "gs-anim-scale" : ""}`}
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-overlay px-5 py-4">
-          <h2 className="font-display text-lg font-bold">Configurações</h2>
-          <button
-            onClick={onClose}
-            aria-label="Fechar"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-elevated-hover hover:text-foreground"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        <div className="flex shrink-0 gap-1 border-b border-overlay px-3 pt-3">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`rounded-t-lg px-4 py-2 text-sm font-bold capitalize transition ${
-                tab === t ? "bg-elevated text-foreground" : "text-muted hover:text-foreground-secondary"
-              }`}
-            >
-              {t === "perfil"
-                ? "Perfil"
-                : t === "aparencia"
-                  ? "Aparência"
-                  : t === "audio"
-                    ? "Áudio"
-                    : t === "seguranca"
-                      ? "Segurança"
-                      : t === "beta"
-                        ? "Beta"
-                        : "Reportar bug"}
-            </button>
-          ))}
-        </div>
-
-        <div key={tab} className={`overflow-y-auto p-5 ${beta ? "gs-anim-fade" : ""}`}>
-          {tab === "perfil" ? (
-            <ProfileTab />
-          ) : tab === "aparencia" ? (
-            <AparenciaTab />
-          ) : tab === "audio" ? (
-            <AudioTab />
-          ) : tab === "seguranca" ? (
-            <SegurancaTab />
-          ) : tab === "beta" ? (
-            <BetaTab />
-          ) : (
-            <BugReportTab onClose={onClose} />
-          )}
-        </div>
-      </div>
-    </div>,
-    document.body
   );
 }
 
@@ -878,7 +788,7 @@ function AudioTab() {
         checked={settings.noiseSuppression}
         onChange={(v) => update({ noiseSuppression: v })}
       />
-      {settings.noiseSuppression && isBetaEnabled() && (
+      {settings.noiseSuppression && (
         <div className="rounded-xl bg-elevated/60 p-3.5">
           <div className="text-sm font-bold text-foreground">Modelo de supressão de ruído</div>
           <div className="mt-0.5 text-xs text-dim">
@@ -906,7 +816,7 @@ function AudioTab() {
                   : "border-border text-muted hover:text-foreground-secondary"
               }`}
             >
-              Avançado (beta)
+              Avançado
             </button>
           </div>
         </div>
@@ -931,13 +841,12 @@ function AudioTab() {
 // (o sistema anterior fazia isso e quebrou repetidas vezes) -- so um
 // interruptor local (guardado no localStorage desse navegador/computador,
 // sem rota de API) que libera acesso a RECURSOS que ainda estao em teste
-// dentro do proprio app de sempre, atualizado pelo auto-update padrao. As
-// versoes lancadas em si nunca mais tem "beta" separada -- so recursos
-// dentro de uma versao normal, ligados ou desligados por esse interruptor.
-// Como alguns recursos beta so sao lidos uma vez, no inicio, ligar/desligar
-// pede um reinicio (recarregar a pagina, no navegador comum) pra aplicar
-// de forma limpa -- nao forca na hora, ja que a pessoa pode estar no meio
-// de uma chamada.
+// dentro do proprio app de sempre, atualizado pelo auto-update padrao. Hoje
+// isso e so o Liquid Glass (ver AparenciaTab) -- os outros recursos que
+// passaram por aqui ja viraram oficiais pra todo mundo. Como o Liquid Glass
+// so e lido uma vez, no inicio, ligar/desligar pede um reinicio (recarregar
+// a pagina, no navegador comum) pra aplicar de forma limpa -- nao forca na
+// hora, ja que a pessoa pode estar no meio de uma chamada.
 function BetaTab() {
   const [allowed, setAllowed] = useState(false);
   const [needsRestart, setNeedsRestart] = useState(false);
@@ -955,11 +864,6 @@ function BetaTab() {
       // modo privado ou storage cheio — a escolha so nao sobrevive a um
       // recarregamento, sem quebrar nada
     }
-    // Sincroniza na hora (nao so no proximo mount) -- sem isso, reiniciar
-    // logo em seguida ainda leria o arquivo antigo no boot, e a barra de
-    // titulo customizada (ver DesktopTitleBar.tsx) so pegaria a mudanca no
-    // SEGUNDO reinicio.
-    syncBetaTitlebarFlag(v);
     setNeedsRestart(true);
   }
 
@@ -967,7 +871,7 @@ function BetaTab() {
     <div className="space-y-4">
       <ToggleRow
         label="Permitir versões beta"
-        description="Libera acesso a recursos que ainda estão em teste, antes de virarem oficiais pra todo mundo."
+        description="Libera acesso ao Liquid Glass, o unico recurso ainda em teste no momento."
         checked={allowed}
         onChange={handleToggle}
       />
@@ -1035,31 +939,18 @@ function ToggleRow({
   );
 }
 
-// Aba inteira: senha (sempre disponivel) + email/telefone (beta -- so
-// aparece pra quem ligou "Permitir versões beta"). Mesmo padrao de leitura
-// do interruptor usado em SettingsButton() acima: so depois de montar,
-// localStorage nao existe no server.
 function SegurancaTab() {
-  const [betaOn, setBetaOn] = useState(false);
-  useEffect(() => {
-    setBetaOn(isBetaEnabled());
-  }, []);
-
   return (
     <div className="space-y-8">
       <PasswordSection />
-      {betaOn && (
-        <>
-          <div className="border-t border-overlay pt-6">
-            <h3 className="mb-1 text-sm font-bold text-foreground">Email</h3>
-            <EmailSection />
-          </div>
-          <div className="border-t border-overlay pt-6">
-            <h3 className="mb-1 text-sm font-bold text-foreground">Telefone</h3>
-            <PhoneSection />
-          </div>
-        </>
-      )}
+      <div className="border-t border-overlay pt-6">
+        <h3 className="mb-1 text-sm font-bold text-foreground">Email</h3>
+        <EmailSection />
+      </div>
+      <div className="border-t border-overlay pt-6">
+        <h3 className="mb-1 text-sm font-bold text-foreground">Telefone</h3>
+        <PhoneSection />
+      </div>
     </div>
   );
 }
@@ -1202,7 +1093,7 @@ function PasswordSection() {
 
 type EmailStep = "form" | "code";
 
-// Troca de email (beta) -- mesma logica de "codigo sempre" da senha, so
+// Troca de email -- mesma logica de "codigo sempre" da senha, so
 // que o codigo vai pro email NOVO (nao o atual): prova que a pessoa tem
 // acesso a ele antes da troca valer, em vez de so confiar no que foi
 // digitado.
@@ -1316,7 +1207,7 @@ function EmailSection() {
   );
 }
 
-// Telefone (beta) -- opcional, sem verificacao nenhuma (diferente do
+// Telefone -- opcional, sem verificacao nenhuma (diferente do
 // email): so guardado pra eventualmente dar pra usar em suporte. Deixar em
 // branco e salvar apaga.
 function PhoneSection() {

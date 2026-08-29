@@ -131,10 +131,10 @@ function ScreenView({ stream }: { stream: MediaStream }) {
 const CONTROLS_IDLE_MS = 3000;
 
 // Video grande de quem esta compartilhando, com botao de tela cheia
-// sempre disponivel e, so pra quem nao e o proprio compartilhador com
-// beta ligado, volume da transmissao + "Sair da transmissao" -- os
-// controles da direita somem depois de alguns segundos com o mouse
-// parado e voltam no primeiro movimento.
+// sempre disponivel e, so pra quem nao e o proprio compartilhador, volume
+// da transmissao + "Sair da transmissao" -- os controles da direita somem
+// depois de alguns segundos com o mouse parado e voltam no primeiro
+// movimento.
 function BroadcastPreview({
   stream,
   label,

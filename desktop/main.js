@@ -30,11 +30,10 @@ const APP_URL = "https://gameshare-app.vercel.app";
 
 // Aceleracao de hardware (GPU) -- Avancado nas Configuracoes. So da pra
 // ligar/desligar ANTES do app terminar de iniciar (Electron nao deixa
-// mudar depois), entao guarda a escolha num arquivo (mesmo truque da
-// barra de titulo em beta, ver readBetaTitlebarFlag mais abaixo) e le ele
-// aqui em cima, antes de qualquer outra coisa do Electron rodar. Padrao e
-// ligado (mesmo comportamento normal do Electron) -- so desativa se a
-// pessoa desligou explicitamente (por exemplo, tela riscando/travando).
+// mudar depois), entao guarda a escolha num arquivo e le ele aqui em cima,
+// antes de qualquer outra coisa do Electron rodar. Padrao e ligado (mesmo
+// comportamento normal do Electron) -- so desativa se a pessoa desligou
+// explicitamente (por exemplo, tela riscando/travando).
 function getHardwareAccelFlagPath() {
   return path.join(app.getPath("userData"), "hardware-accel.json");
 }
@@ -251,33 +250,6 @@ let tray = null;
 let isQuitting = false;
 let lastUnreadState = false;
 
-// Barra de titulo customizada (recurso beta, ver DesktopTitleBar.tsx): so
-// decide se a janela nasce sem moldura nativa NESSE lancamento do app --
-// como isso e escolhido antes de qualquer pagina carregar (portanto antes
-// de dar pra ler o interruptor de beta, que mora no localStorage da
-// renderer), a renderer espelha o interruptor aqui num arquivo pequeno
-// sempre que muda (ver ipcMain "beta:sync-titlebar-flag" abaixo e
-// syncBetaTitlebarFlag em UserPill.tsx) -- lido de forma sincrona, uma vez,
-// no boot. Precisa reiniciar o app pra pegar uma mudanca, mesma regra do
-// resto do sistema de beta.
-function getBetaTitlebarFlagPath() {
-  return path.join(app.getPath("userData"), "beta-titlebar.json");
-}
-function readBetaTitlebarFlag() {
-  try {
-    return JSON.parse(fs.readFileSync(getBetaTitlebarFlagPath(), "utf-8")).enabled === true;
-  } catch {
-    return false;
-  }
-}
-ipcMain.on("beta:sync-titlebar-flag", (_event, enabled) => {
-  try {
-    fs.writeFileSync(getBetaTitlebarFlagPath(), JSON.stringify({ enabled: enabled === true }));
-  } catch (err) {
-    log.error("[beta] falha ao salvar preferencia de barra de titulo", err);
-  }
-});
-
 ipcMain.on("hardware-accel:sync", (_event, enabled) => {
   try {
     fs.writeFileSync(getHardwareAccelFlagPath(), JSON.stringify({ enabled: enabled === true }));
@@ -361,8 +333,6 @@ function setupMainWindowLoad(win) {
 }
 
 function createWindow() {
-  const customTitlebar = readBetaTitlebarFlag();
-
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -374,7 +344,7 @@ function createWindow() {
     autoHideMenuBar: true,
     // Sem moldura nativa nenhuma -- a pagina desenha sua propria barra de
     // titulo inteira (marca + botoes), ver DesktopTitleBar.tsx.
-    frame: !customTitlebar,
+    frame: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

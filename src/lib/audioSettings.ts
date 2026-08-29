@@ -8,9 +8,8 @@ export type AudioSettings = {
   // "browser": supressao nativa do navegador (constraint do getUserMedia,
   // comportamento de sempre). "rnnoise": modelo de rede neural (RNNoise,
   // via @sapphi-red/web-noise-suppressor) que roda por cima da faixa do
-  // microfone, mais robusto pra separar voz de ruido de teclado/fundo —
-  // recurso em teste, so aparece pra quem tem "Permitir versoes beta"
-  // ligado (ver isBetaEnabled em beta.ts e AudioTab em SettingsButton.tsx).
+  // microfone, mais robusto pra separar voz de ruido de teclado/fundo (ver
+  // AudioTab em SettingsButton.tsx).
   noiseSuppressionModel: "browser" | "rnnoise";
   echoCancellation: boolean;
   autoGainControl: boolean;

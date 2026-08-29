@@ -14,7 +14,6 @@ import { UserPill } from "@/components/shell/UserPill";
 import { useFloatingMenu } from "@/hooks/useFloatingMenu";
 import type { ConnectionQuality } from "@/hooks/useVoiceMesh";
 import { apiUrl } from "@/lib/apiUrl";
-import { isBetaEnabled } from "@/lib/beta";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, serverVoicePusherName } from "@/lib/pusherShared";
 
@@ -89,17 +88,11 @@ export function ChannelSidebar({
   // uma vez so, sem precisar entrar em nenhuma pra ver quem esta la.
   const [voicePresence, setVoicePresence] = useState<Map<string, VoicePresentUser[]>>(new Map());
 
-  // Recolher essa barra pra lateral — recurso em teste. O interruptor de
-  // beta so decide se o botao de recolher/expandir aparece; a preferencia
-  // de estado (recolhida ou nao) e separada e guardada no localStorage, pra
-  // lembrar da escolha entre visitas. "collapsed && betaCollapsible" (nunca
-  // so "collapsed") evita ficar preso sem essa barra e sem o botao pra
-  // trazer ela de volta, caso a pessoa desligue o beta depois de ter
-  // recolhido.
+  // Recolher essa barra pra lateral -- a preferencia de estado (recolhida
+  // ou nao) fica guardada no localStorage, pra lembrar da escolha entre
+  // visitas.
   const [collapsed, setCollapsed] = useState(false);
-  const [betaCollapsible, setBetaCollapsible] = useState(false);
   useEffect(() => {
-    setBetaCollapsible(isBetaEnabled());
     try {
       setCollapsed(localStorage.getItem(COLLAPSE_STORAGE_KEY) === "true");
     } catch {
@@ -118,7 +111,6 @@ export function ChannelSidebar({
       return next;
     });
   }
-  const effectiveCollapsed = collapsed && betaCollapsible;
 
   useEffect(() => {
     let cancelled = false;
@@ -186,22 +178,20 @@ export function ChannelSidebar({
 
   return (
     <div className="flex shrink-0">
-      {betaCollapsible && (
-        <button
-          onClick={toggleCollapsed}
-          title={effectiveCollapsed ? "Expandir canais" : "Recolher canais"}
-          aria-label={effectiveCollapsed ? "Expandir canais" : "Recolher canais"}
-          className="flex w-4 shrink-0 items-center justify-center border-r border-overlay bg-sidebar text-dim transition hover:bg-elevated-hover hover:text-foreground"
-        >
-          <ChevronIcon flipped={effectiveCollapsed} />
-        </button>
-      )}
+      <button
+        onClick={toggleCollapsed}
+        title={collapsed ? "Expandir canais" : "Recolher canais"}
+        aria-label={collapsed ? "Expandir canais" : "Recolher canais"}
+        className="flex w-4 shrink-0 items-center justify-center border-r border-overlay bg-sidebar text-dim transition hover:bg-elevated-hover hover:text-foreground"
+      >
+        <ChevronIcon flipped={collapsed} />
+      </button>
       {/* Largura de fora anima 252px -> 0 (overflow escondendo o conteudo
           conforme fecha); o conteudo de dentro mantem 252px fixo sempre,
           senao o texto ficaria quebrando/reajustando durante a transicao
           em vez de so "deslizar pra fora". */}
       <div
-        className={`flex overflow-hidden transition-[width] duration-300 ease-in-out ${effectiveCollapsed ? "w-0" : "w-[252px]"}`}
+        className={`flex overflow-hidden transition-[width] duration-300 ease-in-out ${collapsed ? "w-0" : "w-[252px]"}`}
       >
     <div className="flex w-[252px] shrink-0 flex-col border-r border-overlay bg-sidebar">
       <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-overlay px-4">
@@ -511,7 +501,7 @@ function ChannelCreateButton({ onCreate }: { onCreate: (name: string) => Promise
             ref={popoverRef}
             onSubmit={submit}
             style={{ top: position.top, left: position.left, width: 232 }}
-            className={`fixed z-[100] space-y-2 rounded-xl border border-overlay-strong bg-elevated p-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)] ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
+            className="fixed z-[100] space-y-2 gs-anim-fade rounded-xl border border-overlay-strong bg-elevated p-3 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
             <input
               ref={inputRef}
@@ -574,7 +564,7 @@ function ChannelActionsMenu({
           <div
             ref={menuRef}
             style={{ top: position.top, left: position.left, width: 180 }}
-            className={`fixed z-[100] overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)] ${isBetaEnabled() ? "gs-anim-fade" : ""}`}
+            className="fixed z-[100] gs-anim-fade overflow-hidden rounded-xl border border-overlay-strong bg-elevated py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
           >
             <button
               onClick={() => {

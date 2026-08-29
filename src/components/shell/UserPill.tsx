@@ -10,7 +10,7 @@ import { MoreMenu } from "@/components/shell/MoreMenu";
 import { SettingsButton } from "@/components/shell/SettingsButton";
 import { StatusMenu } from "@/components/shell/StatusMenu";
 import { isBetaEnabled, resetBetaIfStableVersionChanged } from "@/lib/beta";
-import { checkForPatch, downloadAndInstallPatch, getAppVersion, syncBetaTitlebarFlag } from "@/lib/desktop";
+import { checkForPatch, downloadAndInstallPatch, getAppVersion } from "@/lib/desktop";
 
 // Confere se saiu uma correcao nova pra MESMA versao ja instalada (ver
 // checkForPatch em desktop.ts) a cada meia hora -- nao precisa ser mais
@@ -43,13 +43,7 @@ export function UserPill({
   useEffect(() => {
     getAppVersion().then((version) => {
       resetBetaIfStableVersionChanged(version);
-      const enabled = isBetaEnabled();
-      setIsBeta(enabled);
-      // Mantem o arquivo que o processo principal le no boot sempre em dia
-      // com o interruptor de verdade (localStorage) -- sem isso, ligar o
-      // beta sem nunca reabrir a aba de Configuracoes deixaria a barra de
-      // titulo customizada (ver DesktopTitleBar.tsx) sem saber disso.
-      syncBetaTitlebarFlag(enabled);
+      setIsBeta(isBetaEnabled());
     });
   }, []);
 

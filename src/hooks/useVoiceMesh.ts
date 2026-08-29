@@ -35,7 +35,7 @@ import { playMuteSound } from "@/lib/sound";
 // import estatico normal quebra o build, porque o Next tenta prerenderizar
 // paginas estaticas no Node, onde AudioWorkletNode nao existe. O binario
 // wasm (uns 150KB) so vale baixar quando alguem de fato escolhe esse
-// modelo (recurso beta) -- as promises ficam cacheadas no modulo pra nao
+// modelo -- as promises ficam cacheadas no modulo pra nao
 // rebaixar de novo a cada vez que entra numa chamada.
 let rnnoiseModulePromise: Promise<typeof import("@sapphi-red/web-noise-suppressor")> | null = null;
 function loadRnnoiseModule() {

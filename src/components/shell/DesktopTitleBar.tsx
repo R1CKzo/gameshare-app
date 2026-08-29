@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import { GameShareMark } from "@/components/GameShareMark";
-import { isBetaEnabled } from "@/lib/beta";
 import {
   closeWindow,
   isDesktopApp,
@@ -13,12 +12,11 @@ import {
   toggleMaximizeWindow,
 } from "@/lib/desktop";
 
-// Faixa customizada no topo da janela do app de desktop -- so existe
-// quando a janela nasceu SEM moldura nativa (frame: false, ver
-// createWindow em desktop/main.js), o que so acontece quando "Permitir
-// versoes beta" estava ligado no boot desse mesmo lancamento do app.
-// Minimizar/maximizar/fechar sao desenhados AQUI, na propria pagina, em
-// vez de deixar o Windows desenhar (como uma primeira versao fazia) --
+// Faixa customizada no topo da janela do app de desktop -- a janela sempre
+// nasce SEM moldura nativa (frame: false, ver createWindow em
+// desktop/main.js). Minimizar/maximizar/fechar sao desenhados AQUI, na
+// propria pagina, em vez de deixar o Windows desenhar (como uma primeira
+// versao fazia) --
 // aquela versao so pintava uma cor de fundo fixa atras dos botoes
 // nativos, que nunca batia direito com o tom exato de cada tela (login,
 // Configuracoes etc usam tons escuros ligeiramente diferentes entre si) e
@@ -27,15 +25,15 @@ import {
 // lugar nenhum, em qualquer tema.
 //
 // A altura daqui (36px) tem que bater com --titlebar-h (ver o script
-// inline em layout.tsx, que so liga no mesmo boot em que a janela nasceu
-// sem moldura) -- as telas do app usam essa variavel pra descontar da
+// inline em layout.tsx, que liga essa variavel sempre que o boot e do app
+// de desktop) -- as telas do app usam essa variavel pra descontar da
 // propria altura e nao ficar cortadas embaixo da janela.
 export function DesktopTitleBar() {
   const [show, setShow] = useState(false);
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
-    setShow(isDesktopApp() && isBetaEnabled());
+    setShow(isDesktopApp());
   }, []);
 
   useEffect(() => {
