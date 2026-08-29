@@ -39,10 +39,8 @@ export const changelog: ChangelogEntry[] = [
     id: "2026-08-29::Controle parental",
     title: "Controle parental",
     items: [
-      "Nova opção em Configurações > Privacidade e Segurança: controle parental, com o email de um responsável",
-      "Com o controle ativo, entrar num servidor novo ou aceitar um pedido de amizade novo passa a exigir um código enviado pro email do responsável",
-      "Ativar exige confirmar o email do responsável com código; desativar exige um código novo E a senha criada pelo responsável na ativação — nunca só um dos dois",
-      "Servidores e amizades que a conta já tinha antes de ativar continuam acessíveis normalmente",
+      "Controle parental (Configurações > Privacidade e Segurança), com email de um responsável",
+      "Com o controle ativo, entrar em servidor ou aceitar amizade exige autorização por código do responsável",
     ],
   },
   {
