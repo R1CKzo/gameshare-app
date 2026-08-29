@@ -36,24 +36,6 @@ export function changelogKey(entry: ChangelogEntry): string {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-08-29",
-    id: "2026-08-29::Tela de inicialização e atualização automática",
-    title: "Tela de inicialização e atualização automática",
-    items: [
-      "App de desktop: nova tela de abertura animada enquanto conecta",
-      "Atualizações (de versão ou correção) agora são conferidas e instaladas sozinhas ao abrir o app, sem precisar clicar em nada — só depois disso o app abre de vez",
-    ],
-  },
-  {
-    date: "2026-08-29",
-    id: "2026-08-29::Atalhos globais (beta)",
-    title: "Atalhos globais (beta)",
-    items: [],
-    betaFeatures: [
-      "Atalhos globais de chamada (app de desktop): Ctrl+Shift+M mutar/desmutar, Ctrl+Shift+S silenciar geral, Ctrl+Shift+L sair da chamada — funcionam mesmo com um jogo em foco",
-    ],
-  },
-  {
-    date: "2026-08-29",
     id: "2026-08-29::Controle parental",
     title: "Controle parental",
     items: [
@@ -84,9 +66,14 @@ export const changelog: ChangelogEntry[] = [
       "Animações fluidas ao abrir Configurações, menus e trocar de aba, e também ao trocar de servidor, canal, DM ou página",
       "Barra de canais recolhível na lateral",
       "App de desktop sem moldura nativa, com barra de título própria (marca + minimizar/maximizar/fechar)",
+      "Tela de abertura animada ao iniciar o app",
+      "Atualizações instalam sozinhas ao abrir o app, sem precisar clicar em nada",
       "Quem estava com \"Permitir versões beta\" ligado é desligado automaticamente ao abrir essa versão — é só ligar de novo pra continuar testando o que ainda está em beta",
     ],
-    betaFeatures: ["Novo estilo de interface: \"liquid glass\" (Configurações > Beta), continua em teste"],
+    betaFeatures: [
+      "Novo estilo de interface: \"liquid glass\" (Configurações > Beta), continua em teste",
+      "Atalhos globais de chamada (app de desktop): Ctrl+Shift+M mutar, Ctrl+Shift+S silenciar geral, Ctrl+Shift+L sair da chamada",
+    ],
     bugsFixed: [
       "Cursor do mouse mal posicionado e perda de nitidez durante o compartilhamento de tela",
       "Botão ESC das Configurações estava afastado demais do canto",
