@@ -66,8 +66,24 @@ type GameshareDesktopBridge = {
   onWindowMaximizedChanged?: (callback: (isMaximized: boolean) => void) => () => void;
   // Atalhos globais (Configuracoes > Atalhos, beta) -- ver
   // registerGlobalShortcuts em main.js. name e "mute-toggle" |
-  // "deafen-toggle" | "leave-call".
+  // "deafen-toggle" | "leave-call" | "ptt-down" | "ptt-up".
   onShortcut?: (name: string, callback: () => void) => () => void;
+  getShortcuts?: () => Promise<ShortcutBindings>;
+  setShortcuts?: (shortcuts: ShortcutBindings) => Promise<ShortcutBindings>;
+};
+
+export type ShortcutBindings = {
+  muteToggle: string;
+  deafenToggle: string;
+  leaveCall: string;
+  pushToTalk: string;
+};
+
+export const DEFAULT_SHORTCUTS: ShortcutBindings = {
+  muteToggle: "CommandOrControl+Shift+M",
+  deafenToggle: "CommandOrControl+Shift+S",
+  leaveCall: "CommandOrControl+Shift+L",
+  pushToTalk: "CommandOrControl+Shift+V",
 };
 
 declare global {
@@ -132,9 +148,26 @@ export function onSystemAudioChunk(callback: (chunk: Uint8Array) => void): () =>
 
 // Atalhos globais (beta) -- ver ActiveCallProvider.tsx, unico lugar que
 // assina isso, so quando isBetaEnabled().
-export function onShortcut(name: "mute-toggle" | "deafen-toggle" | "leave-call", callback: () => void): () => void {
+export function onShortcut(
+  name: "mute-toggle" | "deafen-toggle" | "leave-call" | "ptt-down" | "ptt-up",
+  callback: () => void
+): () => void {
   if (typeof window === "undefined" || !window.gameshareDesktop?.onShortcut) return () => {};
   return window.gameshareDesktop.onShortcut(name, callback);
+}
+
+export function getShortcuts(): Promise<ShortcutBindings> {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.getShortcuts) {
+    return Promise.resolve(DEFAULT_SHORTCUTS);
+  }
+  return window.gameshareDesktop.getShortcuts();
+}
+
+export function setShortcuts(shortcuts: ShortcutBindings): Promise<ShortcutBindings> {
+  if (typeof window === "undefined" || !window.gameshareDesktop?.setShortcuts) {
+    return Promise.resolve(shortcuts);
+  }
+  return window.gameshareDesktop.setShortcuts(shortcuts);
 }
 
 // Liga/desliga o ponto vermelho de notificacao no icone da bandeja do

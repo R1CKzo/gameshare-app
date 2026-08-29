@@ -19,7 +19,16 @@ import {
 import { apiUrl } from "@/lib/apiUrl";
 import { BETA_STORAGE_KEY, isBetaEnabled } from "@/lib/beta";
 import { SEND_WITH_CTRL_ENTER_KEY } from "@/lib/chatSettings";
-import { clearCache, isDesktopApp, restartAppOrReload, syncHardwareAccel } from "@/lib/desktop";
+import {
+  clearCache,
+  DEFAULT_SHORTCUTS,
+  getShortcuts,
+  isDesktopApp,
+  restartAppOrReload,
+  setShortcuts,
+  syncHardwareAccel,
+  type ShortcutBindings,
+} from "@/lib/desktop";
 import { SOUND_CALLS_KEY, SOUND_MESSAGES_KEY } from "@/lib/sound";
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/;
@@ -82,6 +91,7 @@ type TabKey =
   | "idioma"
   | "batepapo"
   | "notificacoes"
+  | "atalhos"
   | "avancado"
   | "bug";
 
@@ -99,7 +109,16 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
     },
     {
       label: "Config. do aplicativo",
-      tabs: ["audio", "aparencia", "acessibilidade", "idioma", "batepapo", "notificacoes", "avancado"],
+      tabs: [
+        "audio",
+        "aparencia",
+        "acessibilidade",
+        "idioma",
+        "batepapo",
+        "notificacoes",
+        ...(isDesktopApp() && isBetaEnabled() ? (["atalhos"] as const) : []),
+        "avancado",
+      ],
     },
     {
       label: "Suporte",
@@ -117,6 +136,7 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
     idioma: "Idioma",
     batepapo: "Bate-papo",
     notificacoes: "Notificações",
+    atalhos: "Atalhos",
     avancado: "Avançado",
     bug: "Reportar um Problema",
   };
@@ -182,6 +202,8 @@ function DiscordSettingsModal({ onClose }: { onClose: () => void }) {
             <BatePapoTab />
           ) : tab === "notificacoes" ? (
             <NotificacoesTab />
+          ) : tab === "atalhos" ? (
+            <AtalhosTab />
           ) : tab === "avancado" ? (
             <AvancadoTab />
           ) : (
@@ -612,6 +634,72 @@ function ComingSoonTab({ title, description }: { title: string; description: str
 // so uma referencia de escala, nao tem relacao com o limiar do gate.
 const METER_REFERENCE_RMS = 0.35;
 
+const SHORTCUT_LABELS: Record<keyof ShortcutBindings, string> = {
+  muteToggle: "Mutar/desmutar microfone",
+  deafenToggle: "Silenciar áudio geral",
+  leaveCall: "Sair da chamada",
+  pushToTalk: "Push-to-talk (segurar pra falar)",
+};
+
+// Transforma um KeyboardEvent do navegador num formato de acelerador do
+// Electron ("CommandOrControl+Shift+V"), mesmo formato que
+// registerGlobalShortcuts/parseAccelerator entendem em desktop/main.js.
+function eventToAccelerator(e: React.KeyboardEvent): string | null {
+  const mods: string[] = [];
+  if (e.ctrlKey || e.metaKey) mods.push("CommandOrControl");
+  if (e.shiftKey) mods.push("Shift");
+  if (e.altKey) mods.push("Alt");
+  if (["Control", "Meta", "Shift", "Alt"].includes(e.key)) return null;
+  const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+  if (mods.length === 0) return null;
+  return [...mods, key].join("+");
+}
+
+function AtalhosTab() {
+  const [shortcuts, setShortcutsState] = useState<ShortcutBindings>(DEFAULT_SHORTCUTS);
+  const [capturing, setCapturing] = useState<keyof ShortcutBindings | null>(null);
+
+  useEffect(() => {
+    getShortcuts().then(setShortcutsState);
+  }, []);
+
+  async function handleCapture(name: keyof ShortcutBindings, e: React.KeyboardEvent) {
+    e.preventDefault();
+    const accelerator = eventToAccelerator(e);
+    if (!accelerator) return;
+    const next = { ...shortcuts, [name]: accelerator };
+    setShortcutsState(next);
+    setCapturing(null);
+    await setShortcuts(next);
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-dim">
+        Funcionam mesmo com outra janela (ex: um jogo) em foco. Clique num atalho e aperte a combinação desejada.
+      </p>
+      {(Object.keys(SHORTCUT_LABELS) as (keyof ShortcutBindings)[]).map((name) => (
+        <div key={name} className="flex items-center justify-between gap-3 rounded-xl bg-elevated/60 p-3.5">
+          <span className="text-sm font-semibold text-foreground">{SHORTCUT_LABELS[name]}</span>
+          <button
+            type="button"
+            onKeyDown={(e) => handleCapture(name, e)}
+            onClick={() => setCapturing(name)}
+            onBlur={() => setCapturing(null)}
+            className={`min-w-[160px] rounded-lg border px-3 py-2 text-center text-xs font-bold transition ${
+              capturing === name
+                ? "border-primary bg-primary/10 text-foreground"
+                : "border-border text-muted hover:text-foreground-secondary"
+            }`}
+          >
+            {capturing === name ? "Pressione a combinação..." : shortcuts[name].replace("CommandOrControl", "Ctrl")}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AudioTab() {
   const [settings, setSettings] = useState<AudioSettings>(() =>
     typeof window !== "undefined" ? loadAudioSettings() : DEFAULT_AUDIO_SETTINGS
@@ -833,6 +921,14 @@ function AudioTab() {
         checked={settings.autoGainControl}
         onChange={(v) => update({ autoGainControl: v })}
       />
+      {isDesktopApp() && isBetaEnabled() && (
+        <ToggleRow
+          label="Push-to-talk (beta)"
+          description="Microfone começa mudo, só abre enquanto você segura o atalho (configure em Atalhos)."
+          checked={settings.pushToTalkEnabled}
+          onChange={(v) => update({ pushToTalkEnabled: v })}
+        />
+      )}
     </div>
   );
 }

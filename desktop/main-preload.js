@@ -91,13 +91,16 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
     },
 
     // Atalhos globais (Configuracoes > Atalhos, beta) -- disparam mesmo
-    // com outra janela (ex: um jogo) em foco, ver globalShortcut em
-    // main.js. name e "mute-toggle" | "deafen-toggle" | "leave-call".
+    // com outra janela (ex: um jogo) em foco, ver globalShortcut/uiohook
+    // em main.js. name e "mute-toggle" | "deafen-toggle" | "leave-call" |
+    // "ptt-down" | "ptt-up".
     onShortcut: (name, callback) => {
       const channel = `shortcut:${name}`;
       const listener = () => callback();
       ipcRenderer.on(channel, listener);
       return () => ipcRenderer.removeListener(channel, listener);
     },
+    getShortcuts: () => ipcRenderer.invoke("shortcuts:get"),
+    setShortcuts: (shortcuts) => ipcRenderer.invoke("shortcuts:set", shortcuts),
   });
 }

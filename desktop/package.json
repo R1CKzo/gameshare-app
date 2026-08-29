@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "electron-log": "^5.4.4",
-    "electron-updater": "^6.3.4"
+    "electron-updater": "^6.3.4",
+    "uiohook-napi": "^1.5.5"
   },
   "build": {
     "appId": "app.gameshare.desktop",
@@ -32,8 +33,14 @@
       "build/dot-badge.png"
     ],
     "extraResources": [
-      { "from": "loopback_helper.exe", "to": "loopback_helper.exe" },
-      { "from": "build-info.json", "to": "build-info.json" }
+      {
+        "from": "loopback_helper.exe",
+        "to": "loopback_helper.exe"
+      },
+      {
+        "from": "build-info.json",
+        "to": "build-info.json"
+      }
     ],
     "directories": {
       "output": "release"

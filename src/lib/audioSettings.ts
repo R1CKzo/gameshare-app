@@ -17,6 +17,10 @@ export type AudioSettings = {
   // 0-100: quao facil o gate abre. Baixo = so deixa passar voz alta (corta
   // ruido/eco de fundo), alto = pega ate som baixinho.
   sensitivity: number;
+  // App de desktop, beta: microfone comeca mudo e so abre enquanto o
+  // atalho de push-to-talk esta sendo segurado (ver ActiveCallProvider.tsx
+  // e desktop/main.js).
+  pushToTalkEnabled: boolean;
 };
 
 const STORAGE_KEY = "gameshare:audioSettings";
@@ -28,6 +32,7 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   autoGainControl: true,
   deviceId: null,
   sensitivity: 50,
+  pushToTalkEnabled: false,
 };
 
 export function loadAudioSettings(): AudioSettings {
@@ -44,6 +49,10 @@ export function loadAudioSettings(): AudioSettings {
       autoGainControl: parsed.autoGainControl ?? DEFAULT_AUDIO_SETTINGS.autoGainControl,
       deviceId: typeof parsed.deviceId === "string" ? parsed.deviceId : DEFAULT_AUDIO_SETTINGS.deviceId,
       sensitivity: typeof parsed.sensitivity === "number" ? parsed.sensitivity : DEFAULT_AUDIO_SETTINGS.sensitivity,
+      pushToTalkEnabled:
+        typeof parsed.pushToTalkEnabled === "boolean"
+          ? parsed.pushToTalkEnabled
+          : DEFAULT_AUDIO_SETTINGS.pushToTalkEnabled,
     };
   } catch {
     return DEFAULT_AUDIO_SETTINGS;

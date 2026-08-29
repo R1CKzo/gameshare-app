@@ -487,6 +487,10 @@ export function useVoiceMesh({
         micProcessingRef.current = { audioContext, rawStream };
 
         const micTrack = gate.track;
+        // Com push-to-talk ligado (beta, app de desktop), comeca mudo --
+        // so abre enquanto o atalho estiver segurado (ver
+        // setPushToTalkActive abaixo e ActiveCallProvider.tsx).
+        if (settings.pushToTalkEnabled) micTrack.enabled = false;
         micTrackRef.current = micTrack;
 
         const videoTrack = createBlankVideoTrack();
@@ -775,6 +779,15 @@ export function useVoiceMesh({
     });
   }, [apiBase]);
 
+  // Push-to-talk (beta, app de desktop): so liga/desliga a faixa de
+  // verdade, sem tocar em isMuted/isMutedRef nem avisar a malha via
+  // /presence -- com PTT ligado a pessoa fica "mudo" o tempo todo entre
+  // apertos, entao mandar isMuted a cada toque faria o icone de mudo dos
+  // outros participantes piscar sem parar (ver plano de atalhos).
+  const setPushToTalkActive = useCallback((active: boolean) => {
+    if (micTrackRef.current) micTrackRef.current.enabled = active;
+  }, []);
+
   // Chamado por ActiveCallProvider.leave() logo antes de mandar o DELETE —
   // ver o comentario em writeAbortRef acima.
   function abortPendingWrites() {
@@ -915,6 +928,7 @@ export function useVoiceMesh({
     remoteStreams,
     isMuted,
     toggleMute,
+    setPushToTalkActive,
     isSharingScreen,
     startScreenShare,
     stopScreenShare,

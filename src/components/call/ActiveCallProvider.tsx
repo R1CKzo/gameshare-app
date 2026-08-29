@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { type PresentUser, type RemotePeerTracks, type ScreenShareOptions, useVoiceMesh } from "@/hooks/useVoiceMesh";
+import { loadAudioSettings } from "@/lib/audioSettings";
 import { isBetaEnabled } from "@/lib/beta";
 import { onShortcut } from "@/lib/desktop";
 import { getPusherClient } from "@/lib/pusherClient";
@@ -315,6 +316,22 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, mesh.toggleMute, toggleDeafen, leave]);
+
+  // Push-to-talk (beta, app de desktop) -- so entra em cena se a pessoa
+  // ligou a opcao em Configuracoes > Audio (ver PushToTalkEnabled em
+  // audioSettings.ts). Ao contrario do mute normal, nao mexe em isMuted
+  // nem avisa a malha via /presence, ver comentario de
+  // setPushToTalkActive em useVoiceMesh.ts.
+  useEffect(() => {
+    if (!target || !isBetaEnabled() || !loadAudioSettings().pushToTalkEnabled) return;
+    const offDown = onShortcut("ptt-down", () => mesh.setPushToTalkActive(true));
+    const offUp = onShortcut("ptt-up", () => mesh.setPushToTalkActive(false));
+    return () => {
+      offDown();
+      offUp();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, mesh.setPushToTalkActive]);
 
   const startScreenShare = useCallback(
     async (options: ScreenShareOptions) => {

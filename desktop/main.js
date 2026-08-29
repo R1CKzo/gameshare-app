@@ -20,6 +20,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
+const { uIOhook, UiohookKey } = require("uiohook-napi");
 
 // Log persistido em disco (%APPDATA%/GameShare/logs/main.log) — sem isso,
 // qualquer erro no auto-updater só existiria no console de uma janela que
@@ -1030,12 +1031,37 @@ function notify(title, body) {
 // pessoa esta ligado sem uma ponte de IPC nova so pra isso); quem decide
 // se REAGE ao evento ou nao e o renderer, em ActiveCallProvider.tsx, so
 // se isBetaEnabled(). globalShortcut funciona mesmo com outra janela
-// (ex: um jogo) em foco -- diferente de um atalho normal da pagina.
+// (ex: um jogo) em foco -- diferente de um atalho normal da pagina, mas
+// so avisa no aperto (sem keyup), por isso o push-to-talk usa o uiohook
+// abaixo em vez disso.
+const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
+const DEFAULT_SHORTCUTS = {
+  muteToggle: "CommandOrControl+Shift+M",
+  deafenToggle: "CommandOrControl+Shift+S",
+  leaveCall: "CommandOrControl+Shift+L",
+  pushToTalk: "CommandOrControl+Shift+V",
+};
+
+function loadShortcuts() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(SHORTCUTS_FILE, "utf8"));
+    return { ...DEFAULT_SHORTCUTS, ...raw };
+  } catch {
+    return { ...DEFAULT_SHORTCUTS };
+  }
+}
+
+function saveShortcuts(shortcuts) {
+  fs.writeFileSync(SHORTCUTS_FILE, JSON.stringify(shortcuts));
+}
+
 function registerGlobalShortcuts() {
+  globalShortcut.unregisterAll();
+  const shortcuts = loadShortcuts();
   const bindings = {
-    "CommandOrControl+Shift+M": "mute-toggle",
-    "CommandOrControl+Shift+S": "deafen-toggle",
-    "CommandOrControl+Shift+L": "leave-call",
+    [shortcuts.muteToggle]: "mute-toggle",
+    [shortcuts.deafenToggle]: "deafen-toggle",
+    [shortcuts.leaveCall]: "leave-call",
   };
   for (const [accelerator, name] of Object.entries(bindings)) {
     try {
@@ -1046,7 +1072,75 @@ function registerGlobalShortcuts() {
       log.error(`Falha ao registrar atalho global ${accelerator}:`, err);
     }
   }
+  setupPushToTalkHook(shortcuts.pushToTalk);
 }
+
+// Push-to-talk precisa saber quando a tecla SOLTA, algo que o
+// globalShortcut do Electron nao oferece -- so por isso entra o
+// uiohook-napi aqui, so pra esse atalho. "CommandOrControl+Shift+V" vira
+// { mods: [ctrlKey], key: UiohookKey.V }; ao bater os modificadores E o
+// keycode no keydown manda "ptt-down", ao soltar a tecla principal OU
+// qualquer modificador manda "ptt-up" (senao ia ficar "preso" ligado se
+// a pessoa soltar o Ctrl antes do V).
+let pushToTalkActive = false;
+let pushToTalkBinding = null;
+
+function parseAccelerator(accelerator) {
+  const parts = accelerator.split("+").map((p) => p.trim());
+  const mods = { ctrl: false, shift: false, alt: false, meta: false };
+  let mainKey = null;
+  for (const part of parts) {
+    if (part === "CommandOrControl" || part === "Control" || part === "Command") mods.ctrl = true;
+    else if (part === "Shift") mods.shift = true;
+    else if (part === "Alt") mods.alt = true;
+    else if (part === "Super" || part === "Meta") mods.meta = true;
+    else mainKey = part;
+  }
+  const keycode = mainKey ? UiohookKey[mainKey.toUpperCase()] : undefined;
+  return { mods, keycode };
+}
+
+function modsMatch(binding, event) {
+  return (
+    binding.mods.ctrl === event.ctrlKey &&
+    binding.mods.shift === event.shiftKey &&
+    binding.mods.alt === event.altKey &&
+    binding.mods.meta === event.metaKey
+  );
+}
+
+let hookStarted = false;
+function setupPushToTalkHook(accelerator) {
+  pushToTalkBinding = parseAccelerator(accelerator);
+  if (hookStarted) return;
+  hookStarted = true;
+  uIOhook.on("keydown", (e) => {
+    if (!pushToTalkBinding?.keycode) return;
+    if (pushToTalkActive) return;
+    if (e.keycode === pushToTalkBinding.keycode && modsMatch(pushToTalkBinding, e)) {
+      pushToTalkActive = true;
+      mainWindow?.webContents.send("shortcut:ptt-down");
+    }
+  });
+  uIOhook.on("keyup", () => {
+    if (!pushToTalkActive) return;
+    pushToTalkActive = false;
+    mainWindow?.webContents.send("shortcut:ptt-up");
+  });
+  try {
+    uIOhook.start();
+  } catch (err) {
+    log.error("Falha ao iniciar hook de teclado (push-to-talk):", err);
+  }
+}
+
+ipcMain.handle("shortcuts:get", () => loadShortcuts());
+ipcMain.handle("shortcuts:set", (_event, shortcuts) => {
+  const merged = { ...DEFAULT_SHORTCUTS, ...shortcuts };
+  saveShortcuts(merged);
+  registerGlobalShortcuts();
+  return merged;
+});
 
 app.whenReady().then(() => {
   // A janela de teste, com pasta de dados propria (ver acima), nao
@@ -1132,6 +1226,7 @@ app.on("window-all-closed", () => {
 // ativo por um instante depois do app ja ter fechado.
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
+  if (hookStarted) uIOhook.stop();
 });
 
 // Processos filhos (child_process.spawn) nao morrem sozinhos so porque o
