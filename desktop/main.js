@@ -408,7 +408,10 @@ function checkForFullUpdateSilently() {
       log.info("[startup] atualizacao baixada, instalando sozinho:", info.version);
       setSplashStatus("Instalando atualização...");
       autoUpdater.autoInstallOnAppQuit = true;
-      autoUpdater.quitAndInstall();
+      // isSilent=true, isForceRunAfter=true -- sem isso o instalador abre
+      // o assistente visivel de sempre, com botoes pra clicar, quebrando
+      // o pedido de atualizar sozinho sem interacao nenhuma.
+      autoUpdater.quitAndInstall(true, true);
       finish(true);
     }
     function onError(err) {
@@ -1009,13 +1012,18 @@ async function downloadAndInstallPatch({ silent = false } = {}) {
         resolve({ ok: true });
         return;
       }
-      // Silenciosa roda em segundo plano, sem janela -- espera o processo
-      // terminar de verdade (nao so abrir) antes de reabrir o app, senao
-      // arriscava pegar o .exe ainda sendo sobrescrito pelo instalador.
-      child.once("exit", () => {
-        app.relaunch();
-        app.exit(0);
-      });
+      // Silenciosa roda em segundo plano, sem janela -- mas ela precisa
+      // SOBRESCREVER o nosso proprio .exe pra terminar, e isso fica
+      // travado (Windows nao deixa apagar um .exe em uso) enquanto a
+      // gente continuar de pe. Esperar o instalador "terminar" antes de
+      // sair era um impasse dos dois lados -- ele nunca termina porque a
+      // gente nao sai, e a gente nunca sai porque esperava ele terminar
+      // (era exatamente isso que gerava o erro "Falha ao desinstalar os
+      // arquivos do aplicativo antigo" na tela). Corrigido soltando a
+      // trava (saindo) assim que o instalador abre, sem esperar nada.
+      child.unref();
+      app.relaunch();
+      app.exit(0);
       resolve({ ok: true });
     });
   });
