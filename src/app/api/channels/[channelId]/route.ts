@@ -29,6 +29,12 @@ export async function GET(
       broadcaster: { select: { id: true, nickname: true, userTag: true, image: true } },
       presences: {
         where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } },
+        // Sem isso o Postgres nao garante a mesma ordem entre uma consulta
+        // e outra (updatedAt muda a cada heartbeat/mudanca de mute, o que
+        // pode reordenar as linhas fisicamente) -- sem ordem fixa, os
+        // icones dos participantes ficavam trocando de posicao sozinhos a
+        // cada poll (~12s, ver ActiveCallProvider.tsx).
+        orderBy: { id: "asc" },
         select: {
           peerId: true,
           isMuted: true,

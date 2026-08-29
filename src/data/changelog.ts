@@ -56,6 +56,8 @@ export const changelog: ChangelogEntry[] = [
     bugsFixed: [
       "Cursor do mouse mal posicionado e perda de nitidez durante o compartilhamento de tela",
       "Botão ESC das Configurações estava afastado demais do canto",
+      "Ícones dos participantes da call trocando de posição sozinhos",
+      "Ícone de mudo errado na sobreposição em jogo",
     ],
   },
   {

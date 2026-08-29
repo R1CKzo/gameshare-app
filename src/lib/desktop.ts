@@ -87,11 +87,35 @@ export type OverlayParticipant = {
   isMuted: boolean;
   isDeafened: boolean;
   isSharing: boolean;
+  isSpeaking: boolean;
 };
 
 export type OverlayState = {
   participants: OverlayParticipant[];
 };
+
+const OVERLAY_ENABLED_KEY = "gameshare-overlay-enabled";
+
+// Interruptor da sobreposicao em jogo (Configuracoes > Atalhos, beta) --
+// so no localStorage desse computador, mesmo padrao do interruptor de
+// beta em beta.ts. Ligado por padrao pra quem ja tem beta ativo.
+export function isOverlayEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.localStorage.getItem(OVERLAY_ENABLED_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+export function setOverlayEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(OVERLAY_ENABLED_KEY, String(enabled));
+  } catch {
+    // localStorage indisponivel -- so nao persiste dessa vez
+  }
+}
 
 export type ShortcutBindings = {
   muteToggle: string;

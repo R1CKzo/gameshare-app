@@ -26,6 +26,9 @@ export async function GET(_request: Request, { params }: { params: { dmChannelId
       broadcaster: { select: { id: true, nickname: true, userTag: true, image: true } },
       presences: {
         where: { updatedAt: { gt: new Date(Date.now() - PRESENCE_WINDOW_MS) } },
+        // Mesmo motivo do /api/channels/[channelId] -- sem ordem fixa os
+        // icones ficavam trocando de posicao sozinhos a cada poll.
+        orderBy: { id: "asc" },
         select: {
           peerId: true,
           isMuted: true,

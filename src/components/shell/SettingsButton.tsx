@@ -24,7 +24,9 @@ import {
   DEFAULT_SHORTCUTS,
   getShortcuts,
   isDesktopApp,
+  isOverlayEnabled,
   restartAppOrReload,
+  setOverlayEnabled,
   setShortcuts,
   syncHardwareAccel,
   type ShortcutBindings,
@@ -658,9 +660,11 @@ function eventToAccelerator(e: React.KeyboardEvent): string | null {
 function AtalhosTab() {
   const [shortcuts, setShortcutsState] = useState<ShortcutBindings>(DEFAULT_SHORTCUTS);
   const [capturing, setCapturing] = useState<keyof ShortcutBindings | null>(null);
+  const [overlayEnabled, setOverlayEnabledState] = useState(true);
 
   useEffect(() => {
     getShortcuts().then(setShortcutsState);
+    setOverlayEnabledState(isOverlayEnabled());
   }, []);
 
   async function handleCapture(name: keyof ShortcutBindings, e: React.KeyboardEvent) {
@@ -696,6 +700,16 @@ function AtalhosTab() {
           </button>
         </div>
       ))}
+
+      <ToggleRow
+        label="Sobreposição em jogo"
+        description="Mostra quem está na call (foto, fala, mudo) por cima da tela do jogo."
+        checked={overlayEnabled}
+        onChange={(v) => {
+          setOverlayEnabledState(v);
+          setOverlayEnabled(v);
+        }}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { AccessibilityProvider } from "@/components/AccessibilityProvider";
 import { ActiveCallAudioSink } from "@/components/call/ActiveCallAudioSink";
 import { ActiveCallBar } from "@/components/call/ActiveCallBar";
+import { ActiveCallOverlaySync } from "@/components/call/ActiveCallOverlaySync";
 import { ActiveCallProvider } from "@/components/call/ActiveCallProvider";
 import { GlobalNotificationListener } from "@/components/notifications/GlobalNotificationListener";
 import { PresenceProvider } from "@/components/notifications/PresenceProvider";
@@ -48,6 +49,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 {children}
                 <ActiveCallBar />
                 <ActiveCallAudioSink />
+                <ActiveCallOverlaySync />
               </ActiveCallProvider>
             </PresenceProvider>
           </GlobalNotificationListener>
