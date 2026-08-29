@@ -25,6 +25,8 @@
       "main.js",
       "main-preload.js",
       "wait.html",
+      "splash.html",
+      "splash-preload.js",
       "build/icon.ico",
       "build/icon-badge.ico",
       "build/dot-badge.png"

@@ -333,6 +333,116 @@ function setupMainWindowLoad(win) {
   armStallTimer();
 }
 
+// Janela de splash (inspirada num design que o dono mandou): aparece na
+// hora, antes de qualquer coisa de rede, e cobre TODO o tempo entre abrir
+// o app e a janela de verdade ficar pronta pra mostrar -- inclusive
+// enquanto confere/baixa/instala atualizacao sozinha (ver
+// runStartupUpdateCheck abaixo). So texto de status muda por baixo, ver
+// splash.html/splash-preload.js.
+let splashWindow = null;
+
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 420,
+    height: 460,
+    frame: false,
+    resizable: false,
+    movable: true,
+    show: true,
+    skipTaskbar: true,
+    backgroundColor: "#0b0d12",
+    icon: path.join(__dirname, "build", "icon.ico"),
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      preload: path.join(__dirname, "splash-preload.js"),
+    },
+  });
+  splashWindow.loadFile(path.join(__dirname, "splash.html"));
+}
+
+function setSplashStatus(text) {
+  splashWindow?.webContents.send("splash:status", text);
+}
+
+function closeSplash() {
+  if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+  splashWindow = null;
+}
+
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(fallback), ms))]);
+}
+
+// Confere atualizacao de versao nova (electron-updater) SEM perguntar
+// nada -- diferente de setupAutoUpdate() mais abaixo (que so roda depois
+// que o app ja esta aberto e em uso, e ai sim confirma antes de reiniciar,
+// pra nao interromper uma chamada de voz em andamento). Aqui, como o app
+// ainda nem apareceu de verdade, nao tem sessao nenhuma pra interromper --
+// pode instalar e reiniciar direto. Devolve true se uma atualizacao foi
+// baixada e o quitAndInstall() ja foi chamado (o processo atual esta
+// fechando sozinho); false se nao tinha nada novo ou deu erro.
+function checkForFullUpdateSilently() {
+  return new Promise((resolve) => {
+    let settled = false;
+    function finish(result) {
+      if (settled) return;
+      settled = true;
+      autoUpdater.removeListener("update-available", onAvailable);
+      autoUpdater.removeListener("update-not-available", onNone);
+      autoUpdater.removeListener("update-downloaded", onDownloaded);
+      autoUpdater.removeListener("error", onError);
+      resolve(result);
+    }
+    function onAvailable() {
+      setSplashStatus("Baixando atualização...");
+    }
+    function onNone() {
+      finish(false);
+    }
+    function onDownloaded(info) {
+      log.info("[startup] atualizacao baixada, instalando sozinho:", info.version);
+      setSplashStatus("Instalando atualização...");
+      autoUpdater.autoInstallOnAppQuit = true;
+      autoUpdater.quitAndInstall();
+      finish(true);
+    }
+    function onError(err) {
+      log.error("[startup] erro ao checar atualizacao", err);
+      finish(false);
+    }
+    autoUpdater.autoDownload = true;
+    autoUpdater.once("update-available", onAvailable);
+    autoUpdater.once("update-not-available", onNone);
+    autoUpdater.once("update-downloaded", onDownloaded);
+    autoUpdater.once("error", onError);
+    autoUpdater.checkForUpdates().catch(onError);
+  });
+}
+
+// Sequencia inteira de abertura, estilo Discord: mostra o splash, confere
+// atualizacao de versao E correcao da mesma versao (patch), instala
+// sozinho se tiver, e SO ENTAO cria a janela de verdade -- nunca deixa a
+// pessoa ver uma versao velha por um instante so pra descobrir que tinha
+// atualizacao logo em seguida. Prazo curto em cada checagem: rede lenta
+// ou fora do ar nunca trava a abertura do app, so segue sem atualizar
+// dessa vez (o check periodico de 4 em 4h, com o app ja aberto, tenta de
+// novo depois).
+async function runStartupUpdateCheck() {
+  setSplashStatus("Verificando atualizações...");
+
+  const patch = await withTimeout(checkForPatch(), 8000, { available: false });
+  if (patch.available) {
+    setSplashStatus("Instalando atualização...");
+    const installed = await downloadAndInstallPatch({ silent: true });
+    if (installed.ok) return true; // downloadAndInstallPatch ja vai reiniciar o app sozinho
+  }
+
+  const updated = await withTimeout(checkForFullUpdateSilently(), 15000, false);
+  return updated;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -343,6 +453,11 @@ function createWindow() {
     icon: path.join(__dirname, "build", "icon.ico"),
     backgroundColor: "#08090d",
     autoHideMenuBar: true,
+    // Nasce escondida -- so aparece no "ready-to-show" (primeiro frame de
+    // verdade ja pintado), pra quem esta vendo a janela de splash (ver
+    // startupSequence) nunca pegar um flash da cor de fundo escura sem
+    // conteudo nenhum no meio da troca.
+    show: false,
     // Sem moldura nativa nenhuma -- a pagina desenha sua propria barra de
     // titulo inteira (marca + botoes), ver DesktopTitleBar.tsx.
     frame: false,
@@ -356,6 +471,12 @@ function createWindow() {
 
   mainWindow.webContents.setUserAgent(DESKTOP_CHROME_UA);
   setupMainWindowLoad(mainWindow);
+
+  mainWindow.once("ready-to-show", () => {
+    closeSplash();
+    mainWindow.show();
+    mainWindow.focus();
+  });
 
   // Avisa a pagina quando o estado maximizado muda por qualquer via que nao
   // seja o botao dela mesma (atalho de teclado, arrastar pra borda da
@@ -829,7 +950,7 @@ function describeErr(err) {
   return "";
 }
 
-async function downloadAndInstallPatch() {
+async function downloadAndInstallPatch({ silent = false } = {}) {
   const patch = await checkForPatch().catch((err) => {
     log.error("[patch] falha ao checar atualizacao antes de instalar", err);
     return { available: false };
@@ -867,14 +988,31 @@ async function downloadAndInstallPatch() {
   }
 
   return await new Promise((resolve) => {
-    const child = spawn(dest, [], { detached: true, stdio: "ignore" });
+    // /S = instalacao silenciosa do NSIS, sem wizard nenhum pra clicar --
+    // so usado na checagem automatica de abertura (ver
+    // runStartupUpdateCheck), nunca no botao manual de "baixar correcao"
+    // (ai a pessoa pediu de proposito, ver o instalador de verdade e
+    // esperado).
+    const args = silent ? ["/S"] : [];
+    const child = spawn(dest, args, { detached: true, stdio: "ignore" });
     child.once("error", (err) => {
       log.error("[patch] instalador nao abriu", err);
       resolve({ ok: false, error: `Não foi possível abrir o instalador.${describeErr(err)} Tente de novo mais tarde.` });
     });
     child.once("spawn", () => {
-      child.unref();
-      setTimeout(() => app.quit(), 500);
+      if (!silent) {
+        child.unref();
+        setTimeout(() => app.quit(), 500);
+        resolve({ ok: true });
+        return;
+      }
+      // Silenciosa roda em segundo plano, sem janela -- espera o processo
+      // terminar de verdade (nao so abrir) antes de reabrir o app, senao
+      // arriscava pegar o .exe ainda sendo sobrescrito pelo instalador.
+      child.once("exit", () => {
+        app.relaunch();
+        app.exit(0);
+      });
       resolve({ ok: true });
     });
   });
@@ -917,10 +1055,20 @@ app.whenReady().then(() => {
   // (deslogada, numa pasta separada) do lado da sessao real que ja esta
   // em uso.
   if (!DEBUG_UI) {
-    createWindow();
-    createTray();
-    setupAutoUpdate();
-    registerGlobalShortcuts();
+    createSplashWindow();
+    runStartupUpdateCheck().then((updating) => {
+      // updating=true: uma atualizacao (versao nova ou patch) ja foi
+      // instalada e o app esta se fechando/reabrindo sozinho agora --
+      // nao cria a janela de verdade nessa instancia, ela nasce de novo
+      // limpa na proxima abertura.
+      if (updating) return;
+
+      setSplashStatus("Conectando...");
+      createWindow();
+      createTray();
+      setupAutoUpdate();
+      registerGlobalShortcuts();
+    });
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

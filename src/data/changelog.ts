@@ -36,6 +36,15 @@ export function changelogKey(entry: ChangelogEntry): string {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-08-29",
+    id: "2026-08-29::Tela de inicialização e atualização automática",
+    title: "Tela de inicialização e atualização automática",
+    items: [
+      "App de desktop: nova tela de abertura animada enquanto conecta",
+      "Atualizações (de versão ou correção) agora são conferidas e instaladas sozinhas ao abrir o app, sem precisar clicar em nada — só depois disso o app abre de vez",
+    ],
+  },
+  {
+    date: "2026-08-29",
     id: "2026-08-29::Atalhos globais (beta)",
     title: "Atalhos globais (beta)",
     items: [],
