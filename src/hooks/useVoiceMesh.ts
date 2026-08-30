@@ -331,13 +331,10 @@ export function useVoiceMesh({
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, RemotePeerTracks>>(new Map());
   const [isMuted, setIsMuted] = useState(false);
-  // "Conectando..." ate isso virar true -- so acontece depois do handshake
-  // de sinalizacao (PeerJS) abrir E a gente conseguir registrar a propria
-  // presenca no servidor com sucesso, que e o momento exato em que outras
-  // pessoas na sala conseguem discar pra ouvir sua voz (ver peer.on("open")
-  // abaixo). Antes disso, mesmo com o microfone ja "ligado" localmente,
-  // ninguem do outro lado ainda escuta nada.
-  const [isConnected, setIsConnected] = useState(false);
+  // So confirma que a PROPRIA presenca foi registrada no servidor -- isso
+  // sozinho NAO significa que alguem ja esta ouvindo a voz (ver
+  // isConnected, computado mais abaixo a partir disso + remoteStreams).
+  const [registered, setRegistered] = useState(false);
   const [isSharingScreen, setIsSharingScreen] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
 
@@ -542,7 +539,7 @@ export function useVoiceMesh({
                 setMicError(data.error ?? "Não foi possível entrar na chamada.");
                 return;
               }
-              if (!cancelled) setIsConnected(true);
+              if (!cancelled) setRegistered(true);
             })
             .catch(() => {});
         });
@@ -568,7 +565,7 @@ export function useVoiceMesh({
         peer.on("disconnected", () => {
           console.warn("[voiceMesh] sinalizacao caiu, tentando reconectar...");
           if (cancelled) return;
-          setIsConnected(false);
+          setRegistered(false);
           peer.reconnect();
         });
       } catch {
@@ -584,7 +581,7 @@ export function useVoiceMesh({
       connectionsRef.current.clear();
       streamedPeerIdsRef.current.clear();
       setRemoteStreams(new Map());
-      setIsConnected(false);
+      setRegistered(false);
       peerRef.current?.destroy();
       peerRef.current = null;
       peerIdRef.current = null;
@@ -934,6 +931,17 @@ export function useVoiceMesh({
   function getConnectionQuality(): ConnectionQuality {
     return selfQualityRef.current;
   }
+
+  // "Conectado" de verdade: a propria presenca precisa estar registrada
+  // (ver "registered" acima) E, se tiver mais alguem na sala, pelo menos
+  // uma dessas conexoes precisa ja ter entregue audio de verdade
+  // (remoteStreams so ganha uma entrada no evento "stream" da chamada, ver
+  // registerConnection). Sozinho na sala, "registered" ja basta -- nao ha
+  // ninguem pra esperar responder. Antes disso so confirmava o registro no
+  // servidor, o que fazia "Voz conectada" aparecer bem antes de qualquer
+  // audio de verdade estar sendo trocado com quem ja estava na call.
+  const otherPeerIds = present.filter((p) => p.id !== currentUserId && p.peerId).map((p) => p.peerId as string);
+  const isConnected = registered && (otherPeerIds.length === 0 || otherPeerIds.some((id) => remoteStreams.has(id)));
 
   return {
     localStream,
