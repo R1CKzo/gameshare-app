@@ -12,7 +12,7 @@ import { useActiveCall } from "@/components/call/ActiveCallProvider";
 // visivel, igual o Discord), pra nao duplicar os mesmos controles em dois
 // lugares diferentes da tela.
 export function ActiveCallBar() {
-  const { target } = useActiveCall();
+  const { target, isConnected } = useActiveCall();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -29,7 +29,7 @@ export function ActiveCallBar() {
         <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
       </span>
       <button onClick={() => router.push(ownPath)} className="max-w-[45vw] truncate text-sm font-semibold text-foreground hover:underline">
-        Em chamada — {target.name}
+        {isConnected ? "Em chamada" : "Conectando..."} — {target.name}
       </button>
     </div>
   );

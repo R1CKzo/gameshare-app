@@ -1,11 +1,13 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useActiveCall } from "@/components/call/ActiveCallProvider";
 import { SignalIcon } from "@/components/call/SignalIcon";
 import { useUnread } from "@/components/notifications/UnreadContext";
 import { InviteButton } from "@/components/shell/InviteButton";
@@ -14,6 +16,7 @@ import { UserPill } from "@/components/shell/UserPill";
 import { useFloatingMenu } from "@/hooks/useFloatingMenu";
 import type { ConnectionQuality } from "@/hooks/useVoiceMesh";
 import { apiUrl } from "@/lib/apiUrl";
+import { MAX_CALL_ROOM_SIZE } from "@/lib/callLimits";
 import { getPusherClient } from "@/lib/pusherClient";
 import { CALL_UPDATE_EVENT, serverVoicePusherName } from "@/lib/pusherShared";
 
@@ -274,6 +277,9 @@ function ChannelRow({
   const isCall = channel.type === "CALL";
   const hasActivity = isCall && (channel.isLive || channel.presenceCount > 0);
   const { isChannelUnread } = useUnread();
+  const activeCall = useActiveCall();
+  const { data: session } = useSession();
+  const alreadyHere = activeCall.target?.kind === "channel" && activeCall.target.channelId === channel.id;
   const unread = !isCall && isChannelUnread(channel.id);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(channel.name);
@@ -322,6 +328,30 @@ function ChannelRow({
       <Link
         href={`/servers/${serverId}/channels/${channel.id}`}
         prefetch
+        onClick={async (e) => {
+          if (!isCall || alreadyHere || !session?.user?.id) return;
+          // Igual o Discord: clicar num canal de voz ja entra na hora, sem
+          // precisar abrir a pagina e clicar "Entrar na sala" de novo. Se
+          // ja tem uma chamada rolando em outro canal/DM, confirma antes
+          // de trocar -- senao um clique errado derrubava a call sem
+          // querer.
+          if (activeCall.target) {
+            if (!window.confirm(`Sair de "${activeCall.target.name}" e entrar em "${channel.name}"?`)) {
+              e.preventDefault();
+              return;
+            }
+            // join() sozinho so troca o alvo local -- sem isso a presenca
+            // na sala antiga ficava "fantasma" ate expirar sozinha (ver
+            // leave() em ActiveCallProvider.tsx, que manda o DELETE de
+            // verdade).
+            await activeCall.leave();
+          }
+          if (channel.presenceCount >= MAX_CALL_ROOM_SIZE) return;
+          activeCall.join(
+            { kind: "channel", channelId: channel.id, serverId, apiBase: apiUrl(`/api/channels/${channel.id}`), name: channel.name },
+            session.user.id,
+          );
+        }}
         className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 transition ${
           hasActivity
             ? "border-l-2 border-accent bg-accent/[0.08]"

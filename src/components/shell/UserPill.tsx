@@ -28,7 +28,7 @@ export function UserPill({
 }) {
   const { data: session } = useSession();
   const { effectiveStatus } = usePresence();
-  const { target, isMuted, toggleMute, isDeafened, toggleDeafen, leave } = useActiveCall();
+  const { target, isMuted, isConnected, toggleMute, isDeafened, toggleDeafen, leave } = useActiveCall();
   const label = user.nickname ?? "Alguem";
 
   // Mostra o selo "BETA" so quando o interruptor "Permitir versoes beta"
@@ -86,6 +86,19 @@ export function UserPill({
 
   return (
     <div className="shrink-0 border-t border-overlay bg-black/20 p-2">
+      {/* Estado real da conexao de voz -- "Conectando..." ate a propria
+      presenca ser registrada no servidor (o momento em que os outros
+      realmente passam a ouvir sua voz), so entao "Voz conectada". Sem
+      isso nao dava pra saber se ja tinha entrado de verdade ou se ainda
+      estava so tentando. */}
+      {target && (
+        <div className="mb-1.5 flex items-center gap-1.5 rounded-lg bg-elevated/50 px-2.5 py-1.5">
+          <VoiceConnectionIcon connected={isConnected} />
+          <span className={`text-xs font-bold ${isConnected ? "text-accent" : "text-muted"}`}>
+            {isConnected ? "Voz conectada" : "Conectando..."}
+          </span>
+        </div>
+      )}
       <div className="flex items-center gap-2 rounded-xl bg-elevated/70 px-2 py-1.5">
         <StatusMenu status={effectiveStatus}>
           {user.image ? (
@@ -232,6 +245,30 @@ function DownloadIcon() {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <path d="M7 10l5 5 5-5" />
       <path d="M12 15V3" />
+    </svg>
+  );
+}
+
+// Barras de sinal, igual o icone de "Voz conectada" do Discord -- so que
+// aqui refletem de verdade o estado da conexao (ver isConnected em
+// useVoiceMesh.ts), nao so um enfeite: cinza e piscando enquanto
+// "Conectando...", verde solido assim que a voz de verdade esta no ar.
+function VoiceConnectionIcon({ connected }: { connected: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={connected ? "var(--color-accent)" : "currentColor"}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      className={`shrink-0 ${connected ? "" : "animate-pulse text-muted"}`}
+    >
+      <path d="M2 12a15 15 0 0 1 20 0" opacity={connected ? 1 : 0.35} />
+      <path d="M5.5 15.5a10 10 0 0 1 13 0" opacity={connected ? 1 : 0.6} />
+      <path d="M9 19a5 5 0 0 1 6 0" opacity={connected ? 1 : 0.9} />
+      <circle cx="12" cy="21.5" r="1" fill={connected ? "var(--color-accent)" : "currentColor"} stroke="none" />
     </svg>
   );
 }

@@ -32,6 +32,12 @@ type ActiveCallContextValue = {
   localStream: MediaStream | null;
   remoteStreams: Map<string, RemotePeerTracks>;
   isMuted: boolean;
+  // false = "Conectando..." (mic ainda inicializando ou handshake de
+  // sinalizacao em andamento) -- so vira true depois que a propria
+  // presenca foi registrada no servidor com sucesso, o momento em que
+  // outras pessoas na sala realmente conseguem ouvir sua voz (ver
+  // isConnected em useVoiceMesh.ts).
+  isConnected: boolean;
   // "Silenciar geral": para de tocar a voz e a transmissao de todo mundo
   // pra mim (ver ActiveCallAudioSink), sem sair da call. Igual o Discord,
   // tambem muta o microfone de verdade ao ativar -- os outros participantes
@@ -361,6 +367,7 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
         localStream: mesh.localStream,
         remoteStreams: mesh.remoteStreams,
         isMuted: mesh.isMuted,
+        isConnected: mesh.isConnected,
         isDeafened,
         toggleDeafen,
         isSharingScreen: mesh.isSharingScreen,

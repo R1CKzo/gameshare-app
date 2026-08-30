@@ -331,6 +331,13 @@ export function useVoiceMesh({
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, RemotePeerTracks>>(new Map());
   const [isMuted, setIsMuted] = useState(false);
+  // "Conectando..." ate isso virar true -- so acontece depois do handshake
+  // de sinalizacao (PeerJS) abrir E a gente conseguir registrar a propria
+  // presenca no servidor com sucesso, que e o momento exato em que outras
+  // pessoas na sala conseguem discar pra ouvir sua voz (ver peer.on("open")
+  // abaixo). Antes disso, mesmo com o microfone ja "ligado" localmente,
+  // ninguem do outro lado ainda escuta nada.
+  const [isConnected, setIsConnected] = useState(false);
   const [isSharingScreen, setIsSharingScreen] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
 
@@ -533,7 +540,9 @@ export function useVoiceMesh({
               if (!res.ok && !cancelled) {
                 const data = await res.json().catch(() => ({}));
                 setMicError(data.error ?? "Não foi possível entrar na chamada.");
+                return;
               }
+              if (!cancelled) setIsConnected(true);
             })
             .catch(() => {});
         });
@@ -558,7 +567,9 @@ export function useVoiceMesh({
         // proprio PeerJS pra esse caso.
         peer.on("disconnected", () => {
           console.warn("[voiceMesh] sinalizacao caiu, tentando reconectar...");
-          if (!cancelled) peer.reconnect();
+          if (cancelled) return;
+          setIsConnected(false);
+          peer.reconnect();
         });
       } catch {
         if (!cancelled) setMicError("Não foi possível acessar o microfone.");
@@ -573,6 +584,7 @@ export function useVoiceMesh({
       connectionsRef.current.clear();
       streamedPeerIdsRef.current.clear();
       setRemoteStreams(new Map());
+      setIsConnected(false);
       peerRef.current?.destroy();
       peerRef.current = null;
       peerIdRef.current = null;
@@ -927,6 +939,7 @@ export function useVoiceMesh({
     localStream,
     remoteStreams,
     isMuted,
+    isConnected,
     toggleMute,
     setPushToTalkActive,
     isSharingScreen,

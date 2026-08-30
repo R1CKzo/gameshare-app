@@ -45,6 +45,8 @@ export const changelog: ChangelogEntry[] = [
       "Controle parental (Configurações > Privacidade e Segurança), com email de um responsável",
       "Com o controle ativo, entrar em servidor ou aceitar amizade exige autorização por código do responsável",
       "Quem estava com \"Permitir versões beta\" ligado é desligado automaticamente ao abrir essa versão — é só ligar de novo pra continuar testando o que ainda está em beta",
+      "Clicar num canal de voz já entra na chamada na hora (pergunta antes se você já estava em outra)",
+      "Indicador de \"Conectando...\"/\"Voz conectada\" mostra exatamente quando sua voz já está no ar",
     ],
     betaFeatures: [
       "Novo estilo de interface: \"liquid glass\" (Configurações > Beta), continua em teste",
