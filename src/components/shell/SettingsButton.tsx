@@ -660,6 +660,12 @@ function eventToAccelerator(e: React.KeyboardEvent): string | null {
 function AtalhosTab() {
   const [shortcuts, setShortcutsState] = useState<ShortcutBindings>(DEFAULT_SHORTCUTS);
   const [capturing, setCapturing] = useState<keyof ShortcutBindings | null>(null);
+  // So pra avisar quando a tecla apertada nao serve (ver eventToAccelerator)
+  // -- sem isso, apertar so uma letra sem segurar Ctrl/Alt/Shift nao dava
+  // erro nenhum nem mudava nada na tela, parecia que o campo tinha travado
+  // (atalho global PRECISA de um modificador, senao capturaria toda letra
+  // digitada em qualquer app do sistema).
+  const [captureError, setCaptureError] = useState(false);
   const [overlayEnabled, setOverlayEnabledState] = useState(true);
 
   useEffect(() => {
@@ -670,7 +676,11 @@ function AtalhosTab() {
   async function handleCapture(name: keyof ShortcutBindings, e: React.KeyboardEvent) {
     e.preventDefault();
     const accelerator = eventToAccelerator(e);
-    if (!accelerator) return;
+    if (!accelerator) {
+      setCaptureError(true);
+      return;
+    }
+    setCaptureError(false);
     const next = { ...shortcuts, [name]: accelerator };
     setShortcutsState(next);
     setCapturing(null);
@@ -680,7 +690,8 @@ function AtalhosTab() {
   return (
     <div className="space-y-4">
       <p className="text-xs text-dim">
-        Funcionam mesmo com outra janela (ex: um jogo) em foco. Clique num atalho e aperte a combinação desejada.
+        Funcionam mesmo com outra janela (ex: um jogo) em foco. Clique num atalho e aperte a combinação desejada
+        (precisa incluir Ctrl, Alt ou Shift).
       </p>
       {(Object.keys(SHORTCUT_LABELS) as (keyof ShortcutBindings)[]).map((name) => (
         <div key={name} className="flex items-center justify-between gap-3 rounded-xl bg-elevated/60 p-3.5">
@@ -688,15 +699,27 @@ function AtalhosTab() {
           <button
             type="button"
             onKeyDown={(e) => handleCapture(name, e)}
-            onClick={() => setCapturing(name)}
-            onBlur={() => setCapturing(null)}
+            onClick={() => {
+              setCapturing(name);
+              setCaptureError(false);
+            }}
+            onBlur={() => {
+              setCapturing(null);
+              setCaptureError(false);
+            }}
             className={`min-w-[160px] rounded-lg border px-3 py-2 text-center text-xs font-bold transition ${
               capturing === name
-                ? "border-primary bg-primary/10 text-foreground"
+                ? captureError
+                  ? "border-danger bg-danger/10 text-danger"
+                  : "border-primary bg-primary/10 text-foreground"
                 : "border-border text-muted hover:text-foreground-secondary"
             }`}
           >
-            {capturing === name ? "Pressione a combinação..." : shortcuts[name].replace("CommandOrControl", "Ctrl")}
+            {capturing === name
+              ? captureError
+                ? "Precisa de Ctrl, Alt ou Shift"
+                : "Pressione a combinação..."
+              : shortcuts[name].replace("CommandOrControl", "Ctrl")}
           </button>
         </div>
       ))}
