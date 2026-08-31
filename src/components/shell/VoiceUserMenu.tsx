@@ -55,11 +55,17 @@ export function VoiceUserMenu({
 
   return (
     <>
+      {/* display:contents faria o botao nao gerar caixa nenhuma, e
+      getBoundingClientRect() (usado pra posicionar o menu, ver
+      useFloatingMenu) devolve tudo zerado nesse caso -- por isso o menu
+      abria sempre no canto da tela em vez de perto do avatar clicado.
+      "shrink-0" so evita que o botao normal (inline-block) empurre o
+      layout do resto da linha. */}
       <button
         ref={buttonRef}
         onClick={toggleOpen}
         aria-label={`Opções de ${label}`}
-        className="contents"
+        className="block shrink-0 rounded-full border-0 bg-transparent p-0"
       >
         {children}
       </button>
