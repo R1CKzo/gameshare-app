@@ -470,22 +470,49 @@ export function useVoiceMesh({
     async function setup() {
       try {
         const settings = loadAudioSettings();
-        const rawStream = await navigator.mediaDevices.getUserMedia({ audio: getMicConstraints(settings) });
-        if (cancelled) {
-          rawStream.getTracks().forEach((t) => t.stop());
-          return;
+
+        // O microfone (getUserMedia + AudioWorklet, mais pesado com
+        // RNNoise ligado) e a sinalizacao do PeerJS (abrir o WebSocket com
+        // o broker) sao independentes -- rodar em paralelo em vez de em
+        // sequencia adianta a conexao de sinalizacao em vez de deixar ela
+        // esperando o audio ficar pronto pra so entao comecar. allSettled
+        // (nao all) de proposito: se um dos dois falhar, o outro pode ja
+        // ter aberto recurso de verdade (peer conectado, ou mic aberto) que
+        // precisa ser fechado explicitamente, senao vazava conexao/mic
+        // aberto sem ninguem usar.
+        const [micResult, peerResult] = await Promise.allSettled([
+          (async () => {
+            const rawStream = await navigator.mediaDevices.getUserMedia({ audio: getMicConstraints(settings) });
+            // RNNoise assume taxa de amostragem de 48kHz -- forcar isso
+            // aqui garante que o modelo processa direito mesmo em
+            // maquinas cujo dispositivo de audio padrao roda em outra
+            // taxa.
+            const audioContext = new AudioContext({ sampleRate: 48000 });
+            const threshold = sensitivityToGateThreshold(settings.sensitivity);
+            const useRnnoise = settings.noiseSuppression && settings.noiseSuppressionModel === "rnnoise";
+            const gate = await createMicPipeline(audioContext, rawStream, threshold, useRnnoise);
+            return { rawStream, audioContext, gate };
+          })(),
+          createPeer(),
+        ]);
+
+        if (micResult.status === "rejected") {
+          if (peerResult.status === "fulfilled") peerResult.value.destroy();
+          throw micResult.reason;
+        }
+        if (peerResult.status === "rejected") {
+          micResult.value.rawStream.getTracks().forEach((t) => t.stop());
+          micResult.value.audioContext.close().catch(() => {});
+          throw peerResult.reason;
         }
 
-        // RNNoise assume taxa de amostragem de 48kHz -- forcar isso aqui
-        // garante que o modelo processa direito mesmo em maquinas cujo
-        // dispositivo de audio padrao roda em outra taxa.
-        const audioContext = new AudioContext({ sampleRate: 48000 });
-        const threshold = sensitivityToGateThreshold(settings.sensitivity);
-        const useRnnoise = settings.noiseSuppression && settings.noiseSuppressionModel === "rnnoise";
-        const gate = await createMicPipeline(audioContext, rawStream, threshold, useRnnoise);
+        const { rawStream, audioContext, gate } = micResult.value;
+        const peer = peerResult.value;
+
         if (cancelled) {
           rawStream.getTracks().forEach((t) => t.stop());
           audioContext.close().catch(() => {});
+          peer.destroy();
           return;
         }
         micProcessingRef.current = { audioContext, rawStream };
@@ -512,11 +539,6 @@ export function useVoiceMesh({
         outgoingStreamRef.current = outgoing;
         setLocalStream(new MediaStream([micTrack, videoTrack]));
 
-        const peer = await createPeer();
-        if (cancelled) {
-          peer.destroy();
-          return;
-        }
         peerRef.current = peer;
 
         peer.on("open", (peerId) => {
