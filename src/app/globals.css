@@ -339,3 +339,15 @@ html *::-webkit-scrollbar-corner {
     animation: none;
   }
 }
+
+/* Pitch + guia de instalação da tela de login (ver LandingPage em
+   src/app/page.tsx) -- so faz sentido pra quem esta acessando pelo
+   navegador, escolhendo se baixa o app; quem ja esta DENTRO do app de
+   desktop nao precisa ver "como baixar/instalar" o proprio app que ja
+   esta usando. data-desktop-titlebar e ligado sincrono (antes da
+   primeira pintura, ver THEME_INIT_SCRIPT em layout.tsx) sempre que o
+   boot e do app de desktop -- reaproveitado aqui pra esconder essa
+   secao sem nenhum flash. */
+html[data-desktop-titlebar="true"] .browser-only {
+  display: none;
+}
