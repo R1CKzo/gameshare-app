@@ -950,17 +950,6 @@ async function fetchWithRetry(url, attempts = 3) {
   throw lastErr;
 }
 
-// Mensagem de erro curta e util (nao so "deu errado") -- sem isso, rede
-// bloqueada, disco cheio, antivirus barrando o arquivo e um site fora do
-// ar mostravam exatamente o mesmo aviso genérico pra pessoa, impossivel de
-// diferenciar sem abrir o log.
-function describeErr(err) {
-  if (!err) return "";
-  if (err.code) return ` (${err.code})`;
-  if (err.message) return ` (${err.message.slice(0, 80)})`;
-  return "";
-}
-
 async function downloadAndInstallPatch() {
   const patch = await checkForPatch().catch((err) => {
     log.error("[patch] falha ao checar atualizacao antes de instalar", err);
@@ -975,7 +964,7 @@ async function downloadAndInstallPatch() {
     res = await fetchWithRetry(patch.downloadUrl);
   } catch (err) {
     log.error("[patch] falha ao baixar depois de repetir", err);
-    return { ok: false, error: `Não foi possível baixar a atualização.${describeErr(err)} Tente de novo mais tarde.` };
+    return { ok: false, error: `Não foi possível baixar a atualização. Tente de novo mais tarde.` };
   }
 
   // Numa rede fraca o download pode "terminar" (res.ok) mas vir cortado no
@@ -995,7 +984,7 @@ async function downloadAndInstallPatch() {
     fs.writeFileSync(dest, buffer);
   } catch (err) {
     log.error("[patch] falha ao salvar o instalador em disco", err);
-    return { ok: false, error: `Não foi possível salvar a atualização no disco.${describeErr(err)} Tente de novo mais tarde.` };
+    return { ok: false, error: `Não foi possível salvar a atualização no disco. Tente de novo mais tarde.` };
   }
 
   return await new Promise((resolve) => {
@@ -1005,7 +994,7 @@ async function downloadAndInstallPatch() {
     const child = spawn(dest, [], { detached: true, stdio: "ignore" });
     child.once("error", (err) => {
       log.error("[patch] instalador nao abriu", err);
-      resolve({ ok: false, error: `Não foi possível abrir o instalador.${describeErr(err)} Tente de novo mais tarde.` });
+      resolve({ ok: false, error: `Não foi possível abrir o instalador. Tente de novo mais tarde.` });
     });
     child.once("spawn", () => {
       child.unref();
