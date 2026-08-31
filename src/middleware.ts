@@ -1,7 +1,17 @@
 import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
-export default withAuth(
+// Liga na mao (e desliga na mao, editando essa linha) quando o banco
+// (Neon) estiver fora do ar de verdade -- ver conversa que motivou isso:
+// limite de transferencia do plano estourado bloqueia toda conexao com o
+// banco, e sem essa tela qualquer pagina normal (login, servidor, etc)
+// quebrava tentando consultar o banco morto. A tela de manutencao em si
+// e 100% estatica, nao toca no banco nem na sessao.
+const MAINTENANCE_MODE = true;
+
+const PROTECTED_PREFIXES = ["/setup", "/servers", "/invite", "/friends", "/dms", "/admin", "/novidades"];
+
+const authMiddleware = withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
@@ -27,10 +37,28 @@ export default withAuth(
   }
 );
 
-// Protege apenas as rotas que exigem usuario autenticado + nickname definido.
-// "/" fica de fora de proposito: e a landing publica e ela mesma decide,
-// no server component, para onde mandar o usuario (evita loop de redirect
-// com pages.signIn = "/").
+export default function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  if (MAINTENANCE_MODE) {
+    if (pathname === "/manutencao") return NextResponse.next();
+    return NextResponse.rewrite(new URL("/manutencao", req.url));
+  }
+
+  // Fora do modo manutencao, so aplica a checagem de sessao/nickname nas
+  // rotas que sempre exigiram isso -- as demais (incluindo "/", a landing
+  // publica) passam direto, igual sempre foi.
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  if (!isProtected) return NextResponse.next();
+
+  return (authMiddleware as (req: NextRequest) => NextResponse)(req);
+}
+
+// Matcher agora cobre praticamente tudo (menos assets/API) so pra tela de
+// manutencao conseguir interceptar QUALQUER pagina, incluindo "/" -- a
+// funcao acima e quem decide, rota a rota, se aplica a checagem de sessao
+// de verdade ou so deixa passar (comportamento identico ao de antes
+// quando MAINTENANCE_MODE esta desligado).
 export const config = {
-  matcher: ["/setup", "/servers/:path*", "/invite/:path*", "/friends", "/dms/:path*", "/admin/:path*", "/novidades"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };
