@@ -60,6 +60,12 @@ type ActiveCallContextValue = {
   leaveBroadcast: () => void;
   getVolumeFor: (userId: string) => number;
   setVolumeFor: (userId: string, volume: number) => void;
+  // Volume da VOZ de cada pessoa (0-200%) e mudo local -- so pra mim, os
+  // outros participantes nao percebem nada (ver VoiceUserMenu.tsx).
+  getMicVolumeFor: (userId: string) => number;
+  setMicVolumeFor: (userId: string, volume: number) => void;
+  isLocallyMuted: (userId: string) => boolean;
+  toggleLocalMute: (userId: string) => void;
   micError: string | null;
   callError: string | null;
   setCallError: (error: string | null) => void;
@@ -71,6 +77,8 @@ type ActiveCallContextValue = {
 };
 
 const DEFAULT_BROADCAST_VOLUME = 100;
+const DEFAULT_MIC_VOLUME = 100;
+const MAX_MIC_VOLUME = 200;
 
 const ActiveCallContext = createContext<ActiveCallContextValue | null>(null);
 
@@ -95,6 +103,11 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
   const [isWatchingBroadcast, setIsWatchingBroadcast] = useState(false);
   const [volumes, setVolumes] = useState<Map<string, number>>(new Map());
   const [isDeafened, setIsDeafened] = useState(false);
+  // Volume da VOZ de cada pessoa (0-200%, so pra mim -- os outros nao
+  // percebem nada) e quem eu silenciei localmente (idem, so do meu lado).
+  // Separado do "volumes" acima, que e so da transmissao de tela.
+  const [micVolumes, setMicVolumes] = useState<Map<string, number>>(new Map());
+  const [locallyMutedIds, setLocallyMutedIds] = useState<Set<string>>(new Set());
 
   const mesh = useVoiceMesh({
     apiBase: target?.apiBase ?? "",
@@ -150,6 +163,20 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
   const getVolumeFor = useCallback((userId: string) => volumes.get(userId) ?? DEFAULT_BROADCAST_VOLUME, [volumes]);
   const setVolumeFor = useCallback((userId: string, volume: number) => {
     setVolumes((prev) => new Map(prev).set(userId, volume));
+  }, []);
+
+  const getMicVolumeFor = useCallback((userId: string) => micVolumes.get(userId) ?? DEFAULT_MIC_VOLUME, [micVolumes]);
+  const setMicVolumeFor = useCallback((userId: string, volume: number) => {
+    setMicVolumes((prev) => new Map(prev).set(userId, Math.max(0, Math.min(MAX_MIC_VOLUME, volume))));
+  }, []);
+  const isLocallyMuted = useCallback((userId: string) => locallyMutedIds.has(userId), [locallyMutedIds]);
+  const toggleLocalMute = useCallback((userId: string) => {
+    setLocallyMutedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -377,6 +404,10 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
         leaveBroadcast,
         getVolumeFor,
         setVolumeFor,
+        getMicVolumeFor,
+        setMicVolumeFor,
+        isLocallyMuted,
+        toggleLocalMute,
         micError: mesh.micError,
         callError,
         setCallError,

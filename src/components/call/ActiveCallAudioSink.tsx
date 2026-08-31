@@ -14,7 +14,16 @@ import type { RemotePeerTracks } from "@/hooks/useVoiceMesh";
 // recebido — dava a impressao de ter saido da call mesmo continuando
 // conectado.
 export function ActiveCallAudioSink() {
-  const { remoteStreams, present, sharingUserId, isWatchingBroadcast, getVolumeFor, isDeafened } = useActiveCall();
+  const {
+    remoteStreams,
+    present,
+    sharingUserId,
+    isWatchingBroadcast,
+    getVolumeFor,
+    getMicVolumeFor,
+    isLocallyMuted,
+    isDeafened,
+  } = useActiveCall();
 
   const sharerPeerId = sharingUserId ? present.find((u) => u.id === sharingUserId)?.peerId ?? null : null;
 
@@ -26,9 +35,10 @@ export function ActiveCallAudioSink() {
           <RemoteAudio
             key={peerId}
             tracks={tracks}
-            playMic={!isDeafened}
+            playMic={!isDeafened && !(userId && isLocallyMuted(userId))}
             playBroadcast={!isDeafened && isWatchingBroadcast && peerId === sharerPeerId}
             volume={userId ? getVolumeFor(userId) : 100}
+            micVolume={userId ? getMicVolumeFor(userId) : 100}
           />
         );
       })}
@@ -41,14 +51,17 @@ function RemoteAudio({
   playMic,
   playBroadcast,
   volume,
+  micVolume,
 }: {
   tracks: RemotePeerTracks;
   playMic: boolean;
   playBroadcast: boolean;
   volume: number;
+  micVolume: number;
 }) {
-  const micRef = useRef<HTMLAudioElement>(null);
   const broadcastRef = useRef<HTMLAudioElement>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
   // Faixa isolada (nao a stream inteira, que agora tem mic + video +
   // transmissao juntos vindo de useVoiceMesh) -- a voz toca pra todo
   // mundo (a menos que eu tenha me silenciado geral -- ver isDeafened em
@@ -60,26 +73,35 @@ function RemoteAudio({
     [tracks.broadcastTrack],
   );
 
+  // A voz toca via Web Audio (GainNode) em vez de <audio>.volume -- o
+  // volume de elemento de audio trava em 100% (o navegador recusa valor
+  // maior), e o "Volume do usuario" no menu de cada pessoa (ver
+  // VoiceUserMenu.tsx) precisa amplificar ate 200%.
   useEffect(() => {
-    const el = micRef.current;
-    if (!el || !micStream) return;
-    el.srcObject = micStream;
+    if (!micStream) return;
+    const ctx = new AudioContext();
+    const gain = ctx.createGain();
+    const source = ctx.createMediaStreamSource(micStream);
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    audioCtxRef.current = ctx;
+    gainRef.current = gain;
+    ctx.resume().catch((err) => {
+      console.error("[ActiveCallAudioSink] resume() da voz falhou:", err);
+    });
+    return () => {
+      source.disconnect();
+      gain.disconnect();
+      ctx.close().catch(() => {});
+      audioCtxRef.current = null;
+      gainRef.current = null;
+    };
   }, [micStream]);
 
   useEffect(() => {
-    const el = micRef.current;
-    if (!el) return;
-    if (playMic) {
-      // Chamando play() na mao (em vez de so confiar no autoPlay) a gente
-      // consegue ver no console se o navegador bloquear por politica de
-      // autoplay, em vez de só "sem audio, sem pista".
-      el.play().catch((err) => {
-        console.error("[ActiveCallAudioSink] play() da voz falhou:", err);
-      });
-    } else {
-      el.pause();
-    }
-  }, [playMic, micStream]);
+    if (!gainRef.current) return;
+    gainRef.current.gain.value = playMic ? Math.max(0, micVolume) / 100 : 0;
+  }, [playMic, micVolume]);
 
   useEffect(() => {
     const el = broadcastRef.current;
@@ -103,10 +125,5 @@ function RemoteAudio({
     if (broadcastRef.current) broadcastRef.current.volume = Math.max(0, Math.min(100, volume)) / 100;
   }, [volume]);
 
-  return (
-    <>
-      <audio ref={micRef} />
-      <audio ref={broadcastRef} />
-    </>
-  );
+  return <audio ref={broadcastRef} />;
 }
