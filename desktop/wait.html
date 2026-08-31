@@ -27,6 +27,18 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   h1 { font-size: 18px; font-weight: 700; margin: 0 0 8px; }
   p { font-size: 14px; color: #9aa0ae; line-height: 1.5; margin: 0; }
+  button {
+    margin-top: 20px;
+    background: transparent;
+    border: 1px solid #2a2d38;
+    color: #9aa0ae;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  button:hover { border-color: #7c3aed; color: #f5f5f7; }
 </style>
 </head>
 <body>
@@ -34,6 +46,12 @@
     <div class="spinner"></div>
     <h1>Continuando no seu navegador</h1>
     <p>Abrimos o login do Google numa aba do seu navegador. Termine o login por la — essa janela continua sozinha assim que voce confirmar.</p>
+    <button id="cancel">Cancelar</button>
   </div>
+  <script>
+    document.getElementById("cancel").addEventListener("click", () => {
+      window.gameshareDesktop?.cancelDesktopLogin?.();
+    });
+  </script>
 </body>
 </html>

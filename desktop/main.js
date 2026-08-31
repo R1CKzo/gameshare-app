@@ -663,6 +663,18 @@ function startDesktopLogin() {
   }, 2000);
 }
 
+// Botao "Cancelar" da tela de espera (wait.html) -- sem isso, desistir do
+// login do Google (fechar a aba, ou so nao terminar) deixava a pessoa
+// presa nessa tela ate o timeout de 10 minutos, sem nenhum jeito de
+// voltar antes disso.
+ipcMain.on("desktop-login:cancel", () => {
+  if (loginPollInterval) {
+    clearInterval(loginPollInterval);
+    loginPollInterval = null;
+  }
+  mainWindow?.loadURL(APP_URL);
+});
+
 // --- Fatia de teste da interface embutida (Fase 2 do plano de app nativo) ---
 // So roda quando DEBUG_UI e verdadeiro (ver definicao acima) — nada disso
 // afeta a janela principal nem o app publicado.

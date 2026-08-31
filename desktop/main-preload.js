@@ -5,8 +5,11 @@ const { contextBridge, ipcRenderer } = require("electron");
 // pelo protocolo gameshare-app:// — ver main.js) — mesmo sendo raro (o
 // main.js ja intercepta navegacao pra fora), evita que essa API fique
 // acessivel se por algum motivo essa janela acabar carregando outra
-// origem.
-const ALLOWED_ORIGINS = ["https://gameshare-app.vercel.app", "gameshare-app://local"];
+// origem. "file://" cobre so o wait.html/splash.html que a gente mesmo
+// empacota (ver mainWindow.loadFile em main.js) -- nada externo consegue
+// fazer essa janela navegar pra um file:// (o navegador ja bloqueia
+// https -> file), entao continua tao restrito quanto os outros dois.
+const ALLOWED_ORIGINS = ["https://gameshare-app.vercel.app", "gameshare-app://local", "file://"];
 
 if (ALLOWED_ORIGINS.includes(location.origin)) {
   contextBridge.exposeInMainWorld("gameshareDesktop", {
@@ -125,5 +128,8 @@ if (ALLOWED_ORIGINS.includes(location.origin)) {
       ipcRenderer.on("overlay:state", listener);
       return () => ipcRenderer.removeListener("overlay:state", listener);
     },
+
+    // Botao "Cancelar" da tela de espera do login do Google (wait.html).
+    cancelDesktopLogin: () => ipcRenderer.send("desktop-login:cancel"),
   });
 }
