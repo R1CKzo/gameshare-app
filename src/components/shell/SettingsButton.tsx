@@ -689,10 +689,7 @@ function AtalhosTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-dim">
-        Funcionam mesmo com outra janela (ex: um jogo) em foco. Clique num atalho e aperte a combinação desejada
-        (precisa incluir Ctrl, Alt ou Shift).
-      </p>
+      <p className="text-xs text-dim">Clique num atalho e aperte a combinação (precisa de Ctrl, Alt ou Shift).</p>
       {(Object.keys(SHORTCUT_LABELS) as (keyof ShortcutBindings)[]).map((name) => (
         <div key={name} className="flex items-center justify-between gap-3 rounded-xl bg-elevated/60 p-3.5">
           <span className="text-sm font-semibold text-foreground">{SHORTCUT_LABELS[name]}</span>
@@ -840,10 +837,7 @@ function AudioTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-dim">
-        Aplicado no seu microfone da próxima vez que você entrar numa chamada. Só afeta seu próprio áudio, cada
-        pessoa configura o dela.
-      </p>
+      <p className="text-xs text-dim">Vale só pra você, a partir da próxima chamada.</p>
 
       <div>
         <label htmlFor="mic-device" className="mb-2 block text-xs font-bold tracking-wide text-muted">
