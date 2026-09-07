@@ -7,7 +7,7 @@ import { type NextRequest, NextResponse } from "next/server";
 // banco, e sem essa tela qualquer pagina normal (login, servidor, etc)
 // quebrava tentando consultar o banco morto. A tela de manutencao em si
 // e 100% estatica, nao toca no banco nem na sessao.
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 const PROTECTED_PREFIXES = ["/setup", "/servers", "/invite", "/friends", "/dms", "/admin", "/novidades"];
 
