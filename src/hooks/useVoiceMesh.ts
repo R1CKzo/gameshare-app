@@ -2,7 +2,7 @@ import type { MediaConnection, default as Peer } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RnnoiseWorkletNode as RnnoiseWorkletNodeType } from "@sapphi-red/web-noise-suppressor";
 
-import { getMicConstraints, loadAudioSettings, sensitivityToGateThreshold } from "@/lib/audioSettings";
+import { getMicConstraints, loadAudioSettings, saveAudioSettings, sensitivityToGateThreshold } from "@/lib/audioSettings";
 import {
   onSystemAudioChunk,
   parseWindowHandle,
@@ -482,7 +482,29 @@ export function useVoiceMesh({
         // aberto sem ninguem usar.
         const [micResult, peerResult] = await Promise.allSettled([
           (async () => {
-            const rawStream = await navigator.mediaDevices.getUserMedia({ audio: getMicConstraints(settings) });
+            let rawStream: MediaStream;
+            try {
+              rawStream = await navigator.mediaDevices.getUserMedia({ audio: getMicConstraints(settings) });
+            } catch (err) {
+              // O microfone salvo (deviceId exact) pode ter sumido -- outro
+              // computador, dispositivo desconectado, driver trocado, etc.
+              // Sem esse fallback, getUserMedia falha com
+              // OverconstrainedError e a pessoa fica presa em "Conectando..."
+              // pra sempre, sem nenhum jeito de entrar na chamada de novo
+              // sem abrir Configuracoes e trocar o microfone na mao. Cai pro
+              // padrao do sistema so nesse caso (deviceId invalido), nunca
+              // silencia outros erros de verdade (permissao negada, etc).
+              if (!settings.deviceId || (err as DOMException)?.name !== "OverconstrainedError") throw err;
+              rawStream = await navigator.mediaDevices.getUserMedia({
+                audio: getMicConstraints({ ...settings, deviceId: null }),
+              });
+              // Limpa o deviceId salvo -- sem isso a pessoa cairia nesse
+              // mesmo fallback (e no mesmo tempo perdido tentando o
+              // dispositivo morto primeiro) toda vez que entrasse numa
+              // chamada, pra sempre.
+              settings.deviceId = null;
+              saveAudioSettings(settings);
+            }
             // RNNoise assume taxa de amostragem de 48kHz -- forcar isso
             // aqui garante que o modelo processa direito mesmo em
             // maquinas cujo dispositivo de audio padrao roda em outra
